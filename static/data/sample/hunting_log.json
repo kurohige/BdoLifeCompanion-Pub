@@ -1,0 +1,138 @@
+[
+  {
+    "id": "hunt-001",
+    "timestamp": "2026-03-19T11:00:00.000Z",
+    "spotId": "blue_whale",
+    "spotName": "Blue Whale",
+    "durationSeconds": 2700,
+    "loot": [
+      { "itemId": "blue_whale_molar", "itemName": "Blue Whale Molar", "count": 2, "value": 5200000 },
+      { "itemId": "blue_whale_tendon", "itemName": "Blue Whale Tendon", "count": 18, "value": 890000 },
+      { "itemId": "blue_whale_oil", "itemName": "Blue Whale Oil", "count": 45, "value": 320000 },
+      { "itemId": "ocean_sapphire", "itemName": "Ocean Sapphire", "count": 1, "value": 28000000 }
+    ],
+    "mastery": 1250,
+    "matchlockTier": "tet",
+    "butcheringKnife": "tri"
+  },
+  {
+    "id": "hunt-002",
+    "timestamp": "2026-03-18T15:30:00.000Z",
+    "spotId": "khalk",
+    "spotName": "Khalkcatcher Mountain",
+    "durationSeconds": 3600,
+    "loot": [
+      { "itemId": "khalk_hide", "itemName": "Khalk Hide", "count": 8, "value": 2100000 },
+      { "itemId": "khalk_claw", "itemName": "Khalk Claw", "count": 12, "value": 1350000 },
+      { "itemId": "hard_black_crystal_shard", "itemName": "Hard Black Crystal Shard", "count": 5, "value": 950000 }
+    ],
+    "mastery": 1250,
+    "matchlockTier": "tet",
+    "butcheringKnife": "tri"
+  },
+  {
+    "id": "hunt-003",
+    "timestamp": "2026-03-17T09:00:00.000Z",
+    "spotId": "blue_whale",
+    "spotName": "Blue Whale",
+    "durationSeconds": 3000,
+    "loot": [
+      { "itemId": "blue_whale_molar", "itemName": "Blue Whale Molar", "count": 3, "value": 5200000 },
+      { "itemId": "blue_whale_tendon", "itemName": "Blue Whale Tendon", "count": 22, "value": 890000 },
+      { "itemId": "blue_whale_oil", "itemName": "Blue Whale Oil", "count": 58, "value": 320000 }
+    ],
+    "mastery": 1200,
+    "matchlockTier": "tet",
+    "butcheringKnife": "tri"
+  },
+  {
+    "id": "hunt-004",
+    "timestamp": "2026-03-16T13:45:00.000Z",
+    "spotId": "feather_wolves",
+    "spotName": "Feather Wolves",
+    "durationSeconds": 4500,
+    "loot": [
+      { "itemId": "wolf_hide", "itemName": "Wolf Hide", "count": 85, "value": 145000 },
+      { "itemId": "sharp_fang", "itemName": "Sharp Fang", "count": 32, "value": 380000 },
+      { "itemId": "wolf_meat", "itemName": "Wolf Meat", "count": 120, "value": 42000 }
+    ],
+    "mastery": 1200,
+    "matchlockTier": "tri",
+    "butcheringKnife": "duo"
+  },
+  {
+    "id": "hunt-005",
+    "timestamp": "2026-03-15T17:20:00.000Z",
+    "spotId": "blue_whale",
+    "spotName": "Blue Whale",
+    "durationSeconds": 2400,
+    "loot": [
+      { "itemId": "blue_whale_molar", "itemName": "Blue Whale Molar", "count": 1, "value": 5200000 },
+      { "itemId": "blue_whale_tendon", "itemName": "Blue Whale Tendon", "count": 15, "value": 890000 },
+      { "itemId": "blue_whale_oil", "itemName": "Blue Whale Oil", "count": 38, "value": 320000 }
+    ],
+    "mastery": 1200,
+    "matchlockTier": "tri",
+    "butcheringKnife": "duo"
+  },
+  {
+    "id": "hunt-006",
+    "timestamp": "2026-03-14T08:30:00.000Z",
+    "spotId": "khalk",
+    "spotName": "Khalkcatcher Mountain",
+    "durationSeconds": 4200,
+    "loot": [
+      { "itemId": "khalk_hide", "itemName": "Khalk Hide", "count": 11, "value": 2100000 },
+      { "itemId": "khalk_claw", "itemName": "Khalk Claw", "count": 16, "value": 1350000 },
+      { "itemId": "hard_black_crystal_shard", "itemName": "Hard Black Crystal Shard", "count": 8, "value": 950000 }
+    ],
+    "mastery": 1180,
+    "matchlockTier": "tri",
+    "butcheringKnife": "duo"
+  },
+  {
+    "id": "hunt-007",
+    "timestamp": "2026-03-12T20:00:00.000Z",
+    "spotId": "blue_whale",
+    "spotName": "Blue Whale",
+    "durationSeconds": 3300,
+    "loot": [
+      { "itemId": "blue_whale_molar", "itemName": "Blue Whale Molar", "count": 2, "value": 5200000 },
+      { "itemId": "blue_whale_tendon", "itemName": "Blue Whale Tendon", "count": 20, "value": 890000 },
+      { "itemId": "blue_whale_oil", "itemName": "Blue Whale Oil", "count": 52, "value": 320000 },
+      { "itemId": "ocean_sapphire", "itemName": "Ocean Sapphire", "count": 1, "value": 28000000 }
+    ],
+    "mastery": 1180,
+    "matchlockTier": "tri",
+    "butcheringKnife": "duo"
+  },
+  {
+    "id": "hunt-008",
+    "timestamp": "2026-03-10T12:15:00.000Z",
+    "spotId": "feather_wolves",
+    "spotName": "Feather Wolves",
+    "durationSeconds": 3600,
+    "loot": [
+      { "itemId": "wolf_hide", "itemName": "Wolf Hide", "count": 72, "value": 145000 },
+      { "itemId": "sharp_fang", "itemName": "Sharp Fang", "count": 25, "value": 380000 },
+      { "itemId": "wolf_meat", "itemName": "Wolf Meat", "count": 95, "value": 42000 }
+    ],
+    "mastery": 1150,
+    "matchlockTier": "tri",
+    "butcheringKnife": "duo"
+  },
+  {
+    "id": "hunt-009",
+    "timestamp": "2026-03-07T16:00:00.000Z",
+    "spotId": "khalk",
+    "spotName": "Khalkcatcher Mountain",
+    "durationSeconds": 5400,
+    "loot": [
+      { "itemId": "khalk_hide", "itemName": "Khalk Hide", "count": 14, "value": 2100000 },
+      { "itemId": "khalk_claw", "itemName": "Khalk Claw", "count": 19, "value": 1350000 },
+      { "itemId": "hard_black_crystal_shard", "itemName": "Hard Black Crystal Shard", "count": 11, "value": 950000 }
+    ],
+    "mastery": 1150,
+    "matchlockTier": "tri"
+  }
+]

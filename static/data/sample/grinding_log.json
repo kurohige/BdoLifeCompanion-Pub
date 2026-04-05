@@ -1,0 +1,172 @@
+[
+  {
+    "id": "grind-001",
+    "timestamp": "2026-03-19T14:30:00.000Z",
+    "spotId": "gyfin_rhasia",
+    "spotName": "Gyfin Rhasia",
+    "durationSeconds": 7200,
+    "loot": [
+      { "itemId": "caphras_stone", "itemName": "Caphras Stone", "count": 142, "value": 3200000 },
+      { "itemId": "black_stone_weapon", "itemName": "Black Stone (Weapon)", "count": 87, "value": 220000 },
+      { "itemId": "ancient_spirit_dust", "itemName": "Ancient Spirit Dust", "count": 234, "value": 52000 },
+      { "itemId": "scroll_written_in_ancient_language", "itemName": "Scroll Written in Ancient Language", "count": 12, "value": 5100000 }
+    ],
+    "ap": 289,
+    "dp": 371
+  },
+  {
+    "id": "grind-002",
+    "timestamp": "2026-03-18T20:15:00.000Z",
+    "spotId": "ash_forest",
+    "spotName": "Ash Forest",
+    "durationSeconds": 5400,
+    "loot": [
+      { "itemId": "caphras_stone", "itemName": "Caphras Stone", "count": 98, "value": 3200000 },
+      { "itemId": "black_stone_armor", "itemName": "Black Stone (Armor)", "count": 63, "value": 190000 },
+      { "itemId": "flame_of_despair", "itemName": "Flame of Despair", "count": 4, "value": 18500000 }
+    ],
+    "ap": 289,
+    "dp": 371
+  },
+  {
+    "id": "grind-003",
+    "timestamp": "2026-03-18T10:00:00.000Z",
+    "spotId": "thornwood_forest",
+    "spotName": "Thornwood Forest",
+    "durationSeconds": 6600,
+    "loot": [
+      { "itemId": "caphras_stone", "itemName": "Caphras Stone", "count": 115, "value": 3200000 },
+      { "itemId": "black_stone_weapon", "itemName": "Black Stone (Weapon)", "count": 72, "value": 220000 },
+      { "itemId": "map_of_unknown_piece", "itemName": "Map of Unknown Piece", "count": 1, "value": 95000000 }
+    ],
+    "ap": 289,
+    "dp": 371
+  },
+  {
+    "id": "grind-004",
+    "timestamp": "2026-03-17T16:45:00.000Z",
+    "spotId": "gyfin_rhasia",
+    "spotName": "Gyfin Rhasia",
+    "durationSeconds": 7800,
+    "loot": [
+      { "itemId": "caphras_stone", "itemName": "Caphras Stone", "count": 168, "value": 3200000 },
+      { "itemId": "black_stone_weapon", "itemName": "Black Stone (Weapon)", "count": 91, "value": 220000 },
+      { "itemId": "ancient_spirit_dust", "itemName": "Ancient Spirit Dust", "count": 289, "value": 52000 },
+      { "itemId": "scroll_written_in_ancient_language", "itemName": "Scroll Written in Ancient Language", "count": 15, "value": 5100000 }
+    ],
+    "ap": 289,
+    "dp": 371
+  },
+  {
+    "id": "grind-005",
+    "timestamp": "2026-03-16T22:00:00.000Z",
+    "spotId": "ash_forest",
+    "spotName": "Ash Forest",
+    "durationSeconds": 3600,
+    "loot": [
+      { "itemId": "caphras_stone", "itemName": "Caphras Stone", "count": 65, "value": 3200000 },
+      { "itemId": "black_stone_armor", "itemName": "Black Stone (Armor)", "count": 41, "value": 190000 },
+      { "itemId": "flame_of_despair", "itemName": "Flame of Despair", "count": 2, "value": 18500000 }
+    ],
+    "ap": 285,
+    "dp": 368
+  },
+  {
+    "id": "grind-006",
+    "timestamp": "2026-03-15T19:30:00.000Z",
+    "spotId": "hexe_marie",
+    "spotName": "Hexe Marie",
+    "durationSeconds": 4200,
+    "loot": [
+      { "itemId": "forbidden_book", "itemName": "Forbidden Book", "count": 38, "value": 1450000 },
+      { "itemId": "black_stone_weapon", "itemName": "Black Stone (Weapon)", "count": 55, "value": 220000 },
+      { "itemId": "witch_earring", "itemName": "Witch's Earring", "count": 3, "value": 12800000 }
+    ],
+    "ap": 285,
+    "dp": 368
+  },
+  {
+    "id": "grind-007",
+    "timestamp": "2026-03-14T15:00:00.000Z",
+    "spotId": "gyfin_rhasia",
+    "spotName": "Gyfin Rhasia",
+    "durationSeconds": 7200,
+    "loot": [
+      { "itemId": "caphras_stone", "itemName": "Caphras Stone", "count": 137, "value": 3200000 },
+      { "itemId": "black_stone_weapon", "itemName": "Black Stone (Weapon)", "count": 82, "value": 220000 },
+      { "itemId": "ancient_spirit_dust", "itemName": "Ancient Spirit Dust", "count": 215, "value": 52000 }
+    ],
+    "ap": 285,
+    "dp": 368
+  },
+  {
+    "id": "grind-008",
+    "timestamp": "2026-03-13T11:20:00.000Z",
+    "spotId": "thornwood_forest",
+    "spotName": "Thornwood Forest",
+    "durationSeconds": 5400,
+    "loot": [
+      { "itemId": "caphras_stone", "itemName": "Caphras Stone", "count": 88, "value": 3200000 },
+      { "itemId": "black_stone_armor", "itemName": "Black Stone (Armor)", "count": 59, "value": 190000 },
+      { "itemId": "ancient_spirit_dust", "itemName": "Ancient Spirit Dust", "count": 178, "value": 52000 }
+    ],
+    "ap": 281,
+    "dp": 365
+  },
+  {
+    "id": "grind-009",
+    "timestamp": "2026-03-12T09:45:00.000Z",
+    "spotId": "oluns_valley",
+    "spotName": "Olun's Valley",
+    "durationSeconds": 9000,
+    "loot": [
+      { "itemId": "caphras_stone", "itemName": "Caphras Stone", "count": 195, "value": 3200000 },
+      { "itemId": "black_stone_weapon", "itemName": "Black Stone (Weapon)", "count": 104, "value": 220000 },
+      { "itemId": "ancient_spirit_dust", "itemName": "Ancient Spirit Dust", "count": 312, "value": 52000 },
+      { "itemId": "tungrad_earring", "itemName": "Tungrad Earring", "count": 1, "value": 42000000 }
+    ],
+    "ap": 281,
+    "dp": 365
+  },
+  {
+    "id": "grind-010",
+    "timestamp": "2026-03-10T18:00:00.000Z",
+    "spotId": "gyfin_rhasia",
+    "spotName": "Gyfin Rhasia",
+    "durationSeconds": 6000,
+    "loot": [
+      { "itemId": "caphras_stone", "itemName": "Caphras Stone", "count": 121, "value": 3200000 },
+      { "itemId": "black_stone_weapon", "itemName": "Black Stone (Weapon)", "count": 76, "value": 220000 },
+      { "itemId": "ancient_spirit_dust", "itemName": "Ancient Spirit Dust", "count": 198, "value": 52000 }
+    ],
+    "ap": 281,
+    "dp": 365
+  },
+  {
+    "id": "grind-011",
+    "timestamp": "2026-03-08T21:30:00.000Z",
+    "spotId": "ash_forest",
+    "spotName": "Ash Forest",
+    "durationSeconds": 4800,
+    "loot": [
+      { "itemId": "caphras_stone", "itemName": "Caphras Stone", "count": 79, "value": 3200000 },
+      { "itemId": "black_stone_armor", "itemName": "Black Stone (Armor)", "count": 52, "value": 190000 },
+      { "itemId": "flame_of_despair", "itemName": "Flame of Despair", "count": 3, "value": 18500000 }
+    ],
+    "ap": 278,
+    "dp": 362
+  },
+  {
+    "id": "grind-012",
+    "timestamp": "2026-03-05T14:15:00.000Z",
+    "spotId": "hexe_marie",
+    "spotName": "Hexe Marie",
+    "durationSeconds": 3600,
+    "loot": [
+      { "itemId": "forbidden_book", "itemName": "Forbidden Book", "count": 29, "value": 1450000 },
+      { "itemId": "black_stone_weapon", "itemName": "Black Stone (Weapon)", "count": 44, "value": 220000 }
+    ],
+    "ap": 278,
+    "dp": 362
+  }
+]

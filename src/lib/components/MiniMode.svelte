@@ -1,0 +1,356 @@
+<script lang="ts">
+	import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+	import { exit } from "@tauri-apps/plugin-process";
+	import {
+		setViewMode,
+		settingsStore,
+		nextBossSpawn,
+		nextBossCountdown,
+		selectedSpotStore,
+		grindingTimerStore,
+		grindingTimerDisplay,
+		activeMessagesStore,
+	} from "$lib/stores";
+	import { BOSSES } from "$lib/constants/boss-data";
+
+	const appWindow = getCurrentWindow();
+
+	// Window drag handler
+	async function startDrag(e: MouseEvent) {
+		if (e.button === 0 && !(e.target as HTMLElement).closest("button")) {
+			await appWindow.startDragging();
+		}
+	}
+
+	// Expand to medium mode
+	async function expandToMedium() {
+		await appWindow.setMinSize(new LogicalSize(140, 40));
+		await appWindow.setSize(new LogicalSize(460, 150));
+		setViewMode("medium");
+	}
+
+	// Expand to full mode — restore saved size or use default
+	async function expandToFull() {
+		const saved = $settingsStore.window_state;
+		const w = saved?.view_mode === "full" && saved?.width ? saved.width : 560;
+		const h = saved?.view_mode === "full" && saved?.height ? saved.height : 680;
+		await appWindow.setMinSize(new LogicalSize(480, 500));
+		await appWindow.setSize(new LogicalSize(w, h));
+		setViewMode("full");
+	}
+
+	// Minimize to taskbar
+	async function minimize() {
+		await appWindow.minimize();
+	}
+
+	// Close app
+	async function close() {
+		try {
+			await exit(0);
+		} catch {
+			await appWindow.close();
+		}
+	}
+
+	// Primary boss image
+	const primaryBoss = $derived(() => {
+		if (!$nextBossSpawn) return null;
+		const firstBoss = $nextBossSpawn.spawn.bosses[0];
+		return BOSSES[firstBoss] ?? null;
+	});
+
+	// Boss names (supports multi-boss: "Kzarka & Karanda")
+	const bossNames = $derived(
+		$nextBossSpawn
+			? $nextBossSpawn.spawn.bosses
+					.map((id) => BOSSES[id]?.name ?? id)
+					.join(" & ")
+			: ""
+	);
+
+	// Multi-boss count badge
+	const extraBossCount = $derived(
+		$nextBossSpawn ? Math.max(0, $nextBossSpawn.spawn.bosses.length - 1) : 0
+	);
+
+	// Whether a grinding session is active
+	const hasActiveSession = $derived(
+		$grindingTimerStore.isRunning || $grindingTimerStore.isPaused
+	);
+
+	// Selected spot name (truncated for mini bar)
+	const spotName = $derived(
+		$selectedSpotStore?.name ?? ""
+	);
+
+	// Announcement ticker text
+	const announcementText = $derived(() => {
+		const messages = $activeMessagesStore;
+		if (!messages || messages.length === 0) return "";
+		return messages.map((m) => m.title + (m.body ? ` — ${m.body}` : "")).join("   ·   ");
+	});
+</script>
+
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div
+	role="banner"
+	onmousedown={startDrag}
+	class="mini-bar"
+>
+	<!-- BOSS CLUSTER -->
+	<div class="mini-cluster">
+		<button
+			onclick={expandToFull}
+			class="mini-boss-circle"
+			title="Expand to full"
+		>
+			{#if primaryBoss()}
+				<img
+					src={primaryBoss()!.image}
+					alt={primaryBoss()!.name}
+					class="w-full h-full object-cover {primaryBoss()!.isRare ? 'opacity-50' : ''}"
+				/>
+			{:else}
+				<span class="text-[9px] font-extrabold text-[#00e3fd] flex items-center justify-center w-full h-full">BDO</span>
+			{/if}
+			{#if extraBossCount > 0}
+				<div class="mini-boss-badge">+{extraBossCount}</div>
+			{/if}
+		</button>
+
+		<div class="mini-boss-info">
+			{#if $nextBossSpawn}
+				<span class="mini-label truncate max-w-[100px]">{bossNames}</span>
+				<span class="mini-timer">{$nextBossCountdown}</span>
+			{:else}
+				<span class="mini-muted">No boss</span>
+			{/if}
+		</div>
+	</div>
+
+	<!-- DIVIDER -->
+	<div class="mini-divider"></div>
+
+	<!-- CENTER CLUSTER (context-aware) -->
+	<div class="mini-center">
+		{#if hasActiveSession && spotName}
+			<!-- Active grinding session -->
+			<div class="mini-cluster">
+				<div class="mini-spot-icon">⚔</div>
+				<div class="mini-boss-info">
+					<span class="mini-label truncate max-w-[100px]">{spotName}</span>
+					<span class="mini-timer">{$grindingTimerDisplay}</span>
+				</div>
+			</div>
+		{:else}
+			<!-- Announcement ticker -->
+			<div class="mini-marquee-container">
+				{#if announcementText()}
+					<div class="mini-marquee-track">
+						<span class="mini-marquee-text">{announcementText()}</span>
+						<span class="mini-marquee-text" aria-hidden="true">{announcementText()}</span>
+					</div>
+				{:else}
+					<span class="mini-muted text-[9px]">No announcements</span>
+				{/if}
+			</div>
+		{/if}
+	</div>
+
+	<!-- DIVIDER -->
+	<div class="mini-divider"></div>
+
+	<!-- CONTROLS CLUSTER -->
+	<div class="mini-controls">
+		<button onclick={minimize} class="mini-btn" title="Minimize">
+			<span class="text-[11px]">&#x2014;</span>
+		</button>
+		<button onclick={expandToMedium} class="mini-btn" title="Medium mode">
+			<span class="text-[9px] font-bold">[+]</span>
+		</button>
+		<button onclick={expandToFull} class="mini-btn" title="Full mode">
+			<span class="text-[11px]">&#x229E;</span>
+		</button>
+		<button onclick={close} class="mini-btn mini-btn-close" title="Close">
+			<span class="text-[11px]">&#x2715;</span>
+		</button>
+	</div>
+</div>
+
+<style>
+	/* ── Main bar ── */
+	.mini-bar {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 0 10px;
+		background: rgba(19, 19, 19, 0.95);
+		border-radius: 4px;
+		box-shadow: 0 0 8px rgba(199, 125, 255, 0.3);
+		cursor: move;
+		user-select: none;
+		overflow: hidden;
+	}
+
+	/* ── Cluster layout ── */
+	.mini-cluster {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-shrink: 0;
+	}
+
+	/* ── Boss circle ── */
+	.mini-boss-circle {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		overflow: hidden;
+		border: 2px solid #00e3fd;
+		background: #0e0e0e;
+		flex-shrink: 0;
+		position: relative;
+		cursor: pointer;
+		transition: transform 0.15s, border-color 0.15s;
+	}
+	.mini-boss-circle:hover {
+		transform: scale(1.08);
+		border-color: #c77dff;
+	}
+
+	/* ── Boss +N badge ── */
+	.mini-boss-badge {
+		position: absolute;
+		bottom: -2px;
+		right: -2px;
+		background: #c77dff;
+		color: #131313;
+		font-size: 7px;
+		font-weight: 700;
+		border-radius: 50%;
+		width: 14px;
+		height: 14px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		line-height: 1;
+	}
+
+	/* ── Boss info stack ── */
+	.mini-boss-info {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		line-height: 1.2;
+	}
+
+	/* ── Labels and timers ── */
+	.mini-label {
+		font-family: 'Manrope', sans-serif;
+		font-size: 10px;
+		font-weight: 600;
+		color: #e5e2e1;
+	}
+	.mini-timer {
+		font-family: 'Space Grotesk', monospace;
+		font-size: 14px;
+		font-weight: 700;
+		color: #00e3fd;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: 0.5px;
+	}
+	.mini-muted {
+		font-family: 'Manrope', sans-serif;
+		font-size: 10px;
+		color: #b0a4b4;
+	}
+
+	/* ── Spot icon ── */
+	.mini-spot-icon {
+		width: 24px;
+		height: 24px;
+		border-radius: 4px;
+		background: #201f1f;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 12px;
+		flex-shrink: 0;
+	}
+
+	/* ── Divider ── */
+	.mini-divider {
+		width: 1px;
+		height: 32px;
+		background: #2a2a2a;
+		flex-shrink: 0;
+	}
+
+	/* ── Center section ── */
+	.mini-center {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		overflow: hidden;
+	}
+
+	/* ── Marquee (announcement ticker) ── */
+	.mini-marquee-container {
+		width: 100%;
+		overflow: hidden;
+		position: relative;
+	}
+	.mini-marquee-track {
+		display: flex;
+		width: max-content;
+		animation: mini-scroll 20s linear infinite;
+	}
+	.mini-marquee-text {
+		font-family: 'Manrope', sans-serif;
+		font-size: 10px;
+		color: #e5e2e1;
+		white-space: nowrap;
+		padding-right: 40px;
+	}
+	@keyframes mini-scroll {
+		0% { transform: translateX(0); }
+		100% { transform: translateX(-50%); }
+	}
+	.mini-marquee-container:hover .mini-marquee-track {
+		animation-play-state: paused;
+	}
+
+	/* ── Control buttons ── */
+	.mini-controls {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		flex-shrink: 0;
+	}
+	.mini-btn {
+		width: 20px;
+		height: 20px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #201f1f;
+		border-radius: 2px;
+		color: #e5e2e1;
+		cursor: pointer;
+		transition: background 0.15s, box-shadow 0.15s;
+		border: none;
+		padding: 0;
+	}
+	.mini-btn:hover {
+		background: #2a2a2a;
+		box-shadow: 0 0 6px rgba(0, 227, 253, 0.4);
+	}
+	.mini-btn-close:hover {
+		background: #93000a;
+		box-shadow: 0 0 6px rgba(255, 0, 0, 0.4);
+	}
+</style>

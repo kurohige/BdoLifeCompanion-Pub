@@ -1,0 +1,21 @@
+﻿# Dependencies
+node_modules/
+
+# Build
+.svelte-kit/
+build/
+src-tauri/target/
+src-tauri/gen/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (user-generated at runtime)
+# Sample data is committed; user data is not

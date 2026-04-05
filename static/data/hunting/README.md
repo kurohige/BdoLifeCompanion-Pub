@@ -1,0 +1,1 @@
+﻿Place huntingspots.json here
