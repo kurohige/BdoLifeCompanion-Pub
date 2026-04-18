@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade } from "svelte/transition";
 	import { getCurrentWindow, LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
+	import { getCurrentWebview } from "@tauri-apps/api/webview";
 	import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 	import TitleBar from "$lib/components/TitleBar.svelte";
 	import MiniMode from "$lib/components/MiniMode.svelte";
@@ -11,11 +12,15 @@
 	import GrindingTracker from "$lib/components/GrindingTracker.svelte";
 	import TreasureTracker from "$lib/components/TreasureTracker.svelte";
 	import HuntingTracker from "$lib/components/HuntingTracker.svelte";
+	import BarteringView from "$lib/components/BarteringView.svelte";
+	import WeeklyTasksView from "$lib/components/WeeklyTasksView.svelte";
+	import AboutView from "$lib/components/AboutView.svelte";
 	import CraftingLogView from "$lib/components/CraftingLogView.svelte";
 	import DashboardView from "$lib/components/DashboardView.svelte";
 	import SettingsView from "$lib/components/SettingsView.svelte";
 	import AnnouncementCarousel from "$lib/components/AnnouncementCarousel.svelte";
 	import BossBar from "$lib/components/BossBar.svelte";
+	import HexBackground from "$lib/components/HexBackground.svelte";
 	import ToastContainer from "$lib/components/ToastContainer.svelte";
 	// Tabs import removed — using side nav with direct state switching
 	import { onMount, onDestroy } from "svelte";
@@ -37,6 +42,16 @@
 		loadTreasureProgress,
 		loadHuntingData,
 		loadHuntingLog,
+		loadBarterData,
+		loadBarterInventory,
+		loadBarterLog,
+		loadShipData,
+		loadShipProgress,
+		loadSailorRoster,
+		loadWeeklyTasksData,
+		loadWeeklyTasksProgress,
+		initAppVersion,
+		appVersionStore,
 		navigateToRecipeStore,
 		viewModeStore,
 		activeTabStore,
@@ -75,14 +90,7 @@
 	let lastAlertedSpawnTime: number | null = null;
 	let bossAlertInitialized = false;
 
-	// Apply theme class to HTML element
-	function applyTheme(themeId: AppTheme) {
-		const html = document.documentElement;
-		html.classList.remove("theme-neon-cyberpunk", "theme-dark-minimal", "theme-light");
-		if (themeId !== "neon-cyberpunk") {
-			html.classList.add(`theme-${themeId}`);
-		}
-	}
+	import { applyTheme } from "$lib/utils/theme";
 
 	// Font family CSS stacks
 	const FONT_FAMILIES: Record<FontFamily, string> = {
@@ -92,17 +100,20 @@
 	};
 
 	const FONT_ZOOM: Record<FontSize, string> = {
+		xs: "0.85",
 		small: "0.92",
 		default: "1",
-		large: "1.08",
+		large: "1.10",
+		xl: "1.25",
+		xxl: "1.45",
 	};
 
-	// Apply font settings via CSS variables
+	// Apply font settings via CSS variables + native webview zoom
 	function applyFontSettings(fontFamily: FontFamily, fontBold: boolean, fontSize: FontSize) {
-		const root = document.documentElement;
 		document.body.style.setProperty("--app-font-family", FONT_FAMILIES[fontFamily] ?? FONT_FAMILIES.system);
 		document.body.style.setProperty("--app-font-weight", fontBold ? "bold" : "normal");
-		root.style.setProperty("--app-zoom", FONT_ZOOM[fontSize] ?? "1");
+		const zoom = parseFloat(FONT_ZOOM[fontSize] ?? "1");
+		getCurrentWebview().setZoom(zoom).catch(() => {});
 	}
 
 	// Save current window state to settings
@@ -137,19 +148,29 @@
 				loadTreasureProgress(),
 				loadHuntingData(),
 				loadHuntingLog(),
+				loadBarterData(),
+				loadBarterInventory(),
+				loadBarterLog(),
+				loadShipData(),
+				loadShipProgress(),
+				loadSailorRoster(),
+				loadWeeklyTasksData(),
+				loadWeeklyTasksProgress(),
+				initAppVersion(),
 			]);
 
 			catalogsStore.set(catalogs);
 
-			// Apply transparency, theme, and font whenever settings change
+			// Apply transparency, theme, font, and always-on-top whenever settings change
 			settingsStore.subscribe((settings) => {
 				document.documentElement.style.setProperty("--app-opacity", String(settings.transparency));
-				applyTheme(settings.theme ?? "neon-cyberpunk");
+				applyTheme(settings.theme ?? "obsidian");
 				applyFontSettings(
 					settings.font_family ?? "system",
 					settings.font_bold ?? false,
 					settings.font_size ?? "default",
 				);
+				appWindow.setAlwaysOnTop(settings.always_on_top ?? true);
 			});
 
 			// Restore saved window state
@@ -300,8 +321,10 @@
 		<MediumMode />
 	</div>
 {:else}
+	<HexBackground />
+
 	<!-- Full Mode — Obsidian HUD layout -->
-	<div class="flex flex-col h-screen overflow-hidden bg-surface-lowest">
+	<div class="flex flex-col h-screen overflow-hidden relative z-[1]">
 		<!-- Title Bar -->
 		<div class="flex-shrink-0">
 			<TitleBar />
@@ -309,7 +332,7 @@
 
 		<!-- Boss Spawn Bar -->
 		{#if !loading}
-			<div class="flex-shrink-0 h-7 bg-surface-lowest/80 flex items-center px-4 gap-6 border-b border-outline-variant/10 z-40">
+			<div class="flex-shrink-0 z-40">
 				<BossBar />
 			</div>
 		{/if}
@@ -319,23 +342,23 @@
 
 			<!-- Side Navigation (w-9) -->
 			{#if !loading && !error}
-				<nav class="w-9 bg-surface-lowest/80 backdrop-blur-md flex flex-col items-center py-3 gap-1 z-30 flex-shrink-0">
+				<nav class="w-9 backdrop-blur-md flex flex-col items-center py-3 gap-3 z-30 flex-shrink-0" style="background: rgba(14, 14, 14, 0.3);">
 					{#each [
-						{ id: "crafting", icon: "⚒️", label: "Crafting" },
-						{ id: "inventory", icon: "📦", label: "Inventory" },
-						{ id: "log", icon: "📊", label: "Dashboard" },
-						{ id: "timer", icon: "⚔️", label: "Grinding" },
-						{ id: "settings", icon: "⚙️", label: "Settings" },
+						{ id: "crafting", label: "Crafting", img: "/icons/crafting.png" },
+						{ id: "timer", label: "Grinding", img: "/icons/grinding.png" },
+						{ id: "bartering", label: "Bartering", img: "/icons/bartering.png" },
+						{ id: "inventory", label: "Inventory", img: "/icons/inventory.png" },
+						{ id: "weekly", label: "Weekly", img: "/icons/weekly.png" },
+						{ id: "log", label: "Dashboard", img: "/icons/dashboard.png" },
+						{ id: "settings", label: "Settings", img: "/icons/settings.png" },
+						{ id: "about", label: "About", img: "/icons/about.png", glow: "neon" },
 					] as tab}
 						<button
 							onclick={() => { activeTab = tab.id; activeTabStore.set(tab.id as ActiveTab); }}
-							class="w-full h-8 flex items-center justify-center cursor-pointer transition-all duration-200
-								{activeTab === tab.id
-									? 'obsidian-nav-active'
-									: 'obsidian-nav-item'}"
+							class="nav-glow-btn {activeTab === tab.id ? 'nav-glow-active' : ''} {tab.glow === 'neon' && activeTab !== tab.id ? 'nav-neon-pulse' : ''}"
 							title={tab.label}
 						>
-							<span class="text-[14px]">{tab.icon}</span>
+							<img src={tab.img} alt={tab.label} class="nav-glow-icon" />
 						</button>
 					{/each}
 				</nav>
@@ -351,7 +374,7 @@
 				{/if}
 
 				<!-- Scrollable content -->
-				<div class="flex-1 overflow-auto p-2" style="zoom: var(--app-zoom, 1)">
+				<div class="flex-1 overflow-auto p-2">
 					{#if loading}
 						<div class="text-center py-8">
 							<p class="obsidian-timer text-sm">Loading...</p>
@@ -367,19 +390,19 @@
 						{#if activeTab === "crafting"}
 							<div class="glass-panel p-2 obsidian-accent">
 								<!-- Sub-tabs: pill style (sticky) -->
-								<div class="flex gap-2 mb-2 sticky top-0 z-10 bg-surface-lowest/95 backdrop-blur-sm py-1 -mx-2 px-2">
+								<div class="flex gap-2 mb-2 sticky top-0 z-10 backdrop-blur-sm py-1 -mx-2 px-2 items-center justify-center">
 									{#each [
-										{ id: "cooking", label: "🍳 Cooking" },
-										{ id: "alchemy", label: "⚗️ Alchemy" },
-										{ id: "draughts", label: "🧪 Draughts" },
-										{ id: "planner", label: "📋 Planner" },
+										{ id: "cooking", label: "", icon: "/icons/cooking.webp" },
+										{ id: "alchemy", label: "", icon: "/icons/alchemy.webp" },
+										{ id: "draughts", label: "", icon: "/icons/draught.webp" },
+										{ id: "planner", label: "", icon: "/icons/planner.webp" },
 									] as sub}
 										<button
 											onclick={() => { craftingSubTab = sub.id; handleCategoryChange(sub.id); }}
-											class="px-4 py-1 text-[11px] font-headline font-bold transition-colors
-												{craftingSubTab === sub.id ? 'obsidian-pill-active' : 'obsidian-pill'}"
+											class="craft-glow-btn {craftingSubTab === sub.id ? 'craft-glow-active' : ''}"
+											title={sub.id}
 										>
-											{sub.label}
+											<img src={sub.icon} alt={sub.id} class="w-7 h-7 relative z-[1]" />
 										</button>
 									{/each}
 								</div>
@@ -407,7 +430,7 @@
 						{:else if activeTab === "timer"}
 							<div class="glass-panel p-2 obsidian-accent">
 								<!-- Sub-tabs: underline style (sticky) -->
-								<div class="flex gap-4 mb-2 border-b border-outline-variant/10 sticky top-0 z-10 bg-surface-lowest/95 backdrop-blur-sm py-1 -mx-2 px-2">
+								<div class="flex gap-4 mb-2 border-b border-outline-variant/10 sticky top-0 z-10 backdrop-blur-sm py-1 -mx-2 px-2">
 									{#each [
 										{ id: "tracker", label: "Tracker" },
 										{ id: "treasures", label: "Treasures" },
@@ -417,8 +440,8 @@
 											onclick={() => grindingSubTab = sub.id as "tracker" | "treasures" | "hunting"}
 											class="pb-2 px-1 text-[13px] font-headline font-medium transition-colors
 												{grindingSubTab === sub.id
-													? 'text-[#c77dff] font-semibold border-b-2 border-[#c77dff] shadow-[0_4px_10px_-2px_rgba(199,125,255,0.3)]'
-													: 'text-[#b0a4b4] hover:text-[#cfc2d4]'}"
+													? 'obsidian-pill-active'
+													: 'obsidian-pill'}"
 										>
 											{sub.label}
 										</button>
@@ -434,10 +457,28 @@
 								{/if}
 							</div>
 
+						<!-- Bartering -->
+						{:else if activeTab === "bartering"}
+							<div class="glass-panel p-2 obsidian-accent">
+								<BarteringView />
+							</div>
+
+						<!-- Weekly Tasks -->
+						{:else if activeTab === "weekly"}
+							<div class="glass-panel p-2 obsidian-accent">
+								<WeeklyTasksView />
+							</div>
+
 						<!-- Settings -->
 						{:else if activeTab === "settings"}
 							<div class="glass-panel p-2 obsidian-accent">
 								<SettingsView />
+							</div>
+
+						<!-- About -->
+						{:else if activeTab === "about"}
+							<div class="glass-panel p-2 obsidian-accent">
+								<AboutView />
 							</div>
 						{/if}
 					{/if}
@@ -445,7 +486,7 @@
 
 				<!-- Status footer -->
 				<footer class="obsidian-footer flex items-center justify-between px-3 flex-shrink-0">
-					<span>BDO Life Companion v2.1</span>
+					<span>BDO Life Companion v{$appVersionStore}</span>
 				</footer>
 			</main>
 		</div>

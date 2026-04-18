@@ -54,11 +54,9 @@
 	}
 
 	// Primary boss image
-	const primaryBoss = $derived(() => {
-		if (!$nextBossSpawn) return null;
-		const firstBoss = $nextBossSpawn.spawn.bosses[0];
-		return BOSSES[firstBoss] ?? null;
-	});
+	const primaryBoss = $derived(
+		$nextBossSpawn ? (BOSSES[$nextBossSpawn.spawn.bosses[0]] ?? null) : null
+	);
 
 	// Boss names (supports multi-boss: "Kzarka & Karanda")
 	const bossNames = $derived(
@@ -85,7 +83,7 @@
 	);
 
 	// Announcement ticker text
-	const announcementText = $derived(() => {
+	const announcementText = $derived.by(() => {
 		const messages = $activeMessagesStore;
 		if (!messages || messages.length === 0) return "";
 		return messages.map((m) => m.title + (m.body ? ` — ${m.body}` : "")).join("   ·   ");
@@ -105,14 +103,14 @@
 			class="mini-boss-circle"
 			title="Expand to full"
 		>
-			{#if primaryBoss()}
+			{#if primaryBoss}
 				<img
-					src={primaryBoss()!.image}
-					alt={primaryBoss()!.name}
-					class="w-full h-full object-cover {primaryBoss()!.isRare ? 'opacity-50' : ''}"
+					src={primaryBoss!.image}
+					alt={primaryBoss!.name}
+					class="w-full h-full object-cover {primaryBoss!.isRare ? 'opacity-50' : ''}"
 				/>
 			{:else}
-				<span class="text-[9px] font-extrabold text-[#00e3fd] flex items-center justify-center w-full h-full">BDO</span>
+				<span class="text-[9px] font-extrabold text-[#ffee10] flex items-center justify-center w-full h-full">BDO</span>
 			{/if}
 			{#if extraBossCount > 0}
 				<div class="mini-boss-badge">+{extraBossCount}</div>
@@ -146,10 +144,10 @@
 		{:else}
 			<!-- Announcement ticker -->
 			<div class="mini-marquee-container">
-				{#if announcementText()}
+				{#if announcementText}
 					<div class="mini-marquee-track">
-						<span class="mini-marquee-text">{announcementText()}</span>
-						<span class="mini-marquee-text" aria-hidden="true">{announcementText()}</span>
+						<span class="mini-marquee-text">{announcementText}</span>
+						<span class="mini-marquee-text" aria-hidden="true">{announcementText}</span>
 					</div>
 				{:else}
 					<span class="mini-muted text-[9px]">No announcements</span>
@@ -187,9 +185,11 @@
 		align-items: center;
 		gap: 8px;
 		padding: 0 10px;
-		background: rgba(19, 19, 19, 0.95);
+		background: rgba(14, 14, 14, 0.75);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
 		border-radius: 4px;
-		box-shadow: 0 0 8px rgba(199, 125, 255, 0.3);
+		box-shadow: 0 0 10px rgba(255, 238, 16, 0.15);
 		cursor: move;
 		user-select: none;
 		overflow: hidden;
@@ -209,16 +209,16 @@
 		height: 32px;
 		border-radius: 50%;
 		overflow: hidden;
-		border: 2px solid #00e3fd;
+		border: 2px solid #ffee10;
 		background: #0e0e0e;
 		flex-shrink: 0;
 		position: relative;
 		cursor: pointer;
-		transition: transform 0.15s, border-color 0.15s;
+		transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
 	}
 	.mini-boss-circle:hover {
 		transform: scale(1.08);
-		border-color: #c77dff;
+		box-shadow: 0 0 8px rgba(255, 238, 16, 0.4);
 	}
 
 	/* ── Boss +N badge ── */
@@ -226,7 +226,7 @@
 		position: absolute;
 		bottom: -2px;
 		right: -2px;
-		background: #c77dff;
+		background: #ffee10;
 		color: #131313;
 		font-size: 7px;
 		font-weight: 700;
@@ -250,17 +250,18 @@
 	/* ── Labels and timers ── */
 	.mini-label {
 		font-family: 'Manrope', sans-serif;
-		font-size: 10px;
-		font-weight: 600;
+		font-size: 11px;
+		font-weight: 700;
 		color: #e5e2e1;
 	}
 	.mini-timer {
 		font-family: 'Space Grotesk', monospace;
 		font-size: 14px;
 		font-weight: 700;
-		color: #00e3fd;
+		color: #ffee10;
 		font-variant-numeric: tabular-nums;
 		letter-spacing: 0.5px;
+		text-shadow: 0 0 6px rgba(255, 238, 16, 0.3);
 	}
 	.mini-muted {
 		font-family: 'Manrope', sans-serif;
@@ -312,6 +313,7 @@
 	.mini-marquee-text {
 		font-family: 'Manrope', sans-serif;
 		font-size: 10px;
+		font-weight: 500;
 		color: #e5e2e1;
 		white-space: nowrap;
 		padding-right: 40px;
@@ -347,7 +349,8 @@
 	}
 	.mini-btn:hover {
 		background: #2a2a2a;
-		box-shadow: 0 0 6px rgba(0, 227, 253, 0.4);
+		box-shadow: 0 0 6px rgba(255, 238, 16, 0.4);
+		color: #ffee10;
 	}
 	.mini-btn-close:hover {
 		background: #93000a;

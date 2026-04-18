@@ -3,126 +3,133 @@
 @tailwind utilities;
 
 /* ============================================
-   Theme: Neon Cyberpunk (default)
+   Theme: Obsidian Dark (default)
+   Merged from Neon Cyberpunk + Stitch HUD.
+   Sharp corners, Space Grotesk, purple/cyan,
+   subtle neon glow, clean glass panels.
    ============================================ */
-:root,
-.theme-neon-cyberpunk {
-  --background: 0 0% 0%;
-  --foreground: 0 0% 96%;
-  --card: 0 0% 4%;
-  --card-foreground: 0 0% 96%;
-  --primary: 280 100% 73%;
+:root {
+  --background: 0 0% 5%;
+  --foreground: 30 5% 92%;
+  --card: 0 0% 7%;
+  --card-foreground: 30 5% 92%;
+  --primary: 275 100% 75%;
   --primary-foreground: 0 0% 0%;
-  --secondary: 0 0% 10%;
-  --secondary-foreground: 0 0% 96%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 30 5% 90%;
   --muted: 0 0% 16%;
-  --muted-foreground: 0 0% 72%;
-  --accent: 160 100% 50%;
+  --muted-foreground: 280 5% 62%;
+  --accent: 186 100% 50%;
   --accent-foreground: 0 0% 0%;
-  --destructive: 0 72% 71%;
+  --destructive: 0 72% 65%;
   --destructive-foreground: 0 0% 0%;
-  --border: 0 0% 20%;
-  --input: 0 0% 10%;
-  --ring: 280 100% 73%;
-  --radius: 0.5rem;
-  --cyan: 190 100% 50%;
+  --border: 280 8% 22%;
+  --input: 0 0% 6%;
+  --ring: 275 100% 75%;
+  --radius: 0.125rem;
+  --cyan: 186 100% 50%;
   --app-opacity: 0.95;
   --neon-glow: 1;
   --scrollbar-hover: #c77dff;
   --selection-bg: #c77dff;
-  --focus-ring: #00e5ff;
-  /* Obsidian HUD surface hierarchy */
+  --focus-ring: #00e3fd;
+  /* Surface hierarchy */
   --surface-lowest: #0e0e0e;
   --surface-low: #1c1b1b;
   --surface-container: #201f1f;
   --surface-high: #2a2a2a;
   --surface-highest: #353534;
-  --outline-hud: #b0a4b4;
-  --outline-variant: #5d5266;
-  --on-surface: #eeebe9;
+  --outline-hud: #998d9d;
+  --outline-variant: #4d4352;
+  --on-surface: #e5e2e1;
   --secondary-container: #00e3fd;
   --primary-container: #c77dff;
   --tertiary: #dac839;
+  --gold-glow: #ffee10;
+}
+
+/* --- Obsidian typography --- */
+:root {
+  font-family: 'Manrope', system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+h1, h2, h3,
+.font-headline,
+select, button {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+}
+.font-mono,
+input[type="number"] {
+  font-family: 'Space Grotesk', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sharp corners everywhere */
+*,
+*::before,
+*::after {
+  border-radius: 0.125rem;
+}
+.rounded-full {
+  border-radius: 9999px !important;
+}
+
+/* Labels become uppercase tactical style */
+.text-muted-foreground {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 600;
 }
 
 /* ============================================
-   Theme: Dark Minimal
-   ============================================ */
-.theme-dark-minimal {
-  --background: 220 15% 8%;
-  --foreground: 220 10% 92%;
-  --card: 220 15% 11%;
-  --card-foreground: 220 10% 92%;
-  --primary: 220 70% 60%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 220 15% 15%;
-  --secondary-foreground: 220 10% 92%;
-  --muted: 220 10% 22%;
-  --muted-foreground: 220 10% 62%;
-  --accent: 160 60% 45%;
-  --accent-foreground: 0 0% 0%;
-  --destructive: 0 60% 55%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 220 10% 20%;
-  --input: 220 15% 13%;
-  --ring: 220 70% 60%;
-  --cyan: 200 80% 55%;
-  --neon-glow: 0;
-  --scrollbar-hover: hsl(220 70% 60%);
-  --selection-bg: hsl(220 70% 60%);
-  --focus-ring: hsl(220 70% 60%);
-  /* Obsidian HUD surface hierarchy (blue-gray tones) */
-  --surface-lowest: #0f1318;
-  --surface-low: #171c24;
-  --surface-container: #1c222b;
-  --surface-high: #252c36;
-  --surface-highest: #2e3640;
-  --outline-hud: #8a95a3;
-  --outline-variant: #3d4757;
-  --on-surface: #dce0e6;
-  --secondary-container: hsl(200 80% 55%);
-  --primary-container: hsl(220 70% 60%);
-  --tertiary: hsl(45 60% 55%);
-}
-
-/* ============================================
-   Theme: Light
+   Theme: Light (improved — warmer, less bright)
    ============================================ */
 .theme-light {
-  --background: 220 14% 93%;
+  --background: 220 12% 88%;
   --foreground: 220 15% 15%;
-  --card: 220 14% 97%;
+  --card: 220 10% 92%;
   --card-foreground: 220 15% 15%;
-  --primary: 260 60% 55%;
+  --primary: 260 60% 50%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 12% 88%;
+  --secondary: 220 10% 84%;
   --secondary-foreground: 220 15% 15%;
-  --muted: 220 10% 82%;
+  --muted: 220 8% 78%;
   --muted-foreground: 220 10% 40%;
-  --accent: 160 55% 40%;
+  --accent: 160 55% 38%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 65% 50%;
   --destructive-foreground: 0 0% 100%;
-  --border: 220 12% 78%;
-  --input: 220 12% 90%;
-  --ring: 260 60% 55%;
-  --cyan: 195 70% 42%;
+  --border: 220 10% 72%;
+  --input: 220 10% 86%;
+  --ring: 260 60% 50%;
+  --radius: 0.125rem;
+  --cyan: 195 70% 38%;
+  --app-opacity: 1;
   --neon-glow: 0;
-  --scrollbar-hover: hsl(260 60% 55%);
-  --selection-bg: hsl(260 60% 55%);
-  --focus-ring: hsl(260 60% 55%);
-  /* Obsidian HUD surface hierarchy (light tones) */
-  --surface-lowest: #ffffff;
-  --surface-low: #f5f6f8;
-  --surface-container: #eef0f3;
-  --surface-high: #e4e7eb;
-  --surface-highest: #d9dde3;
+  --scrollbar-hover: hsl(260 60% 50%);
+  --selection-bg: hsl(260 60% 50%);
+  --focus-ring: hsl(260 60% 50%);
+  /* Surface hierarchy (warm off-white) */
+  --surface-lowest: #ebedf0;
+  --surface-low: #e3e5e9;
+  --surface-container: #dcdfe4;
+  --surface-high: #d2d6dc;
+  --surface-highest: #c8cdd4;
   --outline-hud: #6b7280;
-  --outline-variant: #c4cad4;
+  --outline-variant: #b0b7c2;
   --on-surface: #1a1e25;
-  --secondary-container: hsl(195 70% 42%);
-  --primary-container: hsl(260 60% 55%);
-  --tertiary: hsl(45 70% 45%);
+  --secondary-container: hsl(195 70% 38%);
+  --primary-container: hsl(260 60% 50%);
+  --tertiary: hsl(45 70% 40%);
+}
+
+/* Light theme: revert sharp styles that don't work well */
+.theme-light .text-muted-foreground {
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: inherit;
+  font-weight: 500;
 }
 
 /* ============================================
@@ -135,7 +142,7 @@ html {
 }
 
 body {
-  font-family: var(--app-font-family, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-family: var(--app-font-family, 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   font-weight: var(--app-font-weight, normal);
   background-color: hsla(var(--background) / var(--app-opacity));
   color: hsl(var(--foreground));
@@ -143,6 +150,12 @@ body {
   padding: 0;
   height: 100vh;
   overflow: hidden;
+}
+
+
+/* Transparency-aware root background */
+.bg-app-root {
+  background-color: hsla(var(--background) / var(--app-opacity));
 }
 
 /* ============================================
@@ -185,319 +198,178 @@ body {
    Neon Text & Glow Effects (theme-aware)
    ============================================ */
 .neon-text-purple {
-  color: hsl(var(--primary));
-  text-shadow: 0 0 calc(10px * var(--neon-glow)) hsl(var(--primary));
+  color: #c77dff;
+  text-shadow: 0 0 calc(8px * var(--neon-glow)) #c77dff;
 }
 
 .neon-text-cyan {
-  color: hsl(var(--accent));
-  text-shadow: 0 0 calc(10px * var(--neon-glow)) hsl(var(--accent));
-}
-
-/* Cyberpunk-specific overrides for neon colors */
-.theme-neon-cyberpunk .neon-text-purple,
-:root .neon-text-purple {
-  color: #c77dff;
-  text-shadow: 0 0 10px #c77dff;
-}
-
-.theme-neon-cyberpunk .neon-text-cyan,
-:root .neon-text-cyan {
-  color: #00e5ff;
-  text-shadow: 0 0 10px #00e5ff;
+  color: #00e3fd;
+  text-shadow: 0 0 calc(8px * var(--neon-glow)) #00e3fd;
 }
 
 .neon-text-green {
-  color: hsl(var(--accent));
-  text-shadow: 0 0 calc(10px * var(--neon-glow)) hsl(var(--accent));
-}
-
-.theme-neon-cyberpunk .neon-text-green,
-:root .neon-text-green {
   color: #00ff9d;
-  text-shadow: 0 0 10px #00ff9d;
+  text-shadow: 0 0 calc(8px * var(--neon-glow)) #00ff9d;
 }
 
-/* Neon Glow Effects — disabled in non-cyberpunk themes */
+/* Neon Glow Effects — disabled in light theme */
 .neon-glow-purple {
-  box-shadow: 0 0 calc(10px * var(--neon-glow)) hsl(var(--primary)),
-              inset 0 0 calc(5px * var(--neon-glow)) hsla(var(--primary) / 0.1);
+  box-shadow: 0 0 calc(8px * var(--neon-glow)) #c77dff,
+              inset 0 0 calc(4px * var(--neon-glow)) rgba(199, 125, 255, 0.1);
 }
 
-.neon-glow-cyan {
-  box-shadow: 0 0 calc(10px * var(--neon-glow)) hsl(var(--accent)),
-              inset 0 0 calc(5px * var(--neon-glow)) hsla(var(--accent) / 0.1);
-}
-
-.neon-glow-green {
-  box-shadow: 0 0 calc(10px * var(--neon-glow)) hsl(var(--accent)),
-              inset 0 0 calc(5px * var(--neon-glow)) hsla(var(--accent) / 0.1);
-}
-
-/* Cyberpunk-specific glow overrides */
-.theme-neon-cyberpunk .neon-glow-purple,
-:root .neon-glow-purple {
-  box-shadow: 0 0 10px #c77dff, inset 0 0 5px rgba(199, 125, 255, 0.1);
-}
-
-.theme-neon-cyberpunk .neon-glow-cyan,
-:root .neon-glow-cyan {
-  box-shadow: 0 0 10px #00e5ff, inset 0 0 5px rgba(0, 229, 255, 0.1);
-}
-
-.theme-neon-cyberpunk .neon-glow-green,
-:root .neon-glow-green {
-  box-shadow: 0 0 10px #00ff9d, inset 0 0 5px rgba(0, 255, 157, 0.1);
-}
-
-/* Non-cyberpunk themes: subtle border instead of glow */
-.theme-dark-minimal .neon-glow-purple,
-.theme-dark-minimal .neon-glow-cyan,
-.theme-dark-minimal .neon-glow-green,
-.theme-light .neon-glow-purple,
-.theme-light .neon-glow-cyan,
-.theme-light .neon-glow-green {
+/* Light theme: no glows */
+.theme-light .neon-glow-purple {
   box-shadow: none;
+}
+.theme-light .neon-text-purple {
+  color: hsl(var(--primary));
+  text-shadow: none;
+}
+.theme-light .neon-text-cyan {
+  color: hsl(var(--accent));
+  text-shadow: none;
+}
+.theme-light .neon-text-green {
+  color: hsl(var(--accent));
+  text-shadow: none;
 }
 
 /* ============================================
-   Glassmorphism Utilities (theme-aware)
+   Glassmorphism Utilities
    ============================================ */
 
-/* --- Base glass definitions (generic, works for all themes) --- */
+/* --- Obsidian Dark glass (clean, minimal glow) --- */
 
 .glass-panel {
-  background: hsla(var(--card) / 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid hsla(var(--border) / 0.5);
+  background: rgba(20, 20, 30, 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(77, 67, 82, 0.1);
   border-radius: var(--radius);
 }
 
 .glass-card {
-  background: hsla(var(--card) / 0.5);
+  background: rgba(28, 27, 27, 0.4);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid hsla(var(--border) / 0.4);
+  border: 1px solid rgba(77, 67, 82, 0.15);
   border-radius: var(--radius);
 }
 
 .glass-titlebar {
-  background: hsla(var(--card) / 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(19, 19, 19, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 2px solid hsl(var(--primary));
 }
 
 .glass-bossbar {
-  background: hsla(var(--secondary) / 0.5);
+  background: rgba(28, 27, 27, 0.35);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid hsla(var(--border) / 0.5);
+  border-bottom: 1px solid rgba(77, 67, 82, 0.15);
 }
 
 .glass-input {
-  background: hsla(var(--input) / 0.5);
+  background: #0e0e0e;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid hsla(var(--border) / 0.5);
+  border: 1px solid rgba(77, 67, 82, 0.2);
   border-radius: var(--radius);
+}
+
+.glass-input:focus {
+  border-color: #00e3fd;
+  box-shadow: 0 0 0 1px rgba(0, 227, 253, 0.2);
 }
 
 .glass-dropdown {
-  background: hsla(var(--card) / 0.85);
+  background: rgba(14, 14, 14, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid hsla(var(--border) / 0.6);
+  border: 1px solid rgba(77, 67, 82, 0.2);
   border-radius: var(--radius);
-  box-shadow: 0 8px 32px hsla(0 0% 0% / 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
 
 .glass-toast {
-  background: hsla(var(--card) / 0.8);
+  background: rgba(20, 20, 30, 0.9);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 .glass-section {
-  background: hsla(var(--secondary) / 0.4);
+  background: rgba(28, 27, 27, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid hsla(var(--border) / 0.3);
+  border: 1px solid rgba(77, 67, 82, 0.1);
   border-radius: var(--radius);
 }
 
 .glass-stats {
-  background: hsla(var(--card) / 0.45);
+  background: rgba(42, 42, 42, 0.5);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid hsla(var(--border) / 0.4);
+  border: 1px solid rgba(77, 67, 82, 0.15);
   border-radius: var(--radius);
 }
 
-/* --- Cyberpunk glass — neon edge glow + inset highlight --- */
-
-:root .glass-panel,
-.theme-neon-cyberpunk .glass-panel {
-  background: rgba(20, 20, 30, 0.6);
-  border-color: rgba(77, 67, 82, 0.2);
-  box-shadow: 0 0 10px rgba(199, 125, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-:root .glass-card,
-.theme-neon-cyberpunk .glass-card {
-  background: rgba(0, 0, 0, 0.45);
-  border-color: rgba(199, 125, 255, 0.15);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-:root .glass-titlebar,
-.theme-neon-cyberpunk .glass-titlebar {
-  background: rgba(0, 0, 0, 0.65);
-  box-shadow: 0 0 10px rgba(199, 125, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-:root .glass-bossbar,
-.theme-neon-cyberpunk .glass-bossbar {
-  background: rgba(0, 0, 0, 0.5);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-:root .glass-input,
-.theme-neon-cyberpunk .glass-input {
-  background: rgba(0, 0, 0, 0.4);
-  border-color: rgba(199, 125, 255, 0.2);
-}
-
-:root .glass-dropdown,
-.theme-neon-cyberpunk .glass-dropdown {
-  background: rgba(0, 0, 0, 0.85);
-  border-color: rgba(199, 125, 255, 0.25);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(199, 125, 255, 0.1);
-}
-
-:root .glass-toast,
-.theme-neon-cyberpunk .glass-toast {
-  background: rgba(0, 0, 0, 0.8);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 10px rgba(199, 125, 255, 0.1);
-}
-
-:root .glass-section,
-.theme-neon-cyberpunk .glass-section {
-  background: rgba(0, 0, 0, 0.3);
-  border-color: rgba(199, 125, 255, 0.1);
-}
-
-:root .glass-stats,
-.theme-neon-cyberpunk .glass-stats {
-  background: rgba(0, 0, 0, 0.4);
-  border-color: rgba(199, 125, 255, 0.15);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-/* --- Dark Minimal glass — muted, no glow --- */
-
-.theme-dark-minimal .glass-panel {
-  background: hsla(220 15% 11% / 0.65);
-  border-color: hsla(220 10% 25% / 0.5);
-  box-shadow: none;
-}
-
-.theme-dark-minimal .glass-card {
-  background: hsla(220 15% 11% / 0.55);
-  border-color: hsla(220 10% 25% / 0.4);
-  box-shadow: none;
-}
-
-.theme-dark-minimal .glass-titlebar {
-  background: hsla(220 15% 11% / 0.75);
-  border-bottom-color: hsl(220 70% 60%);
-  box-shadow: none;
-}
-
-.theme-dark-minimal .glass-bossbar {
-  background: hsla(220 15% 15% / 0.55);
-  box-shadow: none;
-}
-
-.theme-dark-minimal .glass-input {
-  background: hsla(220 15% 13% / 0.55);
-  border-color: hsla(220 10% 25% / 0.5);
-}
-
-.theme-dark-minimal .glass-dropdown {
-  background: hsla(220 15% 11% / 0.9);
-  border-color: hsla(220 10% 25% / 0.6);
-  box-shadow: 0 8px 24px hsla(220 15% 5% / 0.4);
-}
-
-.theme-dark-minimal .glass-toast {
-  background: hsla(220 15% 11% / 0.85);
-  box-shadow: 0 4px 16px hsla(220 15% 5% / 0.3);
-}
-
-.theme-dark-minimal .glass-section {
-  background: hsla(220 15% 15% / 0.45);
-  border-color: hsla(220 10% 25% / 0.3);
-}
-
-.theme-dark-minimal .glass-stats {
-  background: hsla(220 15% 11% / 0.5);
-  border-color: hsla(220 10% 25% / 0.4);
-  box-shadow: none;
-}
-
-/* --- Light theme glass — very subtle frost --- */
+/* --- Light theme glass — subtle frost --- */
 
 .theme-light .glass-panel {
-  background: hsla(220 14% 97% / 0.7);
-  border-color: hsla(220 12% 78% / 0.5);
+  background: hsla(220 10% 92% / 0.75);
+  border-color: hsla(220 10% 72% / 0.5);
   box-shadow: 0 1px 3px hsla(220 10% 50% / 0.08);
 }
 
 .theme-light .glass-card {
-  background: hsla(220 14% 97% / 0.6);
-  border-color: hsla(220 12% 78% / 0.4);
+  background: hsla(220 10% 92% / 0.65);
+  border-color: hsla(220 10% 72% / 0.4);
   box-shadow: 0 1px 2px hsla(220 10% 50% / 0.06);
 }
 
 .theme-light .glass-titlebar {
-  background: hsla(220 14% 97% / 0.8);
-  border-bottom-color: hsl(260 60% 55%);
+  background: hsla(220 10% 92% / 0.8);
+  border-bottom-color: hsl(260 60% 50%);
   box-shadow: 0 1px 3px hsla(220 10% 50% / 0.1);
 }
 
 .theme-light .glass-bossbar {
-  background: hsla(220 12% 88% / 0.6);
+  background: hsla(220 10% 84% / 0.6);
   box-shadow: 0 1px 2px hsla(220 10% 50% / 0.06);
 }
 
 .theme-light .glass-input {
-  background: hsla(220 12% 90% / 0.5);
-  border-color: hsla(220 12% 78% / 0.5);
+  background: hsla(220 10% 86% / 0.5);
+  border-color: hsla(220 10% 72% / 0.5);
+}
+
+.theme-light .glass-input:focus {
+  border-color: hsl(260 60% 50%);
+  box-shadow: 0 0 0 1px hsla(260 60% 50% / 0.2);
 }
 
 .theme-light .glass-dropdown {
-  background: hsla(220 14% 97% / 0.92);
-  border-color: hsla(220 12% 78% / 0.6);
+  background: hsla(220 10% 92% / 0.92);
+  border-color: hsla(220 10% 72% / 0.6);
   box-shadow: 0 8px 24px hsla(220 10% 50% / 0.12);
 }
 
 .theme-light .glass-toast {
-  background: hsla(220 14% 97% / 0.88);
+  background: hsla(220 10% 92% / 0.88);
   box-shadow: 0 4px 16px hsla(220 10% 50% / 0.1);
 }
 
 .theme-light .glass-section {
-  background: hsla(220 12% 88% / 0.5);
-  border-color: hsla(220 12% 78% / 0.3);
+  background: hsla(220 10% 84% / 0.5);
+  border-color: hsla(220 10% 72% / 0.3);
 }
 
 .theme-light .glass-stats {
-  background: hsla(220 14% 97% / 0.55);
-  border-color: hsla(220 12% 78% / 0.4);
+  background: hsla(220 10% 92% / 0.55);
+  border-color: hsla(220 10% 72% / 0.4);
   box-shadow: 0 1px 2px hsla(220 10% 50% / 0.06);
 }
 
@@ -544,6 +416,38 @@ body {
 }
 
 /* ============================================
+   Settings Slider
+   ============================================ */
+.settings-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: hsl(var(--secondary));
+  cursor: pointer;
+  outline: none;
+}
+.settings-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold-glow);
+  box-shadow: 0 0 6px rgba(255, 238, 16, 0.4);
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.settings-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 12px rgba(255, 238, 16, 0.6);
+}
+.theme-light .settings-slider::-webkit-slider-thumb {
+  background: #e6c700;
+  box-shadow: 0 0 4px rgba(230, 199, 0, 0.3);
+}
+
+/* ============================================
    Input Helpers
    ============================================ */
 .no-spinner::-webkit-outer-spin-button,
@@ -559,100 +463,181 @@ body {
    Active Tab Styling
    ============================================ */
 [data-state="active"][role="tab"] {
-  background: linear-gradient(180deg, hsl(var(--primary) / 0.25) 0%, hsl(var(--primary) / 0.10) 100%);
-  border-bottom: 2px solid hsl(var(--primary));
-  color: hsl(var(--primary));
-  font-weight: 700;
-}
-
-.theme-neon-cyberpunk [data-state="active"][role="tab"],
-:root [data-state="active"][role="tab"] {
   background: linear-gradient(180deg, rgba(199, 125, 255, 0.25) 0%, rgba(199, 125, 255, 0.08) 100%);
   border-bottom: 2px solid #c77dff;
   color: #c77dff;
-  text-shadow: 0 0 8px rgba(199, 125, 255, 0.5);
+  font-weight: 700;
 }
 
 /* ============================================
    Obsidian HUD Utilities
    ============================================ */
 
-/* Section header label — uppercase, small, muted */
 .obsidian-header {
   font-family: 'Space Grotesk', monospace;
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #b0a4b4;
+  letter-spacing: 0.15em;
+  color: var(--outline-hud);
 }
 
-/* Active side nav item — purple glow + cyan left border */
-.obsidian-nav-active {
-  background: rgba(199, 125, 255, 0.2);
-  color: #e1b6ff;
-  box-shadow: 0 0 12px rgba(199, 125, 255, 0.4);
-  border-left: 2px solid #00e3fd;
+/* Nav glow buttons — circular with expanding glow on hover */
+.nav-glow-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50% !important;
+  background: transparent;
+  cursor: pointer;
+  transition: box-shadow 0.4s, transform 0.2s;
+}
+/* Gold glow ring behind the icon */
+.nav-glow-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50% !important;
+  background: var(--gold-glow);
+  transition: transform 0.4s, box-shadow 0.4s, opacity 0.4s;
+  transform: scale(0.85);
+  z-index: 0;
+  opacity: 0;
+}
+/* Icon image */
+.nav-glow-icon {
+  position: relative;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 0 !important;
+}
+.nav-glow-btn:hover::before {
+  transform: scale(1.15);
+  box-shadow: 0 0 15px var(--gold-glow);
+  opacity: 1;
+}
+.nav-glow-btn:hover {
+  color: var(--gold-glow);
+  box-shadow: 0 0 5px var(--gold-glow);
+  text-shadow: 0 0 5px var(--gold-glow);
+}
+
+/* Active state — persistent gold glow */
+.nav-glow-active {
+  color: var(--gold-glow);
+  box-shadow: 0 0 8px rgba(255, 238, 16, 0.4);
+}
+.nav-glow-active::before {
+  background: var(--gold-glow);
   transform: scale(1.1);
+  box-shadow: 0 0 12px var(--gold-glow);
+  opacity: 1;
 }
 
-/* Inactive nav item */
-.obsidian-nav-item {
-  color: #cfc2d4;
-  transition: color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
-  border-left: 2px solid transparent;
+/* Neon cyan pulse for special nav items (e.g. About) when inactive */
+.nav-neon-pulse::before {
+  background: #00e3fd;
+  opacity: 0.6;
+  transform: scale(1.05);
+  animation: neon-blink 2s ease-in-out infinite;
 }
-.obsidian-nav-item:hover {
-  color: #bdf4ff;
+.nav-neon-pulse {
+  box-shadow: 0 0 6px rgba(0, 227, 253, 0.3);
+}
+@keyframes neon-blink {
+  0%, 100% { opacity: 0.3; box-shadow: 0 0 4px rgba(0, 227, 253, 0.2); }
+  50% { opacity: 0.7; box-shadow: 0 0 12px rgba(0, 227, 253, 0.5); }
 }
 
-/* Cyan left accent border */
+/* Crafting icon glow buttons — gold bleed behind icon */
+.craft-glow-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50% !important;
+  background: transparent;
+  cursor: pointer;
+  transition: box-shadow 0.4s, transform 0.2s;
+}
+.craft-glow-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, rgba(255, 238, 16, 0.5) 0%, rgba(255, 238, 16, 0) 70%);
+  transition: transform 0.4s, opacity 0.4s;
+  transform: scale(0.6);
+  z-index: 0;
+  opacity: 0;
+}
+.craft-glow-btn:hover::before {
+  transform: scale(1.3);
+  opacity: 1;
+}
+.craft-glow-btn:hover {
+  box-shadow: 0 0 8px rgba(255, 238, 16, 0.3);
+  transform: scale(1.05);
+}
+.craft-glow-active {
+  box-shadow: 0 0 12px rgba(255, 238, 16, 0.4);
+}
+.craft-glow-active::before {
+  transform: scale(1.2);
+  opacity: 1;
+  background: radial-gradient(circle, rgba(255, 238, 16, 0.6) 0%, rgba(255, 238, 16, 0) 70%);
+}
+
 .obsidian-accent {
   border-left: 2px solid #00e3fd;
 }
 
-/* Active list item highlight */
-.obsidian-active-item {
-  border-left: 2px solid #00e3fd;
-  background: #2a2a2a;
-}
 
-/* Pill tab — active state */
 .obsidian-pill-active {
-  background: #c77dff;
-  color: #530086;
-  border-radius: 9999px;
-  box-shadow: 0 0 8px rgba(199, 125, 255, 0.3);
+  color: var(--gold-glow);
+  border-bottom: 2px solid var(--gold-glow);
+  font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px rgba(255, 238, 16, 0.4);
 }
 
-/* Pill tab — inactive state */
 .obsidian-pill {
-  color: #cfc2d4;
-  border-radius: 9999px;
-  transition: background 0.2s, color 0.2s;
+  color: #998d9d;
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 0.3s, text-shadow 0.3s;
 }
 .obsidian-pill:hover {
-  background: #2a2a2a;
-  color: #e5e2e1;
-  text-shadow: 0 0 6px rgba(225, 182, 255, 0.3);
+  color: var(--gold-glow);
+  text-shadow: 0 0 4px rgba(255, 238, 16, 0.3);
 }
 
-/* CTA button — cyan glow */
 .obsidian-cta {
-  background: #00e3fd;
-  color: #00616d;
-  font-family: 'Space Grotesk', monospace;
-  font-weight: 700;
+  background: #c77dff;
+  color: #000;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  box-shadow: 0 0 15px rgba(0, 227, 253, 0.25);
+  letter-spacing: 0.15em;
+  box-shadow: 0 0 15px rgba(199, 125, 255, 0.2);
   transition: filter 0.15s, transform 0.1s;
 }
-.obsidian-cta:hover { filter: brightness(1.1); }
+.obsidian-cta:hover {
+  background: #e1b6ff;
+  box-shadow: 0 0 25px rgba(199, 125, 255, 0.3);
+}
 .obsidian-cta:active { transform: scale(0.97); }
 
-/* Timer/countdown number styling */
 .obsidian-timer {
   font-family: 'Space Grotesk', monospace;
   font-weight: 700;
@@ -660,81 +645,68 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Gold/legendary text */
-.obsidian-gold {
-  color: #dac839;
-}
 
-/* Status footer bar */
 .obsidian-footer {
   height: 24px;
-  background: var(--surface-lowest, rgba(14, 14, 14, 0.8));
-  border-top: 1px solid var(--outline-variant, rgba(77, 67, 82, 0.1));
+  background: rgba(14, 14, 14, 0.8);
+  border-top: 1px solid rgba(77, 67, 82, 0.1);
   font-family: 'Space Grotesk', monospace;
   font-size: 9px;
-  color: var(--outline-hud, #b0a4b4);
+  color: var(--outline-hud);
 }
-
-/* ============================================
-   Dark Minimal — Obsidian overrides (no glow)
-   ============================================ */
-.theme-dark-minimal .obsidian-header { color: var(--outline-hud); }
-.theme-dark-minimal .obsidian-nav-active {
-  background: hsl(var(--primary) / 0.15);
-  color: hsl(var(--primary));
-  box-shadow: none;
-  border-left: 2px solid hsl(var(--cyan));
-  transform: scale(1.05);
-}
-.theme-dark-minimal .obsidian-nav-item { color: var(--outline-hud); }
-.theme-dark-minimal .obsidian-nav-item:hover { color: hsl(var(--foreground)); }
-.theme-dark-minimal .obsidian-accent { border-left-color: hsl(var(--primary)); }
-.theme-dark-minimal .obsidian-active-item {
-  border-left-color: hsl(var(--primary));
-  background: var(--surface-high);
-}
-.theme-dark-minimal .obsidian-pill-active {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  box-shadow: none;
-}
-.theme-dark-minimal .obsidian-pill { color: var(--outline-hud); }
-.theme-dark-minimal .obsidian-pill:hover {
-  background: var(--surface-high);
-  color: hsl(var(--foreground));
-}
-.theme-dark-minimal .obsidian-cta {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  box-shadow: none;
-}
-.theme-dark-minimal .obsidian-timer { color: hsl(var(--cyan)); }
-.theme-dark-minimal .obsidian-gold { color: var(--tertiary); }
 
 /* ============================================
    Light — Obsidian overrides (flat, no glow)
    ============================================ */
 .theme-light .obsidian-header { color: var(--outline-hud); }
-.theme-light .obsidian-nav-active {
-  background: hsl(var(--primary) / 0.1);
-  color: hsl(var(--primary));
-  box-shadow: none;
-  border-left: 2px solid hsl(var(--primary));
-  transform: scale(1.05);
+.theme-light .nav-glow-btn {
+  background: hsla(220 10% 80% / 0.5);
+  color: var(--outline-hud);
 }
-.theme-light .obsidian-nav-item { color: var(--outline-hud); }
-.theme-light .obsidian-nav-item:hover { color: hsl(var(--foreground)); }
+.theme-light .nav-glow-btn::before {
+  background: #e6c700;
+}
+.theme-light .nav-glow-btn:hover {
+  color: #b89e00;
+  box-shadow: 0 0 5px rgba(230, 199, 0, 0.4);
+  text-shadow: none;
+}
+.theme-light .nav-glow-btn:hover::before {
+  box-shadow: 0 0 12px rgba(230, 199, 0, 0.4);
+}
+.theme-light .nav-glow-active {
+  color: #b89e00;
+  box-shadow: 0 0 6px rgba(230, 199, 0, 0.3);
+}
+.theme-light .nav-glow-active::before {
+  background: #e6c700;
+  box-shadow: 0 0 10px rgba(230, 199, 0, 0.3);
+}
+.theme-light .craft-glow-btn::before {
+  background: radial-gradient(circle, rgba(230, 199, 0, 0.5) 0%, rgba(230, 199, 0, 0) 70%);
+}
+.theme-light .craft-glow-btn:hover {
+  box-shadow: 0 0 8px rgba(230, 199, 0, 0.3);
+}
+.theme-light .craft-glow-active {
+  box-shadow: 0 0 10px rgba(230, 199, 0, 0.3);
+}
+.theme-light .craft-glow-active::before {
+  background: radial-gradient(circle, rgba(230, 199, 0, 0.5) 0%, rgba(230, 199, 0, 0) 70%);
+}
 .theme-light .obsidian-accent { border-left-color: hsl(var(--primary)); }
-.theme-light .obsidian-active-item {
-  border-left-color: hsl(var(--primary));
-  background: var(--surface-high);
-}
 .theme-light .obsidian-pill-active {
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   box-shadow: none;
+  text-transform: none;
+  letter-spacing: normal;
 }
-.theme-light .obsidian-pill { color: var(--outline-hud); }
+.theme-light .obsidian-pill {
+  color: var(--outline-hud);
+  text-transform: none;
+  letter-spacing: normal;
+}
 .theme-light .obsidian-pill:hover {
   background: var(--surface-high);
   color: hsl(var(--foreground));
@@ -743,9 +715,9 @@ body {
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   box-shadow: none;
+  letter-spacing: 0.05em;
 }
 .theme-light .obsidian-timer { color: hsl(var(--cyan)); }
-.theme-light .obsidian-gold { color: var(--tertiary); }
 .theme-light .obsidian-footer {
   background: var(--surface-lowest);
   border-top-color: var(--outline-variant);

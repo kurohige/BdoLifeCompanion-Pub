@@ -18,6 +18,8 @@
     "fs:default",
     "fs:allow-read-text-file",
     "fs:allow-write-text-file",
-    "global-shortcut:default"
+    "global-shortcut:default",
+    "core:webview:allow-set-webview-zoom",
+    "core:window:allow-set-always-on-top"
   ]
 }

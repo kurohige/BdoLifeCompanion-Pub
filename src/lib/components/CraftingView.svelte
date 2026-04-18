@@ -444,7 +444,7 @@
 		{/if}
 	{:else}
 		<div class="text-center py-6 text-muted-foreground">
-			<p class="text-2xl mb-1">⚒️</p>
+			<img src="/icons/crafting.png" alt="Crafting" class="w-8 h-8 mx-auto mb-1 opacity-60" />
 			<p class="text-sm">Select a recipe to view ingredients</p>
 			<p class="text-xs mt-1">
 				{$filteredRecipesStore.length} recipes available

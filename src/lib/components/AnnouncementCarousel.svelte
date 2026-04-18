@@ -4,7 +4,6 @@
 		activeMessagesStore,
 		currentCardIndexStore,
 		nextCard,
-		dismissMessage,
 		updateAvailableStore,
 		getDownloadUrl,
 	} from "$lib/stores";
@@ -22,6 +21,7 @@
 	let isFlipping = $state(false);
 	let isResetting = $state(false);
 	let isPaused = $state(false);
+	let contentReady = $state(true);
 	let currentMessage = $derived($activeMessagesStore[$currentCardIndexStore] ?? $activeMessagesStore[0]);
 	let nextMessage = $derived(() => {
 		const msgs = $activeMessagesStore;
@@ -29,7 +29,7 @@
 		return msgs[($currentCardIndexStore + 1) % msgs.length];
 	});
 
-	// Compact marquee state — tracks whether marquee has finished scrolling
+	// Compact marquee state
 	let marqueeKey = $state(0);
 
 	// Auto-rotation interval (full mode only)
@@ -38,7 +38,7 @@
 	function startInterval() {
 		stopInterval();
 		if ($activeMessagesStore.length <= 1) return;
-		if (compact) return; // Compact uses marquee-driven rotation
+		if (compact) return;
 		intervalId = setInterval(() => {
 			if (!isPaused) {
 				triggerFlip();
@@ -55,34 +55,30 @@
 
 	function triggerFlip() {
 		if (isFlipping || $activeMessagesStore.length <= 1) return;
+		contentReady = false;
 		isFlipping = true;
 		setTimeout(() => {
-			// Disable transition so the reset to 0deg is instant (no reverse animation)
 			isResetting = true;
 			nextCard();
 			isFlipping = false;
-			marqueeKey++; // Restart marquee animation for the new message
-			// Re-enable transition on the next frame
+			marqueeKey++;
 			requestAnimationFrame(() => {
 				isResetting = false;
+				// Stagger content entrance after flip completes
+				setTimeout(() => { contentReady = true; }, 50);
 			});
 		}, CAROUSEL_FLIP_DURATION_MS);
 	}
 
-	// Compact: when marquee animation ends, trigger flip (if multiple messages)
 	function handleMarqueeEnd() {
 		if (!compact || isPaused) return;
 		if ($activeMessagesStore.length > 1) {
 			triggerFlip();
 		} else {
-			// Single message — restart the marquee after a pause
-			setTimeout(() => {
-				marqueeKey++;
-			}, 2000);
+			setTimeout(() => { marqueeKey++; }, 2000);
 		}
 	}
 
-	// Start/restart interval when message count changes
 	$effect(() => {
 		const count = $activeMessagesStore.length;
 		if (count > 1 && !compact) {
@@ -97,7 +93,6 @@
 		stopInterval();
 	});
 
-	// Card type styling
 	function getCardStyle(type: AnnouncementMessage["type"]): { border: string; color: string; icon: string } {
 		switch (type) {
 			case "update": return { border: "border-primary", color: "text-primary", icon: "⬆️" };
@@ -116,33 +111,19 @@
 		}
 	}
 
-	function handleDismiss(msg: AnnouncementMessage) {
-		if (msg.id === DEFAULT_MESSAGE.id) return;
-		dismissMessage(msg.id);
-	}
-
 	async function handleDownload() {
 		const url = getDownloadUrl();
 		if (url) {
-			try {
-				await openUrl(url);
-			} catch {
-				// Silently fail
-			}
+			try { await openUrl(url); } catch { /* */ }
 		}
 	}
 
-	function handleMouseEnter() {
-		isPaused = true;
-	}
-
-	function handleMouseLeave() {
-		isPaused = false;
-	}
+	function handleMouseEnter() { isPaused = true; }
+	function handleMouseLeave() { isPaused = false; }
 </script>
 
 {#if compact}
-	<!-- COMPACT MODE: Marquee ticker with 3D rotation between messages -->
+	<!-- COMPACT MODE: Marquee ticker with 3D rotation -->
 	<div
 		class="carousel-container carousel-compact"
 		onmouseenter={handleMouseEnter}
@@ -152,7 +133,6 @@
 	>
 		<div class="carousel-scene">
 			<div class="carousel-cube {isFlipping ? 'is-flipping' : ''} {isResetting ? 'no-transition' : ''}">
-				<!-- Current face (front) -->
 				{#if currentMessage}
 					{@const style = getCardStyle(currentMessage.type)}
 					<div class="carousel-face carousel-face-front">
@@ -160,16 +140,13 @@
 							class="ticker-card border {style.border} rounded"
 							style="--accent-color: {getAccentColor(currentMessage.type)}"
 						>
-							<div class="card-accent-bar" style="background: {getAccentColor(currentMessage.type)}"></div>
+							<div class="card-accent-bar accent-glow" style="background: {getAccentColor(currentMessage.type)}"></div>
 							<div class="ticker-track" class:ticker-paused={isPaused}>
 								{#key marqueeKey}
-									<span
-										class="ticker-text"
-										onanimationend={handleMarqueeEnd}
-									>
-										<span class="{style.color} text-[10px] font-bold">{style.icon} {currentMessage.title}</span>
+									<span class="ticker-text" onanimationend={handleMarqueeEnd}>
+										<span class="{style.color} text-[11px] font-extrabold">{style.icon} {currentMessage.title}</span>
 										<span class="text-foreground/50 text-[10px] mx-1.5">—</span>
-										<span class="text-foreground text-[11px]">{currentMessage.body}</span>
+										<span class="text-foreground text-[11px] font-medium">{currentMessage.body}</span>
 									</span>
 								{/key}
 							</div>
@@ -177,7 +154,6 @@
 					</div>
 				{/if}
 
-				<!-- Next face (bottom, rotates up) -->
 				{#if $activeMessagesStore.length > 1}
 					{@const next = nextMessage()}
 					{#if next}
@@ -187,12 +163,12 @@
 								class="ticker-card border {nextStyle.border} rounded"
 								style="--accent-color: {getAccentColor(next.type)}"
 							>
-								<div class="card-accent-bar" style="background: {getAccentColor(next.type)}"></div>
+								<div class="card-accent-bar accent-glow" style="background: {getAccentColor(next.type)}"></div>
 								<div class="ticker-track">
 									<span class="ticker-text ticker-paused">
-										<span class="{nextStyle.color} text-[10px] font-bold">{nextStyle.icon} {next.title}</span>
+										<span class="{nextStyle.color} text-[11px] font-extrabold">{nextStyle.icon} {next.title}</span>
 										<span class="text-foreground/50 text-[10px] mx-1.5">—</span>
-										<span class="text-foreground text-[11px]">{next.body}</span>
+										<span class="text-foreground text-[11px] font-medium">{next.body}</span>
 									</span>
 								</div>
 							</div>
@@ -203,7 +179,7 @@
 		</div>
 	</div>
 {:else}
-	<!-- FULL MODE: Static cards with 3D cube rotation on interval -->
+	<!-- FULL MODE: Cards with 3D cube rotation + effects -->
 	<div
 		class="carousel-container carousel-full"
 		onmouseenter={handleMouseEnter}
@@ -213,48 +189,38 @@
 	>
 		<div class="carousel-scene">
 			<div class="carousel-cube {isFlipping ? 'is-flipping' : ''} {isResetting ? 'no-transition' : ''}">
-				<!-- Current face (front) -->
 				{#if currentMessage}
 					{@const style = getCardStyle(currentMessage.type)}
 					<div
 						class="carousel-face carousel-face-front"
 						style="--accent-color: {getAccentColor(currentMessage.type)}"
 					>
-						<div class="card-content glass-card border {style.border} rounded px-3 py-1.5">
-							<div class="card-accent-bar" style="background: {getAccentColor(currentMessage.type)}"></div>
-							<div class="flex items-start gap-1.5 flex-1 min-w-0">
-								<span class="text-xs flex-shrink-0">{style.icon}</span>
+						<div class="card-content card-gradient-border glass-card border {style.border} rounded px-3 py-1.5">
+							<div class="card-accent-bar accent-glow" style="background: {getAccentColor(currentMessage.type)}"></div>
+							<div class="card-shimmer"></div>
+							<div class="flex items-start gap-1.5 flex-1 min-w-0 relative z-[1]">
+								<span class="text-xs flex-shrink-0 {contentReady ? 'content-enter' : 'content-hidden'}">{style.icon}</span>
 								<div class="flex-1 min-w-0">
-									<span class="{style.color} text-xs font-bold leading-tight block truncate">
+									<span class="{style.color} text-[13px] font-extrabold leading-tight block truncate {contentReady ? 'content-enter content-delay-1' : 'content-hidden'}">
 										{currentMessage.title}
 									</span>
-									<span class="text-foreground/80 text-[11px] leading-tight block truncate">
+									<span class="text-foreground text-[11px] font-medium leading-tight block truncate {contentReady ? 'content-enter content-delay-2' : 'content-hidden'}">
 										{currentMessage.body}
 									</span>
 									{#if currentMessage.type === "update" && $updateAvailableStore}
 										<button
 											onclick={handleDownload}
-											class="mt-1 px-2 py-0.5 text-[9px] font-bold rounded border border-primary text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+											class="mt-1 px-2 py-0.5 text-[9px] font-bold rounded border border-primary text-primary bg-primary/10 hover:bg-primary/20 transition-colors {contentReady ? 'content-enter content-delay-3' : 'content-hidden'}"
 										>
 											Download
 										</button>
 									{/if}
 								</div>
-								{#if currentMessage.id !== DEFAULT_MESSAGE.id}
-									<button
-										onclick={() => handleDismiss(currentMessage)}
-										class="text-foreground/30 hover:text-foreground/70 text-[10px] flex-shrink-0 transition-colors leading-none"
-										title="Dismiss"
-									>
-										✕
-									</button>
-								{/if}
 							</div>
 						</div>
 					</div>
 				{/if}
 
-				<!-- Next face (bottom, rotates up) -->
 				{#if $activeMessagesStore.length > 1}
 					{@const next = nextMessage()}
 					{#if next}
@@ -264,25 +230,13 @@
 							style="--accent-color: {getAccentColor(next.type)}"
 						>
 							<div class="card-content bg-card border {nextStyle.border} rounded px-3 py-1.5">
-								<div class="card-accent-bar" style="background: {getAccentColor(next.type)}"></div>
+								<div class="card-accent-bar accent-glow" style="background: {getAccentColor(next.type)}"></div>
 								<div class="flex items-start gap-1.5 flex-1 min-w-0">
 									<span class="text-xs flex-shrink-0">{nextStyle.icon}</span>
 									<div class="flex-1 min-w-0">
-										<span class="{nextStyle.color} text-xs font-bold leading-tight block truncate">
-											{next.title}
-										</span>
-										<span class="text-foreground/80 text-[11px] leading-tight block truncate">
-											{next.body}
-										</span>
+										<span class="{nextStyle.color} text-[13px] font-extrabold leading-tight block truncate">{next.title}</span>
+										<span class="text-foreground text-[11px] font-medium leading-tight block truncate">{next.body}</span>
 									</div>
-									{#if next.id !== DEFAULT_MESSAGE.id}
-										<button
-											class="text-foreground/30 text-[10px] flex-shrink-0 leading-none"
-											tabindex="-1"
-										>
-											✕
-										</button>
-									{/if}
 								</div>
 							</div>
 						</div>
@@ -291,13 +245,10 @@
 			</div>
 		</div>
 
-		<!-- Carousel indicators (only if multiple messages) -->
 		{#if $activeMessagesStore.length > 1}
 			<div class="flex justify-center gap-1 mt-0.5">
 				{#each $activeMessagesStore as _, i}
-					<div
-						class="w-1 h-1 rounded-full transition-colors {i === $currentCardIndexStore ? 'bg-primary' : 'bg-muted'}"
-					></div>
+					<div class="w-1 h-1 rounded-full transition-colors {i === $currentCardIndexStore ? 'bg-primary' : 'bg-muted'}"></div>
 				{/each}
 			</div>
 		{/if}
@@ -310,13 +261,8 @@
 		overflow: hidden;
 	}
 
-	.carousel-full {
-		--card-height: 44px;
-	}
-
-	.carousel-compact {
-		--card-height: 22px;
-	}
+	.carousel-full { --card-height: 52px; }
+	.carousel-compact { --card-height: 22px; }
 
 	.carousel-scene {
 		perspective: 600px;
@@ -331,14 +277,8 @@
 		transform-style: preserve-3d;
 		transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
 	}
-
-	.carousel-cube.is-flipping {
-		transform: rotateX(-90deg);
-	}
-
-	.carousel-cube.no-transition {
-		transition: none;
-	}
+	.carousel-cube.is-flipping { transform: rotateX(-90deg); }
+	.carousel-cube.no-transition { transition: none; }
 
 	.carousel-face {
 		position: absolute;
@@ -346,16 +286,14 @@
 		height: var(--card-height);
 		backface-visibility: hidden;
 	}
-
 	.carousel-face-front {
 		transform: rotateX(0deg) translateZ(calc(var(--card-height) / 2));
 	}
-
 	.carousel-face-bottom {
 		transform: rotateX(90deg) translateZ(calc(var(--card-height) / 2));
 	}
 
-	/* Full mode card content */
+	/* Full mode card */
 	.card-content {
 		height: var(--card-height);
 		display: flex;
@@ -363,7 +301,12 @@
 		position: relative;
 		overflow: hidden;
 	}
+	/* More opaque for readability over spinning border */
+	.card-gradient-border.card-content {
+		background: rgba(14, 14, 18, 0.92);
+	}
 
+	/* === EFFECT 1: Glowing accent bar === */
 	.card-accent-bar {
 		position: absolute;
 		left: 0;
@@ -371,6 +314,106 @@
 		bottom: 0;
 		width: 3px;
 		border-radius: 4px 0 0 4px;
+	}
+	.accent-glow {
+		box-shadow: 0 0 8px var(--accent-color, #c77dff),
+					0 0 16px color-mix(in srgb, var(--accent-color, #c77dff) 40%, transparent);
+		animation: accent-pulse 3s ease-in-out infinite;
+	}
+	@keyframes accent-pulse {
+		0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent-color), 0 0 12px color-mix(in srgb, var(--accent-color) 30%, transparent); }
+		50% { opacity: 0.8; box-shadow: 0 0 12px var(--accent-color), 0 0 24px color-mix(in srgb, var(--accent-color) 50%, transparent); }
+	}
+
+	/* === EFFECT 2: Shimmer sweep === */
+	.card-shimmer {
+		position: absolute;
+		top: 0;
+		left: -100%;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(
+			90deg,
+			transparent 0%,
+			rgba(255, 255, 255, 0.03) 40%,
+			rgba(255, 255, 255, 0.06) 50%,
+			rgba(255, 255, 255, 0.03) 60%,
+			transparent 100%
+		);
+		animation: shimmer-sweep 6s ease-in-out infinite;
+		pointer-events: none;
+		z-index: 0;
+	}
+	@keyframes shimmer-sweep {
+		0%, 70% { transform: translateX(0); }
+		100% { transform: translateX(300%); }
+	}
+
+	/* === EFFECT 3: Staggered content entrance === */
+	.content-hidden {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	.content-enter {
+		opacity: 1;
+		transform: translateY(0);
+		transition: opacity 300ms ease-out, transform 300ms ease-out;
+	}
+	.content-delay-1 { transition-delay: 80ms; }
+	.content-delay-2 { transition-delay: 160ms; }
+	.content-delay-3 { transition-delay: 240ms; }
+
+	/* === EFFECT 4: Spinning gradient border (magic card style) === */
+	@property --rotate {
+		syntax: "<angle>";
+		initial-value: 132deg;
+		inherits: false;
+	}
+
+	.card-gradient-border {
+		position: relative;
+	}
+	/* Spinning gradient border — muted to match theme */
+	.card-gradient-border::before {
+		content: "";
+		position: absolute;
+		width: calc(100% + 3px);
+		height: calc(100% + 3px);
+		top: -1.5px;
+		left: -1.5px;
+		border-radius: inherit;
+		background-image: linear-gradient(
+			var(--rotate),
+			rgba(93, 220, 255, 0.5), rgba(60, 103, 227, 0.4) 43%, rgba(78, 0, 194, 0.5)
+		);
+		z-index: -1;
+		animation: card-spin 2.5s linear infinite;
+		pointer-events: none;
+	}
+	/* Blurred glow copy underneath */
+	.card-gradient-border::after {
+		content: "";
+		position: absolute;
+		top: 15%;
+		left: 0;
+		right: 0;
+		height: 100%;
+		width: 100%;
+		z-index: -1;
+		margin: 0 auto;
+		transform: scale(0.85);
+		filter: blur(16px);
+		background-image: linear-gradient(
+			var(--rotate),
+			rgba(93, 220, 255, 0.3), rgba(60, 103, 227, 0.25) 43%, rgba(78, 0, 194, 0.3)
+		);
+		opacity: 0.5;
+		animation: card-spin 2.5s linear infinite;
+		pointer-events: none;
+	}
+	@keyframes card-spin {
+		0% { --rotate: 0deg; }
+		100% { --rotate: 360deg; }
 	}
 
 	/* Compact ticker card */
@@ -380,37 +423,30 @@
 		align-items: center;
 		position: relative;
 		overflow: hidden;
-		background: hsla(var(--card) / 0.5);
+		background: rgba(14, 14, 18, 0.88);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
 		padding: 0 6px 0 8px;
 	}
 
-	/* Marquee ticker track */
+	/* Marquee */
 	.ticker-track {
 		overflow: hidden;
 		white-space: nowrap;
 		width: 100%;
 	}
-
 	.ticker-text {
 		display: inline-block;
 		white-space: nowrap;
 		padding-left: 100%;
 		animation: marquee-scroll 8s linear forwards;
 	}
-
 	.ticker-paused .ticker-text,
 	.ticker-text.ticker-paused {
 		animation-play-state: paused;
 	}
-
 	@keyframes marquee-scroll {
-		0% {
-			transform: translateX(0);
-		}
-		100% {
-			transform: translateX(-100%);
-		}
+		0% { transform: translateX(0); }
+		100% { transform: translateX(-100%); }
 	}
 </style>

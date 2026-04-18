@@ -123,6 +123,12 @@ pub struct AppSettings {
     pub font_bold: bool,
     #[serde(default = "default_font_size")]
     pub font_size: String,
+    #[serde(default)]
+    pub barter_level: String,
+    #[serde(default)]
+    pub has_value_pack: bool,
+    #[serde(default)]
+    pub total_barter_count: i32,
 }
 
 fn default_true() -> bool {
@@ -499,6 +505,323 @@ fn save_hunting_log(sessions: Vec<HuntingSession>) -> Result<(), String> {
     Ok(())
 }
 
+// ============== Bartering Commands ==============
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct BarterInventoryData {
+    #[serde(default)]
+    pub items: std::collections::HashMap<String, i32>,
+    #[serde(rename = "crowCoins", default)]
+    pub crow_coins: i32,
+    #[serde(rename = "lastUpdated", default)]
+    pub last_updated: String,
+}
+
+/// Load barter inventory from JSON file
+#[tauri::command]
+fn load_barter_inventory() -> Result<BarterInventoryData, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_inventory.json");
+
+    if !path.exists() {
+        return Ok(BarterInventoryData {
+            items: std::collections::HashMap::new(),
+            crow_coins: 0,
+            last_updated: String::new(),
+        });
+    }
+
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read barter inventory: {}", e))?;
+
+    serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse barter inventory: {}", e))
+}
+
+/// Save barter inventory to JSON file
+#[tauri::command]
+fn save_barter_inventory(data: BarterInventoryData) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_inventory.json");
+
+    let content = serde_json::to_string_pretty(&data)
+        .map_err(|e| format!("Failed to serialize barter inventory: {}", e))?;
+
+    fs::write(&path, content)
+        .map_err(|e| format!("Failed to write barter inventory: {}", e))?;
+
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct BarterSessionEntry {
+    pub id: String,
+    pub date: String,
+    pub timestamp: String,
+    #[serde(rename = "barterLevel")]
+    pub barter_level: String,
+    #[serde(rename = "hasValuePack")]
+    pub has_value_pack: bool,
+    #[serde(rename = "parleyBudget")]
+    pub parley_budget: i64,
+    #[serde(rename = "parleySpent")]
+    pub parley_spent: i64,
+    #[serde(rename = "totalBarters")]
+    pub total_barters: i32,
+    #[serde(rename = "refreshesUsed")]
+    pub refreshes_used: i32,
+    #[serde(rename = "t1Barters", default, skip_serializing_if = "Option::is_none")]
+    pub t1_barters: Option<i32>,
+    #[serde(rename = "t2Barters", default, skip_serializing_if = "Option::is_none")]
+    pub t2_barters: Option<i32>,
+    #[serde(rename = "t3Barters", default, skip_serializing_if = "Option::is_none")]
+    pub t3_barters: Option<i32>,
+    #[serde(rename = "t4Barters", default, skip_serializing_if = "Option::is_none")]
+    pub t4_barters: Option<i32>,
+    #[serde(rename = "t5Barters", default, skip_serializing_if = "Option::is_none")]
+    pub t5_barters: Option<i32>,
+    #[serde(rename = "t6Barters", default, skip_serializing_if = "Option::is_none")]
+    pub t6_barters: Option<i32>,
+    #[serde(rename = "t7Barters", default, skip_serializing_if = "Option::is_none")]
+    pub t7_barters: Option<i32>,
+    #[serde(rename = "t5Sold")]
+    pub t5_sold: i32,
+    #[serde(rename = "t5SoldMargoria")]
+    pub t5_sold_margoria: i32,
+    #[serde(rename = "t6Sold", default)]
+    pub t6_sold: i32,
+    #[serde(rename = "t7Sold", default)]
+    pub t7_sold: i32,
+    #[serde(rename = "crowCoinsEarned")]
+    pub crow_coins_earned: i32,
+    #[serde(rename = "silverEarned")]
+    pub silver_earned: i64,
+    #[serde(rename = "silverInvested")]
+    pub silver_invested: i64,
+    #[serde(rename = "netProfit")]
+    pub net_profit: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+}
+
+/// Load barter log from JSON file
+#[tauri::command]
+fn load_barter_log() -> Result<Vec<BarterSessionEntry>, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_log.json");
+
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read barter log: {}", e))?;
+
+    serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse barter log: {}", e))
+}
+
+/// Save barter log to JSON file
+#[tauri::command]
+fn save_barter_log(sessions: Vec<BarterSessionEntry>) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_log.json");
+
+    let content = serde_json::to_string_pretty(&sessions)
+        .map_err(|e| format!("Failed to serialize barter log: {}", e))?;
+
+    fs::write(&path, content)
+        .map_err(|e| format!("Failed to write barter log: {}", e))?;
+
+    Ok(())
+}
+
+// ============== Ship Progress Commands ==============
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ShipProgressEntry {
+    pub variant: String,
+    #[serde(default)]
+    pub materials: std::collections::HashMap<String, i32>,
+    #[serde(rename = "completedStages", default)]
+    pub completed_stages: std::collections::HashMap<String, bool>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ShipProgressData {
+    #[serde(default)]
+    pub paths: Vec<ShipProgressEntry>,
+}
+
+/// Load ship progress from JSON file
+#[tauri::command]
+fn load_ship_progress() -> Result<ShipProgressData, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("ship_progress.json");
+
+    if !path.exists() {
+        return Ok(ShipProgressData { paths: Vec::new() });
+    }
+
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read ship progress: {}", e))?;
+
+    serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse ship progress: {}", e))
+}
+
+/// Save ship progress to JSON file
+#[tauri::command]
+fn save_ship_progress(data: ShipProgressData) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("ship_progress.json");
+
+    let content = serde_json::to_string_pretty(&data)
+        .map_err(|e| format!("Failed to serialize ship progress: {}", e))?;
+
+    fs::write(&path, content)
+        .map_err(|e| format!("Failed to write ship progress: {}", e))?;
+
+    Ok(())
+}
+
+// ============== Sailor Roster Commands ==============
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SailorEntry {
+    pub id: String,
+    pub name: String,
+    pub level: i32,
+    pub speed: f64,
+    pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SailorRosterData {
+    #[serde(default)]
+    pub sailors: Vec<SailorEntry>,
+}
+
+/// Load sailor roster from JSON file
+#[tauri::command]
+fn load_sailor_roster() -> Result<SailorRosterData, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("sailor_roster.json");
+
+    if !path.exists() {
+        return Ok(SailorRosterData { sailors: Vec::new() });
+    }
+
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read sailor roster: {}", e))?;
+
+    serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse sailor roster: {}", e))
+}
+
+/// Save sailor roster to JSON file
+#[tauri::command]
+fn save_sailor_roster(data: SailorRosterData) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("sailor_roster.json");
+
+    let content = serde_json::to_string_pretty(&data)
+        .map_err(|e| format!("Failed to serialize sailor roster: {}", e))?;
+
+    fs::write(&path, content)
+        .map_err(|e| format!("Failed to write sailor roster: {}", e))?;
+
+    Ok(())
+}
+
+// ============== Weekly Tasks Commands ==============
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WeeklyTaskProgressEntry {
+    #[serde(rename = "taskId")]
+    pub task_id: String,
+    #[serde(rename = "highestStageCleared", default)]
+    pub highest_stage_cleared: i32,
+    #[serde(rename = "completedThisWeek", default)]
+    pub completed_this_week: bool,
+    #[serde(rename = "firstClearStages", default)]
+    pub first_clear_stages: Vec<i32>,
+    #[serde(rename = "weekStartIso", default)]
+    pub week_start_iso: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WeeklyTaskProgressData {
+    #[serde(default)]
+    pub tasks: Vec<WeeklyTaskProgressEntry>,
+    #[serde(rename = "lastResetCheck", default)]
+    pub last_reset_check: String,
+}
+
+#[tauri::command]
+fn load_weekly_tasks() -> Result<WeeklyTaskProgressData, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("weekly_tasks.json");
+
+    if !path.exists() {
+        return Ok(WeeklyTaskProgressData {
+            tasks: Vec::new(),
+            last_reset_check: String::new(),
+        });
+    }
+
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read weekly tasks: {}", e))?;
+
+    serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse weekly tasks: {}", e))
+}
+
+#[tauri::command]
+fn save_weekly_tasks(data: WeeklyTaskProgressData) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("weekly_tasks.json");
+
+    let content = serde_json::to_string_pretty(&data)
+        .map_err(|e| format!("Failed to serialize weekly tasks: {}", e))?;
+
+    fs::write(&path, content)
+        .map_err(|e| format!("Failed to write weekly tasks: {}", e))?;
+
+    Ok(())
+}
+
+// ============== Clear All Data Command ==============
+
+#[tauri::command]
+fn clear_all_data() -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let data_files = [
+        "inventory.csv",
+        "crafting_log.json",
+        "grinding_log.json",
+        "hunting_log.json",
+        "planner.json",
+        "treasure_progress.json",
+        "barter_inventory.json",
+        "barter_log.json",
+        "ship_progress.json",
+        "sailor_roster.json",
+        "weekly_tasks.json",
+        "announcements_cache.json",
+    ];
+    for file in &data_files {
+        let path = dir.join(file);
+        if path.exists() {
+            fs::remove_file(&path)
+                .map_err(|e| format!("Failed to delete {}: {}", file, e))?;
+        }
+    }
+    Ok(())
+}
+
 // ============== Announcements Commands ==============
 
 /// Fetch announcements from a remote URL with optional bearer token auth
@@ -671,7 +994,18 @@ pub fn run() {
             save_announcements_cache,
             fetch_market_prices,
             load_hunting_log,
-            save_hunting_log
+            save_hunting_log,
+            load_barter_inventory,
+            save_barter_inventory,
+            load_barter_log,
+            save_barter_log,
+            load_ship_progress,
+            save_ship_progress,
+            load_sailor_roster,
+            save_sailor_roster,
+            load_weekly_tasks,
+            save_weekly_tasks,
+            clear_all_data
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

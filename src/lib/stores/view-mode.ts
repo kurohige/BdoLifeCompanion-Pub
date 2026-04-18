@@ -6,7 +6,7 @@
 import { writable } from "svelte/store";
 
 export type ViewMode = "mini" | "medium" | "full";
-export type ActiveTab = "crafting" | "inventory" | "log" | "timer" | "settings";
+export type ActiveTab = "crafting" | "inventory" | "log" | "timer" | "bartering" | "weekly" | "settings" | "about";
 
 /** Current view mode (mini/medium/full) */
 export const viewModeStore = writable<ViewMode>("full");

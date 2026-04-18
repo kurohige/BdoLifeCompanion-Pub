@@ -3,7 +3,7 @@
  */
 
 import { writable, get } from "svelte/store";
-import { loadSettings, saveSettings, type AppSettings, type AppTheme, type FontFamily, type FontSize, type WindowState } from "$lib/services/persistence";
+import { loadSettings, saveSettings, DEFAULT_SETTINGS, type AppSettings, type AppTheme, type FontFamily, type FontSize, type WindowState } from "$lib/services/persistence";
 
 // Life Skill Rank options (Beginner 1 - Guru 72)
 export const LIFE_SKILL_RANKS = [
@@ -47,26 +47,6 @@ export const MASTERY_RANKS = LIFE_SKILL_RANKS;
 export type LifeSkillRank = typeof LIFE_SKILL_RANKS[number];
 export type MasteryRank = LifeSkillRank; // Alias for backwards compatibility
 
-// Default settings
-const DEFAULT_SETTINGS: AppSettings = {
-	transparency: 0.95,
-	cooking_mastery: "None",
-	alchemy_mastery: "None",
-	cooking_total_mastery: 0,
-	alchemy_total_mastery: 0,
-	server_region: "NA",
-	favorites: [],
-	theme: "neon-cyberpunk",
-	window_state: { width: 560, height: 620, x: null, y: null, view_mode: "full" },
-	dismissed_announcements: [],
-	boss_sound_enabled: true,
-	timer_sound_enabled: true,
-	boss_alert_minutes: 5,
-	font_family: "system",
-	font_bold: false,
-	font_size: "default",
-};
-
 // Settings store
 export const settingsStore = writable<AppSettings>(DEFAULT_SETTINGS);
 
@@ -83,6 +63,10 @@ export async function initSettings(): Promise<void> {
 	settingsLoadingStore.set(true);
 	try {
 		const settings = await loadSettings();
+		// Migrate removed themes to obsidian
+		if (settings.theme !== "obsidian" && settings.theme !== "light") {
+			settings.theme = "obsidian";
+		}
 		settingsStore.set(settings);
 	} catch (error) {
 		console.error("Failed to initialize settings:", error);
@@ -197,13 +181,6 @@ export function saveWindowState(state: WindowState): void {
 }
 
 /**
- * Set font family
- */
-export function setFontFamily(value: FontFamily): void {
-	updateSetting("font_family", value);
-}
-
-/**
  * Set font bold
  */
 export function setFontBold(value: boolean): void {
@@ -215,6 +192,18 @@ export function setFontBold(value: boolean): void {
  */
 export function setFontSize(value: FontSize): void {
 	updateSetting("font_size", value);
+}
+
+export function setBarterLevel(value: string): void {
+	updateSetting("barter_level", value);
+}
+
+export function setValuePack(value: boolean): void {
+	updateSetting("has_value_pack", value);
+}
+
+export function setAlwaysOnTop(value: boolean): void {
+	updateSetting("always_on_top", value);
 }
 
 /**

@@ -249,7 +249,7 @@
 		{#if filteredItems().length === 0}
 			<div class="text-center py-6 text-muted-foreground text-[11px]">
 				{#if $inventoryStore.size === 0}
-					<p class="text-2xl mb-1">📦</p>
+					<img src="/icons/inventory.png" alt="Inventory" class="w-8 h-8 mx-auto mb-1 opacity-60" />
 					<p>No items in inventory</p>
 					<p class="mt-1">Click "+ Add" to add your first item</p>
 				{:else}

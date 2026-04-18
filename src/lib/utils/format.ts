@@ -32,6 +32,12 @@ export function formatDuration(seconds: number): string {
  * Format a yield rate as a percentage string (e.g., "125.0%").
  * Returns "0%" if crafted is zero.
  */
+/** Format an ISO timestamp as short date, e.g. "Apr 15" */
+export function formatDateShort(isoString: string): string {
+	const d = new Date(isoString);
+	return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export function formatYieldRate(crafted: number, yielded: number): string {
 	if (crafted === 0) return "0%";
 	const rate = (yielded / crafted) * 100;

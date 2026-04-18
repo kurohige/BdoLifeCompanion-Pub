@@ -1,6 +1,6 @@
 # BDO Life Companion
 
-A lightweight desktop overlay for **Black Desert Online** that helps you track crafting, grinding, hunting, boss timers, and session analytics — without ever touching the game.
+A lightweight desktop overlay for **Black Desert Online** that helps you track crafting, grinding, bartering, hunting, boss timers, weekly tasks, and session analytics — without ever touching the game.
 
 > **This is a companion tool, not a cheat.** Everything is entered manually by you. No automation, no screen reading, no memory injection. Just a window sitting next to your game.
 
@@ -8,12 +8,13 @@ A lightweight desktop overlay for **Black Desert Online** that helps you track c
 
 ## Download
 
-**Latest version: v2.1.0**
+**Latest version: v2.5.0**
 
 - [GitHub Releases](https://github.com/kurohige/BdoLifeCompanion-Pub/releases) — Portable `.zip`, no installer needed
-- Discord — *Coming soon*
 
 Just extract the zip and run the `.exe`. That's it.
+
+> **Note:** Windows Defender SmartScreen may show a warning because the app is not yet code-signed. Code-signing certificates cost **~$200–500/year** from a trusted certificate authority, which is more than a free hobby project can justify right now — so for the time being the build ships unsigned. This is normal for indie software. Click **"More info"** then **"Run anyway"** to proceed. **Only the source code is open-source** — you can inspect it or build it yourself. The in-app game assets (item icons, boss images, recipe data, etc.) are the property of **Pearl Abyss / Black Desert Online** and are not redistributed here, which is why the public repo ships code only and the runnable build is offered separately via Releases.
 
 For a walkthrough of first launch and features, check the [User Guide](USER-GUIDE.md).
 
@@ -36,9 +37,21 @@ For a walkthrough of first launch and features, check the [User Guide](USER-GUID
 - **Market Prices** — Fetch current Central Market prices for loot items to estimate silver/hour.
 - **Treasure Tracker** — Track progress across 5 treasure collections and their ~25 pieces.
 
+### Bartering
+
+- **Barter Tracker** — Count barters by tier (T1–T7) with live activity log. Draft form persists across tab switches — log sessions whenever you're ready.
+- **Barter Inventory** — Track 123 barter items across 7 tiers with collapsible tier sections, crow coin balance, and total value calculations.
+- **Ship Crafting** — Track progress toward all 4 Carrack variants (Advance, Balance, Volante, Valor) with per-material tracking across 5 stages.
+- **Parley Calculator** — Calculate barter costs based on mastery level and Value Pack, with route planner for 16 NPC routes.
+- **Sailor Tracker** — Manage your ship's crew with speed projections at level 10.
+
 ### Hunting
 
-- **Hunting Tracker** — Same session tracking as grinding, but with mastery, matchlock, and butchering knife fields.
+- **Hunting Tracker** — Session tracking with mastery, matchlock, and butchering knife fields.
+
+### Weekly Tasks
+
+- **Altar of Blood** — Track your weekly progress across 21 stages with AP/DP requirements, boss stage highlighting, and first-clear reward tracking. Auto-resets on Sunday.
 
 ### Dashboard
 
@@ -51,19 +64,19 @@ For a walkthrough of first launch and features, check the [User Guide](USER-GUID
 
 ### Overlay Modes
 
-The app has 3 view modes you can cycle through by clicking the logo:
+The app has 3 view modes:
 
 | Mode | Size | What You See |
 |------|------|-------------|
 | **Full** | 560 x 680 | All tabs, full feature navigation, resizable window |
-| **Medium** | 560 x 170 | Compact dashboard strip with timer, boss countdown, reset timers, loot summary |
-| **Mini** | 180 x 260 | Floating widget — shows boss countdown, active grinding session, or current recipe depending on what tab you were using |
+| **Medium** | 460 x 150 | Compact dashboard with timer, boss countdown, reset timers |
+| **Mini** | 400 x 56 | Thin floating bar with boss countdown and announcements |
 
-All modes support always-on-top and adjustable transparency. The window remembers its position and size between launches.
+All modes support always-on-top (toggleable) and adjustable transparency. The window remembers its position and size between launches.
 
 ### Themes
 
-Three built-in themes: **Neon Cyberpunk** (default), **Dark Minimal**, and **Light**.
+Two built-in themes: **Obsidian Dark** (default — sharp corners, Space Grotesk, gold accents, neon hex particle background) and **Light** (warm off-white, readable).
 
 ---
 
@@ -94,7 +107,7 @@ The source code is public so you can verify this yourself. The Rust backend hand
 | Language | TypeScript (strict) |
 | Persistence | Local JSON/CSV files via Rust |
 
-No Electron, no web server, no cloud. The portable zip is ~14MB.
+No Electron, no web server, no external services. The portable zip is ~18MB.
 
 ---
 
@@ -125,7 +138,14 @@ npm run tauri build   # Production build
 - [Changelog](CHANGELOG.md) — Version history and patch notes
 - [User Guide](USER-GUIDE.md) — Installation, first launch, and feature walkthrough
 - [GitHub Issues](https://github.com/kurohige/BdoLifeCompanion-Pub/issues) — Bug reports and feature requests
-- Discord — *Coming soon*
+
+---
+
+## Support
+
+If you find this tool useful, consider supporting development:
+
+[Buy Me a Coffee](https://buymeacoffee.com/jhidalgo_dev)
 
 ---
 

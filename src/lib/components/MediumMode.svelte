@@ -45,16 +45,15 @@
 	}
 
 	// Boss
-	const primaryBoss = $derived(() => {
-		if (!$nextBossSpawn) return null;
-		return BOSSES[$nextBossSpawn.spawn.bosses[0]] ?? null;
-	});
+	const primaryBoss = $derived(
+		$nextBossSpawn ? (BOSSES[$nextBossSpawn.spawn.bosses[0]] ?? null) : null
+	);
 	const bossNames = $derived(
 		$nextBossSpawn ? $nextBossSpawn.spawn.bosses.map((id) => BOSSES[id]?.name ?? id).join(" & ") : ""
 	);
 
 	// Second upcoming boss
-	const nextUpcoming = $derived(() => {
+	const nextUpcoming = $derived.by(() => {
 		const spawns = $nextBossSpawns;
 		if (!spawns || spawns.length < 2) return null;
 		const s = spawns[1];
@@ -103,7 +102,7 @@
 		return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}h`;
 	}
 	// Announcement ticker
-	const announcementText = $derived(() => {
+	const announcementText = $derived.by(() => {
 		const messages = $activeMessagesStore;
 		if (!messages || messages.length === 0) return "";
 		return messages.map((m) => m.title + (m.body ? ` — ${m.body}` : "")).join("   ·   ");
@@ -113,32 +112,32 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div role="banner" onmousedown={startDrag}
-	class="w-full h-full bg-[#0e0e0e] relative flex flex-col shadow-[0_0_15px_rgba(199,125,255,0.15)] overflow-hidden rounded-lg select-none cursor-move">
+	class="med-container">
 
 	<!-- CARDS ROW: 3 Glass Cards + Controls -->
 	<div class="flex-1 flex gap-1.5 p-1.5 items-stretch overflow-hidden min-h-0">
 
 		<!-- CARD 1: GRINDING TIMER -->
-		<div class="glass-panel flex-1 border-l-2 border-[#00e3fd] flex flex-col items-center p-2 gap-1">
+		<div class="glass-panel flex-1 border-l-2 border-[#ffee10] flex flex-col items-center p-2 gap-1">
 			<div class="med-title text-center w-full">TIMER</div>
 			<div class="relative flex items-center justify-center">
 				<svg class="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
 					<circle cx="24" cy="24" r="20" fill="transparent" stroke="#2a2a2a" stroke-width="2" />
-					<circle cx="24" cy="24" r="20" fill="transparent" stroke="#00e3fd" stroke-width="2"
+					<circle cx="24" cy="24" r="20" fill="transparent" stroke="#ffee10" stroke-width="2"
 						stroke-dasharray={CIRC} stroke-dashoffset={ringOffset()}
 						stroke-linecap="butt" style="transition:stroke-dashoffset 1s linear" />
 				</svg>
-				<div class="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-[#00e3fd]"
+				<div class="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-[#ffee10]"
 					style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">
 					{$grindingTimerStore.isFinished ? "DONE" : $grindingTimerDisplay}
 				</div>
 			</div>
 			{#if $selectedSpotStore}
-				<span class="text-[8px] text-[#bdf4ff] text-center truncate w-full" style="font-family:'Manrope',sans-serif">{$selectedSpotStore.name}</span>
+				<span class="text-[8px] text-[#e5e2e1] text-center truncate w-full" style="font-family:'Manrope',sans-serif">{$selectedSpotStore.name}</span>
 			{/if}
 			{#if $grindingTimerStore.isRunning || $grindingTimerStore.isPaused || $grindingTimerStore.minutes > 0 || $grindingTimerStore.seconds > 0}
 				<button onclick={handleTimerToggle}
-					class="flex items-center gap-1 px-2 py-0.5 bg-[#2a2a2a] rounded-sm text-[#cfc2d4] hover:text-[#00e3fd] transition-all mt-auto">
+					class="flex items-center gap-1 px-2 py-0.5 bg-[#2a2a2a] rounded-sm text-[#e5e2e1] hover:text-[#ffee10] transition-all mt-auto">
 					<span class="text-[10px]">{$grindingTimerStore.isRunning ? "⏸" : "▶"}</span>
 					<span class="text-[8px] font-bold uppercase">{$grindingTimerStore.isRunning ? "Pause" : "Play"}</span>
 				</button>
@@ -146,38 +145,38 @@
 		</div>
 
 		<!-- CARD 2: BOSS INFO -->
-		<div class="glass-panel flex-[1.3] border-l-2 border-[#00e3fd] flex flex-col items-center p-2 gap-1">
+		<div class="glass-panel flex-[1.3] border-l-2 border-[#ffee10] flex flex-col items-center p-2 gap-1">
 			<div class="med-title text-center w-full">NEXT BOSS</div>
-			<div class="w-10 h-10 rounded-full border-2 border-[#c77dff] overflow-hidden bg-[#2a2a2a] shrink-0">
-				{#if primaryBoss()}
-					<img src={primaryBoss()!.image} alt={primaryBoss()!.name}
-						class="w-full h-full object-cover {primaryBoss()!.isRare ? 'opacity-50' : ''}" />
+			<div class="w-10 h-10 rounded-full border-2 border-[#ffee10] overflow-hidden bg-[#2a2a2a] shrink-0">
+				{#if primaryBoss}
+					<img src={primaryBoss!.image} alt={primaryBoss!.name}
+						class="w-full h-full object-cover {primaryBoss!.isRare ? 'opacity-50' : ''}" />
 				{:else}
 					<img src="/logo.png" alt="BDO" class="w-full h-full object-contain" />
 				{/if}
 			</div>
 			<span class="text-[10px] font-bold text-[#e5e2e1] text-center truncate w-full leading-tight" style="font-family:'Manrope',sans-serif">{bossNames || "—"}</span>
-			<div class="text-[16px] font-bold text-[#00e3fd] leading-none"
+			<div class="text-[16px] font-bold text-[#ffee10] leading-none"
 				style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">
 				{$nextBossCountdown || "—"}
 			</div>
 			<!-- Next upcoming boss -->
-			{#if nextUpcoming()}
+			{#if nextUpcoming}
 				<div class="flex items-center gap-1.5 mt-auto pt-1 w-full" style="border-top:1px solid rgba(77,67,82,0.2)">
-					<span class="text-[8px] text-[#cfc2d4] truncate" style="font-family:'Manrope',sans-serif">{nextUpcoming()!.names}</span>
-					<span class="text-[8px] font-bold text-[#dac839] shrink-0" style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">{nextUpcoming()!.countdown}</span>
+					<span class="text-[8px] text-[#e5e2e1] truncate" style="font-family:'Manrope',sans-serif">{nextUpcoming!.names}</span>
+					<span class="text-[8px] font-bold text-[#dac839] shrink-0" style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">{nextUpcoming!.countdown}</span>
 				</div>
 			{/if}
 		</div>
 
 		<!-- CARD 3: RESETS -->
-		<div class="glass-panel flex-1 border-l-2 border-[#00e3fd] flex flex-col p-2 gap-1.5">
+		<div class="glass-panel flex-1 border-l-2 border-[#ffee10] flex flex-col p-2 gap-1.5">
 			<div class="med-title text-center w-full">RESETS</div>
 			<div class="flex flex-col gap-2 flex-1 justify-center">
 				{#each resetTimers as timer}
 					<div class="flex justify-between items-center leading-none">
-						<span class="text-[9px] text-[#cfc2d4] uppercase" style="font-family:'Manrope',sans-serif">{timer.label}</span>
-						<span class="text-[10px] font-bold text-[#00e3fd]" style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">{fmtReset(timer.ms)}</span>
+						<span class="text-[9px] text-[#e5e2e1] uppercase" style="font-family:'Manrope',sans-serif">{timer.label}</span>
+						<span class="text-[10px] font-bold text-[#ffee10]" style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">{fmtReset(timer.ms)}</span>
 					</div>
 				{/each}
 			</div>
@@ -185,16 +184,16 @@
 
 		<!-- RIGHT CONTROL COLUMN (all 4 buttons) -->
 		<div class="w-[20px] shrink-0 flex flex-col items-center justify-center gap-1.5">
-			<button onclick={expandToFull} class="p-0.5 text-[#b0a4b4] hover:text-[#e1b6ff] transition-colors" title="Full mode">
+			<button onclick={expandToFull} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffee10] transition-colors" title="Full mode">
 				<span class="text-[11px]">⊞</span>
 			</button>
-			<button onclick={switchToMini} class="p-0.5 text-[#b0a4b4] hover:text-[#00e3fd] transition-colors" title="Mini mode">
+			<button onclick={switchToMini} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffee10] transition-colors" title="Mini mode">
 				<span class="text-[11px]">⊟</span>
 			</button>
-			<button onclick={minimize} class="p-0.5 text-[#b0a4b4] hover:text-[#e5e2e1] transition-colors" title="Minimize">
+			<button onclick={minimize} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#e5e2e1] transition-colors" title="Minimize">
 				<span class="text-[11px]">━</span>
 			</button>
-			<button onclick={close} class="p-0.5 text-[#b0a4b4] hover:text-[#ffb4ab] transition-colors" title="Close">
+			<button onclick={close} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffb4ab] transition-colors" title="Close">
 				<span class="text-[11px]">✕</span>
 			</button>
 		</div>
@@ -203,31 +202,40 @@
 
 	<!-- BOTTOM: Announcement ticker -->
 	<div class="h-[18px] shrink-0 overflow-hidden px-2 flex items-center" style="background:rgba(14,14,14,0.8)">
-		{#if announcementText()}
+		{#if announcementText}
 			<div class="med-marquee-track">
-				<span class="med-marquee-text">{announcementText()}</span>
-				<span class="med-marquee-text" aria-hidden="true">{announcementText()}</span>
+				<span class="med-marquee-text">{announcementText}</span>
+				<span class="med-marquee-text" aria-hidden="true">{announcementText}</span>
 			</div>
 		{:else}
-			<span class="text-[8px] text-[#b0a4b4]" style="font-family:'Manrope',sans-serif">No announcements</span>
+			<span class="text-[8px] text-[#e5e2e1]/60" style="font-family:'Manrope',sans-serif">No announcements</span>
 		{/if}
 	</div>
 
 </div>
 
 <style>
-	.glass-panel {
-		background: rgba(20, 20, 30, 0.6);
-		backdrop-filter: blur(12px);
+	.med-container {
+		width: 100%;
+		height: 100%;
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		background: rgba(14, 14, 14, 0.75);
+		box-shadow: 0 0 12px rgba(255, 238, 16, 0.12);
+		overflow: hidden;
+		border-radius: 0.5rem;
+		user-select: none;
+		cursor: move;
 	}
 	.med-title {
 		font-family: 'Space Grotesk', monospace;
-		font-size: 9px;
-		font-weight: 700;
+		font-size: 10px;
+		font-weight: 800;
 		text-transform: uppercase;
-		letter-spacing: 0.5px;
-		color: #e1b6ff;
-		text-shadow: 0 0 8px rgba(225, 182, 255, 0.6);
+		letter-spacing: 0.8px;
+		color: #ffee10;
+		text-shadow: 0 0 6px rgba(255, 238, 16, 0.4);
 	}
 	.med-marquee-track {
 		display: flex;
@@ -236,8 +244,9 @@
 	}
 	.med-marquee-text {
 		font-family: 'Manrope', sans-serif;
-		font-size: 9px;
-		color: #b0a4b4;
+		font-size: 10px;
+		font-weight: 500;
+		color: #e5e2e1;
 		white-space: nowrap;
 		padding-right: 60px;
 	}

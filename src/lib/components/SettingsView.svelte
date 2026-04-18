@@ -12,16 +12,30 @@
 		setBossSoundEnabled,
 		setTimerSoundEnabled,
 		setBossAlertMinutes,
-		setFontFamily,
 		setFontBold,
 		setFontSize,
+		setBarterLevel,
+		setValuePack,
+		setAlwaysOnTop,
 		LIFE_SKILL_RANKS,
 	} from "$lib/stores/settings";
+	import { BARTER_LEVELS } from "$lib/models/bartering";
 	import { clearInventory } from "$lib/stores/inventory";
 	import { clearCraftingLog } from "$lib/stores/crafting-log";
+	import { clearGrindingLog } from "$lib/stores/grinding";
+	import { clearHuntingLog } from "$lib/stores/hunting";
+	import {
+		clearBarterLog,
+		barterInventoryStore,
+		shipProgressStore,
+		sailorRosterStore,
+		resetBarterDraft,
+	} from "$lib/stores/bartering";
+	import { treasureProgressStore } from "$lib/stores/treasure";
+	import { weeklyTasksProgressStore } from "$lib/stores/weekly-tasks";
 	import { invoke } from "@tauri-apps/api/core";
-	import { getVersion } from "@tauri-apps/api/app";
-	import type { AppTheme, FontFamily, FontSize } from "$lib/services/persistence";
+	import { appVersionStore } from "$lib/stores";
+	import type { AppTheme, FontSize } from "$lib/services/persistence";
 
 	const appWindow = getCurrentWindow();
 
@@ -31,7 +45,6 @@
 		notifications: true,
 		game: true,
 		data: false,
-		about: false,
 	});
 
 	function toggleSection(key: string) {
@@ -60,69 +73,58 @@
 	}
 
 	// Theme options
-	const THEMES: { id: AppTheme; name: string; desc: string }[] = [
-		{ id: "neon-cyberpunk", name: "Neon Cyberpunk", desc: "Dark with neon glows" },
-		{ id: "dark-minimal", name: "Dark Minimal", desc: "Muted dark palette" },
-		{ id: "light", name: "Light", desc: "Light background" },
-	];
-
-	// Font options
-	const FONT_FAMILIES: { id: FontFamily; name: string }[] = [
-		{ id: "system", name: "System Default" },
-		{ id: "monospace", name: "Monospace" },
-		{ id: "serif", name: "Serif" },
+	const THEMES: { id: AppTheme; name: string }[] = [
+		{ id: "obsidian", name: "Obsidian Dark" },
+		{ id: "light", name: "Light" },
 	];
 
 	const FONT_SIZES: { id: FontSize; name: string }[] = [
-		{ id: "small", name: "Small" },
-		{ id: "default", name: "Default" },
-		{ id: "large", name: "Large" },
+		{ id: "xs", name: "XS" },
+		{ id: "small", name: "S" },
+		{ id: "default", name: "M" },
+		{ id: "large", name: "L" },
+		{ id: "xl", name: "XL" },
+		{ id: "xxl", name: "XXL" },
 	];
+
+	import { applyTheme } from "$lib/utils/theme";
 
 	function handleThemeChange(themeId: AppTheme) {
 		setTheme(themeId);
 		applyTheme(themeId);
 	}
 
-	function applyTheme(themeId: AppTheme) {
-		const html = document.documentElement;
-		html.classList.remove("theme-neon-cyberpunk", "theme-dark-minimal", "theme-light");
-		if (themeId !== "neon-cyberpunk") {
-			html.classList.add(`theme-${themeId}`);
-		}
-	}
-
 	// Apply saved theme on mount
 	$effect(() => {
-		applyTheme($settingsStore.theme ?? "neon-cyberpunk");
+		applyTheme($settingsStore.theme ?? "obsidian");
 	});
 
 	// Clear all data
-	function handleClearAllData() {
-		if (confirm("Are you sure you want to clear ALL data?\n\nThis will delete:\n- All inventory items\n- All crafting log sessions\n- All favorites\n\nThis cannot be undone!")) {
+	async function handleClearAllData() {
+		if (!confirm("Are you sure you want to clear ALL data?\n\nThis will delete:\n- Inventory\n- Crafting, Grinding, Hunting logs\n- Barter inventory, log, ship progress, sailors\n- Treasure progress, Weekly tasks\n- Planner, Favorites\n- Sample/seeded data\n\nSettings will be kept. This cannot be undone!")) return;
+
+		try {
+			await invoke("clear_all_data");
 			clearInventory();
 			clearCraftingLog();
+			clearGrindingLog();
+			clearHuntingLog();
+			clearBarterLog();
+			resetBarterDraft();
+			barterInventoryStore.set({ items: {}, crowCoins: 0, lastUpdated: "" });
+			shipProgressStore.set([]);
+			sailorRosterStore.set([]);
+			treasureProgressStore.set([]);
+			weeklyTasksProgressStore.set([]);
 			settingsStore.update(s => ({ ...s, favorites: [] }));
+		} catch (error) {
+			console.error("Failed to clear data:", error);
 		}
 	}
 
-	// Get data path and app version
+	// Get data path on mount
 	let dataPath = $state("Loading...");
-	let appVersion = $state("...");
-
-	$effect(() => {
-		invoke<string>("get_data_path").then(path => {
-			dataPath = path;
-		}).catch(() => {
-			dataPath = "Unknown";
-		});
-
-		getVersion().then(v => {
-			appVersion = v;
-		}).catch(() => {
-			appVersion = "unknown";
-		});
-	});
+	invoke<string>("get_data_path").then(path => { dataPath = path; }).catch(() => { dataPath = "Unknown"; });
 </script>
 
 <div class="space-y-1.5 max-h-[calc(100vh-150px)] overflow-auto pr-1">
@@ -146,10 +148,10 @@
 		{#if openSections.display}
 			<div class="px-2 pb-2 space-y-2 border-t border-border/50 pt-1.5">
 				<!-- Transparency -->
-				<div class="space-y-1">
+				<div class="space-y-1.5">
 					<div class="flex items-center justify-between">
 						<span class="text-[10px] text-muted-foreground">Transparency</span>
-						<span class="text-[10px] font-mono text-foreground">{transparencyPercent}%</span>
+						<span class="text-[11px] font-mono font-bold text-foreground">{transparencyPercent}%</span>
 					</div>
 					<input
 						type="range"
@@ -159,67 +161,49 @@
 						value={transparencyPercent}
 						onchange={handleTransparencyChange}
 						oninput={(e) => transparencyPercent = parseInt((e.target as HTMLInputElement).value, 10)}
-						class="w-full h-1 bg-secondary rounded appearance-none cursor-pointer accent-primary"
+						class="settings-slider"
 					/>
 				</div>
 
 				<!-- Theme -->
-				<div class="space-y-1">
+				<div class="space-y-1.5">
 					<span class="text-[10px] text-muted-foreground">Theme</span>
-					<div class="grid grid-cols-3 gap-1">
+					<div class="grid grid-cols-2 gap-1.5">
 						{#each THEMES as theme}
 							<button
 								onclick={() => handleThemeChange(theme.id)}
-								class="flex flex-col items-center gap-0.5 px-1.5 py-1.5 rounded border transition-colors
-									{($settingsStore.theme ?? 'neon-cyberpunk') === theme.id
-										? 'border-primary bg-primary/10'
-										: 'border-border hover:border-muted-foreground'}"
+								class="flex items-center gap-2 px-3 py-2 rounded border-2 transition-all
+									{($settingsStore.theme ?? 'obsidian') === theme.id
+										? 'border-[var(--gold-glow)] bg-[rgba(255,238,16,0.08)] shadow-[0_0_8px_rgba(255,238,16,0.15)]'
+										: 'border-outline-variant/30 hover:border-outline-variant/60'}"
 							>
-								<!-- Theme preview swatch -->
-								{#if theme.id === "neon-cyberpunk"}
-									<div class="w-full h-4 rounded-sm bg-black border border-purple-500 flex items-center justify-center">
-										<div class="w-1.5 h-1.5 rounded-full bg-[#c77dff] shadow-[0_0_4px_#c77dff]"></div>
-									</div>
-								{:else if theme.id === "dark-minimal"}
-									<div class="w-full h-4 rounded-sm bg-[#181d27] border border-[#334155] flex items-center justify-center">
-										<div class="w-1.5 h-1.5 rounded-full bg-[#6b8adb]"></div>
+								{#if theme.id === "obsidian"}
+									<div class="w-6 h-5 bg-[#0e0e0e] border border-[#4d4352] flex items-center justify-center gap-0.5 rounded-sm">
+										<div class="w-1.5 h-1.5 bg-[#c77dff]"></div>
+										<div class="w-1.5 h-1.5 bg-[#00e3fd]"></div>
 									</div>
 								{:else}
-									<div class="w-full h-4 rounded-sm bg-[#f5f5f7] border border-[#d1d5db] flex items-center justify-center">
-										<div class="w-1.5 h-1.5 rounded-full bg-[#7c5cbf]"></div>
+									<div class="w-6 h-5 bg-[#ebedf0] border border-[#b0b7c2] flex items-center justify-center rounded-sm">
+										<div class="w-2 h-2 rounded-full bg-[#6b46a0]"></div>
 									</div>
 								{/if}
-								<span class="text-[9px] text-foreground font-medium leading-tight text-center">{theme.name}</span>
+								<span class="text-[11px] text-foreground font-semibold">{theme.name}</span>
 							</button>
 						{/each}
 					</div>
 				</div>
 
-				<!-- Font Family -->
-				<div class="space-y-1">
-					<span class="text-[10px] text-muted-foreground">Font</span>
-					<select
-						value={$settingsStore.font_family ?? "system"}
-						onchange={(e) => setFontFamily((e.target as HTMLSelectElement).value as FontFamily)}
-						class="w-full bg-input text-foreground border border-border rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-					>
-						{#each FONT_FAMILIES as font}
-							<option value={font.id}>{font.name}</option>
-						{/each}
-					</select>
-				</div>
-
 				<!-- Font Size -->
-				<div class="space-y-1">
+				<div class="space-y-1.5">
 					<span class="text-[10px] text-muted-foreground">Font Size</span>
-					<div class="grid grid-cols-3 gap-1">
+					<div class="grid grid-cols-6 gap-1.5">
 						{#each FONT_SIZES as size}
 							<button
 								onclick={() => setFontSize(size.id)}
-								class="px-1.5 py-1 rounded border text-[10px] font-medium transition-colors
+								class="px-1.5 py-1.5 rounded border-2 text-[10px] font-bold transition-all
 									{($settingsStore.font_size ?? 'default') === size.id
-										? 'border-primary bg-primary/10 text-primary'
-										: 'border-border text-muted-foreground hover:border-muted-foreground'}"
+										? 'border-[var(--gold-glow)] bg-[rgba(255,238,16,0.08)] text-foreground shadow-[0_0_6px_rgba(255,238,16,0.15)]'
+										: 'border-outline-variant/30 text-muted-foreground hover:border-outline-variant/60 hover:text-foreground'}"
 							>
 								{size.name}
 							</button>
@@ -233,9 +217,21 @@
 					<button
 						onclick={() => setFontBold(!($settingsStore.font_bold ?? false))}
 						title="Toggle bold text"
-						class="relative w-8 h-4 rounded-full transition-colors {$settingsStore.font_bold ? 'bg-primary' : 'bg-secondary border border-border'}"
+						class="relative w-9 h-5 rounded-full transition-colors {$settingsStore.font_bold ? 'bg-[var(--gold-glow)]' : 'bg-secondary border border-outline-variant/30'}"
 					>
-						<div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-foreground transition-transform {$settingsStore.font_bold ? 'translate-x-4' : ''}"></div>
+						<div class="absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-foreground transition-transform {$settingsStore.font_bold ? 'translate-x-[18px]' : ''}"></div>
+					</button>
+				</div>
+
+				<!-- Always on Top -->
+				<div class="flex items-center justify-between">
+					<span class="text-[10px] text-muted-foreground">Always on Top</span>
+					<button
+						onclick={() => setAlwaysOnTop(!($settingsStore.always_on_top ?? true))}
+						title="Keep window above all other windows"
+						class="relative w-9 h-5 rounded-full transition-colors {($settingsStore.always_on_top ?? true) ? 'bg-[var(--gold-glow)]' : 'bg-secondary border border-outline-variant/30'}"
+					>
+						<div class="absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-foreground transition-transform {($settingsStore.always_on_top ?? true) ? 'translate-x-[18px]' : ''}"></div>
 					</button>
 				</div>
 			</div>
@@ -395,6 +391,37 @@
 						</div>
 					</div>
 				</div>
+
+				<!-- Bartering -->
+				<div class="space-y-1">
+					<span class="text-[10px] text-muted-foreground">Bartering</span>
+					<div class="grid grid-cols-2 gap-2">
+						<div class="space-y-0.5">
+							<label for="barter-rank" class="text-[9px] text-muted-foreground/70">Barter Level</label>
+							<select
+								id="barter-rank"
+								value={$settingsStore.barter_level || "Beginner 1"}
+								onchange={(e) => setBarterLevel((e.target as HTMLSelectElement).value)}
+								class="w-full bg-input text-foreground border border-border rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+							>
+								{#each BARTER_LEVELS as level}
+									<option value={level}>{level}</option>
+								{/each}
+							</select>
+						</div>
+						<div class="space-y-0.5 flex flex-col justify-end">
+							<label class="flex items-center gap-1.5 text-[9px] text-muted-foreground/70 cursor-pointer py-1">
+								<input
+									type="checkbox"
+									checked={$settingsStore.has_value_pack}
+									onchange={(e) => setValuePack((e.target as HTMLInputElement).checked)}
+									class="w-3 h-3 accent-primary"
+								/>
+								Value Pack Active
+							</label>
+						</div>
+					</div>
+				</div>
 			</div>
 		{/if}
 	</div>
@@ -435,7 +462,7 @@
 						<p class="text-[9px] text-muted-foreground">Favorites</p>
 					</div>
 					<div class="bg-secondary rounded p-1 text-center">
-						<p class="text-xs font-bold text-primary">v{appVersion}</p>
+						<p class="text-xs font-bold text-primary">v{$appVersionStore}</p>
 						<p class="text-[9px] text-muted-foreground">Version</p>
 					</div>
 				</div>
@@ -453,39 +480,4 @@
 		{/if}
 	</div>
 
-	<!-- ===== ABOUT SECTION ===== -->
-	<div class="glass-card rounded overflow-hidden">
-		<button
-			onclick={() => toggleSection('about')}
-			class="w-full flex items-center justify-between px-2 py-1.5 hover:bg-secondary/50 transition-colors"
-		>
-			<h3 class="text-xs font-bold neon-text-purple">About</h3>
-			<svg
-				viewBox="0 0 24 24"
-				class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 {openSections.about ? 'rotate-180' : ''}"
-				fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-			>
-				<polyline points="6 9 12 15 18 9" />
-			</svg>
-		</button>
-		{#if openSections.about}
-			<div class="px-2 pb-2 border-t border-border/50 pt-1.5 space-y-2">
-				<!-- App name + version -->
-				<div>
-					<p class="text-sm font-bold neon-text-cyan">BDO Life Companion</p>
-					<p class="text-[11px] text-muted-foreground">v{appVersion}</p>
-				</div>
-
-				<div class="border-t border-border/30 pt-1.5">
-					<p class="text-[9px] text-muted-foreground/60 uppercase tracking-wider">Developer</p>
-					<p class="text-xs font-bold text-primary">jhidalgo_dev</p>
-				</div>
-
-				<div class="border-t border-border/30 pt-1.5">
-					<p class="text-[10px] text-muted-foreground">A manual companion tool for Black Desert Online.</p>
-					<p class="text-[10px] text-accent font-semibold">No automation, no OCR, no memory reading.</p>
-				</div>
-			</div>
-		{/if}
 	</div>
-</div>

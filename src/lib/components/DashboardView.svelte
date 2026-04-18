@@ -47,8 +47,8 @@
 					onclick={() => activeTab = tab_item.value}
 					class="pb-2 px-2 text-[11px] font-headline font-medium transition-colors relative
 						{activeTab === tab_item.value
-							? 'text-[#e1b6ff] font-bold border-b-2 border-[#c77dff] shadow-[0_4px_10px_-2px_rgba(199,125,255,0.3)] [text-shadow:0_0_10px_rgba(225,182,255,0.6)]'
-							: 'text-[#cfc2d4] hover:text-[#e5e2e1] hover:[text-shadow:0_0_6px_rgba(225,182,255,0.3)]'}"
+							? 'obsidian-pill-active'
+							: 'obsidian-pill'}"
 				>
 					{tab_item.label}
 				</button>

@@ -32,19 +32,18 @@
 	);
 </script>
 
-<div class="h-7 glass-bossbar flex items-center px-2 gap-2 text-[11px] select-none">
+<div class="h-9 glass-bossbar flex items-center px-3 gap-3 text-[11px] select-none">
 	{#if primary}
 		<!-- Primary spawn -->
-		<div class="flex items-center gap-1.5 min-w-0 flex-1">
-			<!-- Boss icons (overlapping if multiple) -->
-			<div class="flex -space-x-1.5 flex-shrink-0">
+		<div class="flex items-center gap-2 min-w-0 flex-1">
+			<div class="flex -space-x-2 flex-shrink-0">
 				{#each primary.spawn.bosses.slice(0, 3) as bossId}
 					{@const boss = BOSSES[bossId]}
 					{#if boss}
 						<img
 							src={boss.image}
 							alt={boss.name}
-							class="w-6 h-6 rounded-full border border-border object-cover {boss.isRare ? 'opacity-50' : ''}"
+							class="w-8 h-8 rounded-full border border-outline-variant/30 object-cover {boss.isRare ? 'opacity-60 grayscale-[30%]' : 'brightness-110'}"
 						/>
 					{/if}
 				{/each}
@@ -53,14 +52,14 @@
 				{primaryNames}
 				{#if primaryIsRare}<span class="text-muted-foreground font-normal">(rare)</span>{/if}
 			</span>
-			<span class="font-mono text-[12px] font-bold neon-text-cyan flex-shrink-0">
+			<span class="font-mono text-[13px] font-bold neon-text-cyan flex-shrink-0">
 				{formatCountdown(primary.remainingMs)}
 			</span>
 		</div>
 
-		<!-- Secondary spawn (if exists) -->
+		<!-- Secondary spawn -->
 		{#if secondary}
-			<div class="border-l border-border h-4"></div>
+			<div class="border-l border-outline-variant/20 h-5"></div>
 			<div class="flex items-center gap-1.5 flex-shrink-0">
 				<div class="flex -space-x-1 flex-shrink-0">
 					{#each secondary.spawn.bosses.slice(0, 2) as bossId}
@@ -69,12 +68,12 @@
 							<img
 								src={boss.image}
 								alt={boss.name}
-								class="w-[18px] h-[18px] rounded-full border border-border object-cover opacity-60 {boss.isRare ? 'opacity-30' : ''}"
+								class="w-6 h-6 rounded-full border border-outline-variant/20 object-cover {boss.isRare ? 'opacity-40' : 'opacity-70 brightness-110'}"
 							/>
 						{/if}
 					{/each}
 				</div>
-				<span class="text-[10px] text-muted-foreground truncate max-w-[80px]">
+				<span class="text-[10px] text-muted-foreground truncate max-w-[100px]">
 					{secondaryNames}
 					{#if secondaryIsRare}<span class="text-muted-foreground/60"> (rare)</span>{/if}
 				</span>

@@ -47,10 +47,14 @@ export {
 	setBossSoundEnabled,
 	setTimerSoundEnabled,
 	setBossAlertMinutes,
-	setFontFamily,
 	setFontBold,
 	setFontSize,
+	setBarterLevel,
+	setValuePack,
+	setAlwaysOnTop,
 } from "./settings.js";
+
+export { appVersionStore, initAppVersion } from "./app-version.js";
 
 export type { AppTheme, FontFamily, FontSize, WindowState } from "$lib/services/persistence";
 
@@ -93,6 +97,7 @@ export {
 } from "./view-mode.js";
 
 export {
+	tickStore,
 	startBossTimer,
 	stopBossTimer,
 	nextBossSpawns,
@@ -252,6 +257,43 @@ export {
 } from "./hunting.js";
 
 export {
+	barterDraftStore,
+	resetBarterDraft,
+	type BarterDraft,
+	type BarterDraftEntry,
+	barterItemsStore,
+	barterItemsLoadingStore,
+	parleyMasteryStore,
+	loadBarterData,
+	getItemsByTier,
+	barterInventoryStore,
+	barterInventoryLoadingStore,
+	loadBarterInventory,
+	updateBarterItemQuantity,
+	setCrowCoins,
+	barterLogStore,
+	barterLogLoadingStore,
+	loadBarterLog,
+	logBarterSession,
+	deleteBarterSession,
+	clearBarterLog,
+	shipUpgradesStore,
+	shipStatsStore,
+	shipProgressStore,
+	shipProgressLoadingStore,
+	loadShipData,
+	loadShipProgress,
+	updateShipMaterial,
+	toggleShipStage,
+	sailorRosterStore,
+	sailorRosterLoadingStore,
+	loadSailorRoster,
+	addSailor,
+	updateSailor,
+	removeSailor,
+} from "./bartering.js";
+
+export {
 	treasureDataStore,
 	treasureDataLoadingStore,
 	loadTreasureData,
@@ -267,3 +309,14 @@ export {
 	type PieceProgress,
 	type TreasureProgressData,
 } from "./treasure.js";
+
+export {
+	weeklyTasksDataStore,
+	loadWeeklyTasksData,
+	weeklyTasksProgressStore,
+	loadWeeklyTasksProgress,
+	setHighestStage,
+	toggleCompletedThisWeek,
+	markFirstClear,
+	unmarkFirstClear,
+} from "./weekly-tasks.js";

@@ -11,9 +11,9 @@ export interface InventoryItem {
 	quantity: number;
 }
 
-export type AppTheme = "neon-cyberpunk" | "dark-minimal" | "light";
+export type AppTheme = "obsidian" | "light";
 export type FontFamily = "system" | "monospace" | "serif";
-export type FontSize = "small" | "default" | "large";
+export type FontSize = "xs" | "small" | "default" | "large" | "xl" | "xxl";
 
 export interface WindowState {
 	width: number;
@@ -40,6 +40,10 @@ export interface AppSettings {
 	font_family: FontFamily;
 	font_bold: boolean;
 	font_size: FontSize;
+	barter_level: string;
+	has_value_pack: boolean;
+	total_barter_count: number;
+	always_on_top: boolean;
 }
 
 // ============== Inventory ==============
@@ -85,7 +89,7 @@ export async function saveInventory(inventory: Map<string, number>): Promise<voi
 
 // ============== Settings ==============
 
-const DEFAULT_SETTINGS: AppSettings = {
+export const DEFAULT_SETTINGS: AppSettings = {
 	transparency: 0.95,
 	cooking_mastery: "",
 	alchemy_mastery: "",
@@ -93,7 +97,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 	alchemy_total_mastery: 0,
 	server_region: "NA",
 	favorites: [],
-	theme: "neon-cyberpunk",
+	theme: "obsidian",
 	window_state: { width: 560, height: 620, x: null, y: null, view_mode: "full" },
 	dismissed_announcements: [],
 	boss_sound_enabled: true,
@@ -102,6 +106,10 @@ const DEFAULT_SETTINGS: AppSettings = {
 	font_family: "system",
 	font_bold: false,
 	font_size: "default",
+	barter_level: "",
+	has_value_pack: false,
+	total_barter_count: 0,
+	always_on_top: true,
 };
 
 /**

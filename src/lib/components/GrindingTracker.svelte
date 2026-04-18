@@ -374,7 +374,7 @@
 			{:else}
 				<div class="flex-1 flex items-center justify-center text-center text-muted-foreground">
 					<div>
-						<p class="text-2xl mb-1">⚔️</p>
+						<img src="/icons/grinding.png" alt="Grinding" class="w-8 h-8 mx-auto mb-1 opacity-60" />
 						<p class="text-sm">Select a grinding zone</p>
 						<p class="text-[10px] mt-1">Search from {$grindingDataStore?.total_spots ?? 0} zones above</p>
 					</div>

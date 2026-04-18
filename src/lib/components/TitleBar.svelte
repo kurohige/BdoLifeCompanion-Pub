@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 	import { exit } from "@tauri-apps/plugin-process";
-	import { setViewMode } from "$lib/stores";
+	import { setViewMode, appVersionStore } from "$lib/stores";
 
 	const appWindow = getCurrentWindow();
 
@@ -10,11 +10,7 @@
 	}
 
 	async function close() {
-		try {
-			await exit(0);
-		} catch {
-			await appWindow.close();
-		}
+		try { await exit(0); } catch { await appWindow.close(); }
 	}
 
 	async function startDrag(e: MouseEvent) {
@@ -40,44 +36,98 @@
 <header
 	role="banner"
 	onmousedown={startDrag}
-	class="flex items-center justify-between w-full h-8 px-3 bg-surface-lowest/60 backdrop-blur-xl border-b border-outline-variant/20 select-none cursor-move z-50"
+	class="titlebar"
 >
-	<!-- Logo + Title -->
+	<!-- Logo + Title + Version -->
 	<div class="flex items-center gap-2">
 		<button
 			onclick={handleMiniMode}
-			class="w-5 h-5 bg-primary-container rounded-sm flex items-center justify-center hover:brightness-110 transition-all"
+			class="titlebar-logo"
 			title="Switch to mini mode"
 		>
 			<img src="/logo.png" alt="Mini mode" class="w-4 h-4 object-contain" />
 		</button>
-		<span class="text-[0.75rem] font-bold text-primary tracking-widest font-headline pointer-events-none">
+		<span class="text-[11px] font-bold tracking-[0.15em] font-headline pointer-events-none text-foreground">
 			BDO LIFE COMPANION
 		</span>
-		<span class="text-[9px] text-outline-hud font-label tracking-wider pointer-events-none opacity-60">v2.1</span>
+		<span class="text-[9px] font-mono pointer-events-none text-muted-foreground">
+			v{$appVersionStore} — <span class="text-foreground/70">by jhidalgo_dev</span>
+		</span>
 	</div>
 
 	<!-- Window Controls -->
-	<div class="flex items-center gap-1 pointer-events-auto">
-		<button onclick={handleMediumMode}
-			class="text-outline-hud hover:text-secondary transition-colors text-sm cursor-pointer p-0.5"
-			title="Medium mode">
-			<span class="text-[12px]">[+]</span>
+	<div class="flex items-center gap-0.5 pointer-events-auto">
+		<button onclick={handleMediumMode} class="titlebar-btn" title="Medium mode">
+			<span class="text-[11px]">[+]</span>
 		</button>
-		<button onclick={handleMiniMode}
-			class="text-outline-hud hover:text-secondary transition-colors text-sm cursor-pointer p-0.5"
-			title="Mini mode">
-			<span class="text-[12px]">⊟</span>
+		<button onclick={handleMiniMode} class="titlebar-btn" title="Mini mode">
+			<span class="text-[11px]">&#8862;</span>
 		</button>
-		<button onclick={minimize}
-			class="text-outline-hud hover:text-secondary transition-colors text-sm cursor-pointer p-0.5"
-			title="Minimize">
-			<span class="text-[12px]">━</span>
+		<button onclick={minimize} class="titlebar-btn" title="Minimize">
+			<span class="text-[11px]">&#9472;</span>
 		</button>
-		<button onclick={close}
-			class="text-outline-hud hover:text-destructive transition-colors text-sm cursor-pointer p-0.5"
-			title="Close">
-			<span class="text-[12px]">✕</span>
+		<button onclick={close} class="titlebar-btn titlebar-btn-close" title="Close">
+			<span class="text-[11px]">&#10005;</span>
 		</button>
 	</div>
 </header>
+
+<style>
+	.titlebar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		height: 32px;
+		padding: 0 10px;
+		background: rgba(14, 14, 14, 0.5);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border-bottom: 1px solid rgba(255, 238, 16, 0.08);
+		user-select: none;
+		cursor: move;
+		z-index: 50;
+	}
+
+	.titlebar-logo {
+		width: 22px;
+		height: 22px;
+		border-radius: 4px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(255, 238, 16, 0.08);
+		border: 1px solid rgba(255, 238, 16, 0.15);
+		cursor: pointer;
+		transition: box-shadow 0.2s, border-color 0.2s;
+	}
+	.titlebar-logo:hover {
+		border-color: rgba(255, 238, 16, 0.4);
+		box-shadow: 0 0 8px rgba(255, 238, 16, 0.2);
+	}
+
+	.titlebar-btn {
+		width: 24px;
+		height: 22px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 3px;
+		color: var(--outline-hud);
+		cursor: pointer;
+		transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+		border: none;
+		padding: 0;
+		background: transparent;
+	}
+	.titlebar-btn:hover {
+		background: rgba(255, 238, 16, 0.1);
+		color: #ffee10;
+		box-shadow: 0 0 4px rgba(255, 238, 16, 0.2);
+	}
+	.titlebar-btn-close:hover {
+		background: rgba(255, 60, 60, 0.15);
+		color: #ff6b6b;
+		box-shadow: 0 0 4px rgba(255, 60, 60, 0.2);
+	}
+</style>
