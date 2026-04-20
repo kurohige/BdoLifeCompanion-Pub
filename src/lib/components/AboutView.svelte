@@ -9,10 +9,6 @@
 	async function openIssues() {
 		try { await openUrl("https://github.com/kurohige/BdoLifeCompanion-Pub/issues"); } catch { /* */ }
 	}
-
-	async function openBdoCodex() {
-		try { await openUrl("https://bdocodex.com/"); } catch { /* */ }
-	}
 </script>
 
 <div class="space-y-4 p-1">
@@ -43,25 +39,10 @@
 	</div>
 
 	<!-- Special Thanks -->
-	<div class="glass-card rounded p-3 space-y-2">
+	<div class="glass-card rounded p-3 space-y-1.5">
 		<h3 class="text-[10px] font-headline font-bold text-primary uppercase tracking-wider">Special Thanks</h3>
-		<div class="space-y-1.5">
-			<button onclick={openBdoCodex} class="w-full text-left px-2 py-1.5 rounded text-[11px] text-foreground hover:bg-white/5 transition-colors flex items-start gap-2">
-				<span class="text-muted-foreground mt-px">&#127981;</span>
-				<span class="flex-1 min-w-0">
-					<span class="font-semibold">BDO Codex</span>
-					<span class="block text-[9px] text-muted-foreground leading-snug">Recipe, item, and icon assets.</span>
-				</span>
-				<span class="text-[9px] text-muted-foreground flex-shrink-0 mt-0.5">bdocodex.com</span>
-			</button>
-			<div class="px-2 py-1.5 text-[11px] text-foreground flex items-start gap-2">
-				<span class="text-muted-foreground mt-px">&#128172;</span>
-				<span class="flex-1 min-w-0">
-					<span class="font-semibold">Lifeskill Chat Discord</span>
-					<span class="block text-[9px] text-muted-foreground leading-snug">Feedback, bug reports, and feature suggestions that shaped the app.</span>
-				</span>
-			</div>
-		</div>
+		<p class="text-[11px] text-foreground">BDO Codex</p>
+		<p class="text-[11px] text-foreground">Lifeskill Chat Discord</p>
 	</div>
 
 	<!-- Links -->
