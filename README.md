@@ -141,10 +141,7 @@ npm run tauri build   # Production build
 
 ---
 
-## Special Thanks
-
-- BDO Codex
-- Lifeskill Chat Discord
+Special thanks to: BDOCODEX and Lifeskill Chat discord.
 
 ---
 

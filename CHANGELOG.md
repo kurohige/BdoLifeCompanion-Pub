@@ -2,6 +2,19 @@
 
 ---
 
+## v2.5.2 — 2026-04-21
+
+### Fixed
+
+- **App no longer gets stuck on "Failed to load data" after close/reopen.** On some multi-monitor and high-DPI setups, the saved window position and size were being written in one coordinate system and read back in another, causing Tauri's window-restore call to fail and abort startup. Window state is now saved and restored in matching units, and any restore failure (e.g. a monitor that was disconnected since last run) just logs a warning and keeps the app booting.
+- **Corrupt `settings.json` no longer bricks the app.** If the settings file can't be parsed at startup, the app now renames it to `settings.json.corrupt-<timestamp>` and boots with defaults. Previously users had to delete the file manually.
+
+### Changed
+
+- Simplified the Special Thanks line in the About tab and the README.
+
+---
+
 ## v2.5.1 — 2026-04-20
 
 ### New Features

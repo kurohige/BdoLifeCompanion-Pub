@@ -39,10 +39,8 @@
 	</div>
 
 	<!-- Special Thanks -->
-	<div class="glass-card rounded p-3 space-y-1.5">
-		<h3 class="text-[10px] font-headline font-bold text-primary uppercase tracking-wider">Special Thanks</h3>
-		<p class="text-[11px] text-foreground">BDO Codex</p>
-		<p class="text-[11px] text-foreground">Lifeskill Chat Discord</p>
+	<div class="glass-card rounded p-3">
+		<p class="text-[11px] text-foreground">Special thanks to: BDOCODEX and Lifeskill Chat discord</p>
 	</div>
 
 	<!-- Links -->
