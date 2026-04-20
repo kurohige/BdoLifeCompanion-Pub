@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade } from "svelte/transition";
-	import { getCurrentWindow, LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
+	import { getCurrentWindow, LogicalSize, PhysicalSize, PhysicalPosition } from "@tauri-apps/api/window";
 	import { getCurrentWebview } from "@tauri-apps/api/webview";
 	import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 	import TitleBar from "$lib/components/TitleBar.svelte";
@@ -176,29 +176,45 @@
 				appWindow.setAlwaysOnTop(settings.always_on_top);
 			});
 
-			// Restore saved window state
+			// Restore saved window state. The whole block is wrapped in try/catch
+			// so a failing setSize/setPosition (e.g. saved coords on a monitor that
+			// no longer exists) can't abort app startup — we just log and continue.
+			// Note: persistWindowState saves PhysicalSize/PhysicalPosition, so we
+			// restore with the same units to avoid DPI scaling drift.
 			const savedState = $settingsStore.window_state;
 			if (savedState) {
-				const mode = savedState.view_mode as "mini" | "medium" | "full";
-				if (mode === "mini") {
-					await appWindow.setMinSize(new LogicalSize(140, 40));
-					await appWindow.setSize(new LogicalSize(400, 56));
-					setViewMode("mini");
-				} else if (mode === "medium") {
-					await appWindow.setMinSize(new LogicalSize(140, 40));
-					await appWindow.setSize(new LogicalSize(460, 150));
-					setViewMode("medium");
-				} else {
-					// Full mode — restore saved size with min size enforced
-					const w = savedState.width || 560;
-					const h = Math.max(savedState.height || 680, 680);
-					await appWindow.setMinSize(new LogicalSize(480, 500));
-					await appWindow.setSize(new LogicalSize(w, h));
-					setViewMode("full");
-				}
-				// Restore position if saved
-				if (savedState.x != null && savedState.y != null) {
-					await appWindow.setPosition(new LogicalPosition(savedState.x, savedState.y));
+				try {
+					const mode = savedState.view_mode as "mini" | "medium" | "full";
+					if (mode === "mini") {
+						await appWindow.setMinSize(new LogicalSize(140, 40));
+						await appWindow.setSize(new LogicalSize(400, 56));
+						setViewMode("mini");
+					} else if (mode === "medium") {
+						await appWindow.setMinSize(new LogicalSize(140, 40));
+						await appWindow.setSize(new LogicalSize(460, 150));
+						setViewMode("medium");
+					} else {
+						// Full mode — restore saved size with min size enforced
+						const w = savedState.width || 560;
+						const h = Math.max(savedState.height || 680, 680);
+						await appWindow.setMinSize(new LogicalSize(480, 500));
+						await appWindow.setSize(new PhysicalSize(w, h));
+						setViewMode("full");
+					}
+					// Restore position if saved. Guard against off-screen coords
+					// (multi-monitor disconnected) with a per-call try/catch so
+					// even an invalid position doesn't strand the user.
+					if (savedState.x != null && savedState.y != null) {
+						try {
+							await appWindow.setPosition(
+								new PhysicalPosition(savedState.x, savedState.y),
+							);
+						} catch (err) {
+							console.warn("Failed to restore window position; ignoring:", err);
+						}
+					}
+				} catch (err) {
+					console.warn("Failed to restore window size/mode; ignoring:", err);
 				}
 			}
 

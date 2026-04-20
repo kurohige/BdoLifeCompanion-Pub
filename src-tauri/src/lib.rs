@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Emitter;
 
 /// Get the app data directory path (portable - next to executable)
@@ -194,7 +195,12 @@ fn default_theme() -> String {
     "obsidian".to_string()
 }
 
-/// Load settings from JSON file
+/// Load settings from JSON file.
+///
+/// On parse failure, renames the bad file to `settings.json.corrupt-<unix-ts>`
+/// and returns defaults. This way a malformed settings file can never brick
+/// the app — the user gets a clean boot and the bad file is preserved for
+/// inspection.
 #[tauri::command]
 fn load_settings() -> Result<AppSettings, String> {
     let dir = ensure_app_data_dir()?;
@@ -204,11 +210,28 @@ fn load_settings() -> Result<AppSettings, String> {
         return Ok(AppSettings::default());
     }
 
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read settings: {}", e))?;
+    let content = match fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(e) => return Err(format!("Failed to read settings: {}", e)),
+    };
 
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse settings: {}", e))
+    match serde_json::from_str::<AppSettings>(&content) {
+        Ok(settings) => Ok(settings),
+        Err(e) => {
+            let ts = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let backup = dir.join(format!("settings.json.corrupt-{}", ts));
+            let _ = fs::rename(&path, &backup);
+            eprintln!(
+                "Failed to parse settings.json ({}); moved to {} and loaded defaults.",
+                e,
+                backup.display()
+            );
+            Ok(AppSettings::default())
+        }
+    }
 }
 
 /// Save settings to JSON file
