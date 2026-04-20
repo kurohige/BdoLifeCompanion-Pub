@@ -2,7 +2,7 @@
  * Recipe store - manages loaded recipe catalogs, search, and filtering.
  */
 
-import { writable, derived } from "svelte/store";
+import { writable, derived, get } from "svelte/store";
 import type { RecipeCatalog, Recipe, RecipeCategory } from "$lib/models";
 import { settingsStore } from "./settings";
 
@@ -18,8 +18,38 @@ export const activeCatalogStore = derived(
 	([$catalogs, $activeCategory]) => $catalogs.get($activeCategory) ?? null
 );
 
-/** Currently selected recipe */
+/** Currently selected recipe (live — drives the UI) */
 export const selectedRecipeStore = writable<Recipe | null>(null);
+
+/**
+ * Per-category recipe memory. Each crafting sub-tab remembers the last recipe
+ * the user had open so switching cooking → alchemy → cooking restores state.
+ * Runtime-only; not persisted.
+ */
+export const selectedRecipesByCategoryStore = writable<Partial<Record<RecipeCategory, Recipe | null>>>({});
+
+/** Per-category recipe search text. Remembers filter state per sub-tab. */
+export const searchTextByCategoryStore = writable<Partial<Record<RecipeCategory, string>>>({});
+
+/**
+ * Switch active crafting category, saving the current recipe+search to the
+ * outgoing category's memory and restoring the incoming category's memory.
+ */
+export function setActiveCategory(category: RecipeCategory): void {
+	const prevCat = get(activeCategoryStore);
+	const prevRec = get(selectedRecipeStore);
+	const prevSearch = get(searchTextStore);
+
+	selectedRecipesByCategoryStore.update((m) => ({ ...m, [prevCat]: prevRec }));
+	searchTextByCategoryStore.update((m) => ({ ...m, [prevCat]: prevSearch }));
+
+	activeCategoryStore.set(category);
+
+	const rememberedRec = get(selectedRecipesByCategoryStore)[category] ?? null;
+	const rememberedSearch = get(searchTextByCategoryStore)[category] ?? "";
+	selectedRecipeStore.set(rememberedRec);
+	searchTextStore.set(rememberedSearch);
+}
 
 /** Recipe search text */
 export const searchTextStore = writable<string>("");

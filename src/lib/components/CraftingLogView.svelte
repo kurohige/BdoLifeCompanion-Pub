@@ -19,14 +19,13 @@
 		clearHuntingLog,
 		getHuntingStats,
 		type HuntingSession,
+		logSubTabStore,
+		logCraftingSearchStore,
+		logCraftingCategoryStore,
+		logGrindingSearchStore,
+		logHuntingSearchStore,
 	} from "$lib/stores";
 	import { formatDate, formatDuration, formatYieldRate } from "$lib/utils/format";
-
-	let activeLogTab = $state<"crafting" | "grinding" | "hunting">("crafting");
-	let searchText = $state("");
-	let categoryFilter = $state<string>("all");
-	let grindingSearchText = $state("");
-	let huntingSearchText = $state("");
 
 	// Load crafting log on mount
 	onMount(() => {
@@ -38,14 +37,16 @@
 		let sessions = $craftingLogStore;
 
 		// Filter by category
-		if (categoryFilter !== "all") {
-			sessions = sessions.filter((s) => s.category.toLowerCase() === categoryFilter);
+		const category = $logCraftingCategoryStore;
+		if (category !== "all") {
+			sessions = sessions.filter((s) => s.category.toLowerCase() === category);
 		}
 
 		// Filter by search text
-		if (searchText.trim()) {
-			const search = searchText.toLowerCase();
-			sessions = sessions.filter((s) => s.recipeName.toLowerCase().includes(search));
+		const search = $logCraftingSearchStore;
+		if (search.trim()) {
+			const q = search.toLowerCase();
+			sessions = sessions.filter((s) => s.recipeName.toLowerCase().includes(q));
 		}
 
 		return sessions;
@@ -86,9 +87,10 @@
 
 	const filteredGrindingSessions = $derived(() => {
 		let sessions = $grindingLogStore;
-		if (grindingSearchText.trim()) {
-			const search = grindingSearchText.toLowerCase();
-			sessions = sessions.filter((s) => s.spotName.toLowerCase().includes(search));
+		const search = $logGrindingSearchStore;
+		if (search.trim()) {
+			const q = search.toLowerCase();
+			sessions = sessions.filter((s) => s.spotName.toLowerCase().includes(q));
 		}
 		return sessions;
 	});
@@ -111,9 +113,10 @@
 
 	const filteredHuntingSessions = $derived(() => {
 		let sessions = $huntingLogStore;
-		if (huntingSearchText.trim()) {
-			const search = huntingSearchText.toLowerCase();
-			sessions = sessions.filter((s) => s.spotName.toLowerCase().includes(search));
+		const search = $logHuntingSearchStore;
+		if (search.trim()) {
+			const q = search.toLowerCase();
+			sessions = sessions.filter((s) => s.spotName.toLowerCase().includes(q));
 		}
 		return sessions;
 	});
@@ -137,44 +140,44 @@
 	<!-- Sub-tab Selector -->
 	<div class="flex items-center gap-1 border-b border-border">
 		<button
-			onclick={() => activeLogTab = "crafting"}
-			class="px-3 py-1.5 text-xs font-bold transition-colors relative {activeLogTab === 'crafting' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}"
+			onclick={() => logSubTabStore.set("crafting")}
+			class="px-3 py-1.5 text-xs font-bold transition-colors relative {$logSubTabStore === 'crafting' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}"
 		>
 			Crafting Log
 			{#if $craftingLogStore.length > 0}
 				<span class="ml-1 text-[9px] text-muted-foreground">({$craftingLogStore.length})</span>
 			{/if}
-			{#if activeLogTab === "crafting"}
+			{#if $logSubTabStore === "crafting"}
 				<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
 			{/if}
 		</button>
 		<button
-			onclick={() => activeLogTab = "grinding"}
-			class="px-3 py-1.5 text-xs font-bold transition-colors relative {activeLogTab === 'grinding' ? 'text-accent' : 'text-muted-foreground hover:text-foreground'}"
+			onclick={() => logSubTabStore.set("grinding")}
+			class="px-3 py-1.5 text-xs font-bold transition-colors relative {$logSubTabStore === 'grinding' ? 'text-accent' : 'text-muted-foreground hover:text-foreground'}"
 		>
 			Grinding Log
 			{#if $grindingLogStore.length > 0}
 				<span class="ml-1 text-[9px] text-muted-foreground">({$grindingLogStore.length})</span>
 			{/if}
-			{#if activeLogTab === "grinding"}
+			{#if $logSubTabStore === "grinding"}
 				<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"></div>
 			{/if}
 		</button>
 		<button
-			onclick={() => activeLogTab = "hunting"}
-			class="px-3 py-1.5 text-xs font-bold transition-colors relative {activeLogTab === 'hunting' ? 'text-accent' : 'text-muted-foreground hover:text-foreground'}"
+			onclick={() => logSubTabStore.set("hunting")}
+			class="px-3 py-1.5 text-xs font-bold transition-colors relative {$logSubTabStore === 'hunting' ? 'text-accent' : 'text-muted-foreground hover:text-foreground'}"
 		>
 			Hunting Log
 			{#if $huntingLogStore.length > 0}
 				<span class="ml-1 text-[9px] text-muted-foreground">({$huntingLogStore.length})</span>
 			{/if}
-			{#if activeLogTab === "hunting"}
+			{#if $logSubTabStore === "hunting"}
 				<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"></div>
 			{/if}
 		</button>
 	</div>
 
-	{#if activeLogTab === "crafting"}
+	{#if $logSubTabStore === "crafting"}
 		<!-- ===== CRAFTING LOG ===== -->
 		<div class="flex items-center justify-between">
 			<h2 class="text-base font-bold neon-text-cyan">Crafting Log</h2>
@@ -213,12 +216,12 @@
 		<div class="flex gap-2">
 			<input
 				type="text"
-				bind:value={searchText}
+				bind:value={$logCraftingSearchStore}
 				placeholder="Search by recipe name..."
 				class="flex-1 glass-input text-foreground rounded px-2 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
 			/>
 			<select
-				bind:value={categoryFilter}
+				bind:value={$logCraftingCategoryStore}
 				class="bg-input text-foreground border border-border rounded px-2 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
 			>
 				<option value="all">All Categories</option>
@@ -284,7 +287,7 @@
 			Showing {filteredSessions().length} of {$craftingLogStore.length} sessions
 		</div>
 
-	{:else if activeLogTab === "grinding"}
+	{:else if $logSubTabStore === "grinding"}
 		<!-- ===== GRINDING LOG ===== -->
 		<div class="flex items-center justify-between">
 			<h2 class="text-base font-bold neon-text-cyan">Grinding Log</h2>
@@ -316,7 +319,7 @@
 		<!-- Search -->
 		<input
 			type="text"
-			bind:value={grindingSearchText}
+			bind:value={$logGrindingSearchStore}
 			placeholder="Search by spot name..."
 			class="w-full glass-input text-foreground rounded px-2 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
 		/>
@@ -416,7 +419,7 @@
 		<!-- Search -->
 		<input
 			type="text"
-			bind:value={huntingSearchText}
+			bind:value={$logHuntingSearchStore}
 			placeholder="Search by spot name..."
 			class="w-full glass-input text-foreground rounded px-2 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-accent"
 		/>

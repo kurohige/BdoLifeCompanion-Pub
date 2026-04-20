@@ -75,10 +75,17 @@ export function isEuDst(date: Date): boolean {
  * Get UTC offset in hours for a BDO server region at a given date.
  * NA (America/Los_Angeles): -8 (PST) or -7 (PDT)
  * EU (Europe/Berlin): +1 (CET) or +2 (CEST)
+ * SEA: +8 (no DST)
  */
 export function getRegionUtcOffset(region: string, date: Date): number {
 	if (region === "NA") {
 		return isUsDst(date) ? -7 : -8;
+	}
+	if (region === "SEA") {
+		return 8;
+	}
+	if (region === "SA") {
+		return -3;
 	}
 	return isEuDst(date) ? 2 : 1;
 }

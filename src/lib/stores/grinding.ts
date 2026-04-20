@@ -206,7 +206,8 @@ export async function fetchMarketPrices(): Promise<void> {
 	if (items.length === 0) return;
 
 	const itemIds = items.map((i) => i.source_id).join(",");
-	const region = get(settingsStore).server_region ?? "NA";
+	const s = get(settingsStore);
+	const region = s.market_region || s.server_region || "NA";
 
 	marketPricesLoadingStore.set(true);
 	try {
@@ -375,12 +376,16 @@ export function resumeGrindingTimer(): void {
 	startGrindingTimer();
 }
 
-/** Stop the grinding timer and reset remaining time */
-export function stopGrindingTimer(): void {
+function clearTimerInterval(): void {
 	if (timerIntervalId) {
 		clearInterval(timerIntervalId);
 		timerIntervalId = null;
 	}
+}
+
+/** Stop the grinding timer and reset remaining time */
+export function stopGrindingTimer(): void {
+	clearTimerInterval();
 	grindingTimerStore.update((s) => ({
 		...s,
 		remainingSeconds: 0,
@@ -390,15 +395,20 @@ export function stopGrindingTimer(): void {
 	}));
 }
 
-/** Reset the grinding timer to zero */
+/**
+ * Restart the grinding timer back to the beginning of its configured duration.
+ * Preserves the minutes/seconds inputs and totalSeconds — only `remainingSeconds`
+ * snaps back to `totalSeconds` and the running/paused/finished flags clear.
+ * Use stopGrindingTimer() to fully zero the timer.
+ */
 export function resetGrindingTimer(): void {
-	stopGrindingTimer();
+	clearTimerInterval();
 	grindingTimerStore.update((s) => ({
 		...s,
-		minutes: 0,
-		seconds: 0,
-		totalSeconds: 0,
-		remainingSeconds: 0,
+		remainingSeconds: s.totalSeconds,
+		isRunning: false,
+		isPaused: false,
+		isFinished: false,
 	}));
 }
 

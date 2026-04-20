@@ -6,10 +6,10 @@
 		settingsStore,
 		nextBossSpawn,
 		nextBossCountdown,
+		getBossNames,
 		selectedSpotStore,
 		grindingTimerStore,
 		grindingTimerDisplay,
-		activeMessagesStore,
 	} from "$lib/stores";
 	import { BOSSES } from "$lib/constants/boss-data";
 
@@ -60,11 +60,7 @@
 
 	// Boss names (supports multi-boss: "Kzarka & Karanda")
 	const bossNames = $derived(
-		$nextBossSpawn
-			? $nextBossSpawn.spawn.bosses
-					.map((id) => BOSSES[id]?.name ?? id)
-					.join(" & ")
-			: ""
+		$nextBossSpawn ? getBossNames($nextBossSpawn.spawn) : "",
 	);
 
 	// Multi-boss count badge
@@ -81,13 +77,6 @@
 	const spotName = $derived(
 		$selectedSpotStore?.name ?? ""
 	);
-
-	// Announcement ticker text
-	const announcementText = $derived.by(() => {
-		const messages = $activeMessagesStore;
-		if (!messages || messages.length === 0) return "";
-		return messages.map((m) => m.title + (m.body ? ` — ${m.body}` : "")).join("   ·   ");
-	});
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -127,37 +116,19 @@
 		</div>
 	</div>
 
-	<!-- DIVIDER -->
-	<div class="mini-divider"></div>
+	{#if hasActiveSession && spotName}
+		<!-- DIVIDER -->
+		<div class="mini-divider"></div>
 
-	<!-- CENTER CLUSTER (context-aware) -->
-	<div class="mini-center">
-		{#if hasActiveSession && spotName}
-			<!-- Active grinding session -->
-			<div class="mini-cluster">
-				<div class="mini-spot-icon">⚔</div>
-				<div class="mini-boss-info">
-					<span class="mini-label truncate max-w-[100px]">{spotName}</span>
-					<span class="mini-timer">{$grindingTimerDisplay}</span>
-				</div>
+		<!-- ACTIVE GRINDING SESSION -->
+		<div class="mini-cluster">
+			<div class="mini-spot-icon">⚔</div>
+			<div class="mini-boss-info">
+				<span class="mini-label truncate max-w-[100px]">{spotName}</span>
+				<span class="mini-timer">{$grindingTimerDisplay}</span>
 			</div>
-		{:else}
-			<!-- Announcement ticker -->
-			<div class="mini-marquee-container">
-				{#if announcementText}
-					<div class="mini-marquee-track">
-						<span class="mini-marquee-text">{announcementText}</span>
-						<span class="mini-marquee-text" aria-hidden="true">{announcementText}</span>
-					</div>
-				{:else}
-					<span class="mini-muted text-[9px]">No announcements</span>
-				{/if}
-			</div>
-		{/if}
-	</div>
-
-	<!-- DIVIDER -->
-	<div class="mini-divider"></div>
+		</div>
+	{/if}
 
 	<!-- CONTROLS CLUSTER -->
 	<div class="mini-controls">
@@ -290,48 +261,13 @@
 		flex-shrink: 0;
 	}
 
-	/* ── Center section ── */
-	.mini-center {
-		flex: 1;
-		min-width: 0;
-		display: flex;
-		align-items: center;
-		overflow: hidden;
-	}
-
-	/* ── Marquee (announcement ticker) ── */
-	.mini-marquee-container {
-		width: 100%;
-		overflow: hidden;
-		position: relative;
-	}
-	.mini-marquee-track {
-		display: flex;
-		width: max-content;
-		animation: mini-scroll 20s linear infinite;
-	}
-	.mini-marquee-text {
-		font-family: 'Manrope', sans-serif;
-		font-size: 10px;
-		font-weight: 500;
-		color: #e5e2e1;
-		white-space: nowrap;
-		padding-right: 40px;
-	}
-	@keyframes mini-scroll {
-		0% { transform: translateX(0); }
-		100% { transform: translateX(-50%); }
-	}
-	.mini-marquee-container:hover .mini-marquee-track {
-		animation-play-state: paused;
-	}
-
 	/* ── Control buttons ── */
 	.mini-controls {
 		display: flex;
 		align-items: center;
 		gap: 4px;
 		flex-shrink: 0;
+		margin-left: auto;
 	}
 	.mini-btn {
 		width: 20px;

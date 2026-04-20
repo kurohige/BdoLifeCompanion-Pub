@@ -29,7 +29,10 @@
 		catalogsStore,
 		activeCategoryStore,
 		selectedRecipeStore,
+		selectedRecipesByCategoryStore,
 		searchTextStore,
+		searchTextByCategoryStore,
+		setActiveCategory,
 		showOnlyFavoritesStore,
 		initInventory,
 		initSettings,
@@ -108,10 +111,12 @@
 		xxl: "1.45",
 	};
 
-	// Apply font settings via CSS variables + native webview zoom
+	// Apply font settings via CSS variables + native webview zoom.
+	// Bold is applied as a body class so a global CSS rule can override explicit
+	// font-weights throughout the app (Tailwind classes, inline styles, etc.).
 	function applyFontSettings(fontFamily: FontFamily, fontBold: boolean, fontSize: FontSize) {
 		document.body.style.setProperty("--app-font-family", FONT_FAMILIES[fontFamily] ?? FONT_FAMILIES.system);
-		document.body.style.setProperty("--app-font-weight", fontBold ? "bold" : "normal");
+		document.body.classList.toggle("app-bold", fontBold);
 		const zoom = parseFloat(FONT_ZOOM[fontSize] ?? "1");
 		getCurrentWebview().setZoom(zoom).catch(() => {});
 	}
@@ -161,16 +166,14 @@
 
 			catalogsStore.set(catalogs);
 
-			// Apply transparency, theme, font, and always-on-top whenever settings change
+			// Apply transparency, theme, font, and always-on-top whenever settings change.
+			// All fields are normalized by initSettings before the subscription fires,
+			// so no `??` fallbacks needed here.
 			settingsStore.subscribe((settings) => {
 				document.documentElement.style.setProperty("--app-opacity", String(settings.transparency));
-				applyTheme(settings.theme ?? "obsidian");
-				applyFontSettings(
-					settings.font_family ?? "system",
-					settings.font_bold ?? false,
-					settings.font_size ?? "default",
-				);
-				appWindow.setAlwaysOnTop(settings.always_on_top ?? true);
+				applyTheme(settings.theme);
+				applyFontSettings(settings.font_family, settings.font_bold, settings.font_size);
+				appWindow.setAlwaysOnTop(settings.always_on_top);
 			});
 
 			// Restore saved window state
@@ -269,14 +272,15 @@
 		}
 	});
 
-	// Handle crafting sub-tab changes (user clicks only clear recipe; jump-to-craft skips clearing)
+	// Handle crafting sub-tab changes — per-category recipe memory is handled
+	// inside setActiveCategory (saves outgoing, restores incoming).
 	function handleCategoryChange(category: string) {
 		if (category === "cooking" || category === "alchemy" || category === "draughts") {
-			activeCategoryStore.set(category);
 			if (jumpingToCraft) {
 				jumpingToCraft = false;
+				activeCategoryStore.set(category);
 			} else {
-				selectedRecipeStore.set(null);
+				setActiveCategory(category);
 			}
 		}
 		// "planner" tab needs no category store change
@@ -298,6 +302,19 @@
 				jumpingToCraft = false;
 			});
 		}
+	});
+
+	// Mirror selectedRecipeStore + searchTextStore changes into per-category memory
+	// so that when the user picks a recipe or types a search, the memory stays in sync.
+	$effect(() => {
+		const cat = $activeCategoryStore;
+		const rec = $selectedRecipeStore;
+		selectedRecipesByCategoryStore.update((m) => (m[cat] === rec ? m : { ...m, [cat]: rec }));
+	});
+	$effect(() => {
+		const cat = $activeCategoryStore;
+		const search = $searchTextStore;
+		searchTextByCategoryStore.update((m) => (m[cat] === search ? m : { ...m, [cat]: search }));
 	});
 </script>
 
@@ -321,7 +338,9 @@
 		<MediumMode />
 	</div>
 {:else}
-	<HexBackground />
+	{#if $settingsStore.animations_enabled}
+		<HexBackground />
+	{/if}
 
 	<!-- Full Mode — Obsidian HUD layout -->
 	<div class="flex flex-col h-screen overflow-hidden relative z-[1]">
@@ -366,15 +385,15 @@
 
 			<!-- Main Content Area -->
 			<main class="flex-1 flex flex-col overflow-hidden min-w-0">
-				<!-- Announcement bar -->
+				<!-- Announcement ticker (compact marquee) -->
 				{#if !loading}
 					<div class="flex-shrink-0 px-2 pt-1">
-						<AnnouncementCarousel />
+						<AnnouncementCarousel compact />
 					</div>
 				{/if}
 
 				<!-- Scrollable content -->
-				<div class="flex-1 overflow-auto p-2">
+				<div class="flex-1 overflow-auto p-2 flex flex-col min-h-0">
 					{#if loading}
 						<div class="text-center py-8">
 							<p class="obsidian-timer text-sm">Loading...</p>
@@ -388,9 +407,9 @@
 					{:else}
 						<!-- Crafting -->
 						{#if activeTab === "crafting"}
-							<div class="glass-panel p-2 obsidian-accent">
+							<div class="glass-panel p-2 obsidian-accent {craftingSubTab === 'planner' ? 'flex-1 flex flex-col min-h-0' : ''}">
 								<!-- Sub-tabs: pill style (sticky) -->
-								<div class="flex gap-2 mb-2 sticky top-0 z-10 backdrop-blur-sm py-1 -mx-2 px-2 items-center justify-center">
+								<div class="flex gap-2 mb-2 sticky top-0 z-10 backdrop-blur-sm py-1 -mx-2 px-2 items-center justify-center flex-shrink-0">
 									{#each [
 										{ id: "cooking", label: "", icon: "/icons/cooking.webp" },
 										{ id: "alchemy", label: "", icon: "/icons/alchemy.webp" },
@@ -408,7 +427,9 @@
 								</div>
 
 								{#if craftingSubTab === "planner"}
-									<CraftingPlanner />
+									<div class="flex-1 flex flex-col min-h-0">
+										<CraftingPlanner />
+									</div>
 								{:else}
 									<CraftingView />
 								{/if}

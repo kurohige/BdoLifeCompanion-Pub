@@ -1,13 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" spellcheck="false">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Tauri + SvelteKit + Typescript App</title>
     %sveltekit.head%
+    <script>
+      // Disable browser-remembered value suggestions on every input/textarea
+      // (covers Svelte-rendered elements added after initial load).
+      (function () {
+        function disableAutofill(el) {
+          if (!(el instanceof HTMLElement)) return;
+          if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+            if (!el.hasAttribute("autocomplete")) el.setAttribute("autocomplete", "off");
+            if (!el.hasAttribute("autocorrect")) el.setAttribute("autocorrect", "off");
+            if (!el.hasAttribute("autocapitalize")) el.setAttribute("autocapitalize", "off");
+            if (el.tagName === "INPUT" && !el.hasAttribute("data-1p-ignore")) {
+              el.setAttribute("data-1p-ignore", "true");
+              el.setAttribute("data-lpignore", "true");
+            }
+          }
+        }
+        function scan(root) {
+          if (!root) return;
+          if (root.querySelectorAll) {
+            root.querySelectorAll("input, textarea").forEach(disableAutofill);
+          }
+          disableAutofill(root);
+        }
+        document.addEventListener("DOMContentLoaded", function () {
+          scan(document.body);
+          new MutationObserver(function (mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+              var added = mutations[i].addedNodes;
+              for (var j = 0; j < added.length; j++) scan(added[j]);
+            }
+          }).observe(document.body, { childList: true, subtree: true });
+        });
+      })();
+    </script>
   </head>
-  <body data-sveltekit-preload-data="hover">
+  <body data-sveltekit-preload-data="hover" spellcheck="false">
     <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>

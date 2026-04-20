@@ -23,6 +23,70 @@
 	let logYielded = $state(1);
 	let showLogger = $state(false);
 
+	// Search autocomplete state
+	let showSearchDropdown = $state(false);
+	let searchHighlightIndex = $state(0);
+	let searchDropdownEl: HTMLDivElement | null = $state(null);
+
+	// Top matches for the autocomplete dropdown (derived from the already-filtered list)
+	const searchMatches = $derived(
+		$searchTextStore.trim().length >= 2
+			? $filteredRecipesStore.slice(0, 12)
+			: [],
+	);
+
+	// Keep highlight in bounds whenever the match list changes
+	$effect(() => {
+		const len = searchMatches.length;
+		if (searchHighlightIndex >= len) searchHighlightIndex = 0;
+	});
+
+	// Scroll the highlighted row into view when it changes
+	$effect(() => {
+		const idx = searchHighlightIndex;
+		if (!showSearchDropdown || !searchDropdownEl) return;
+		requestAnimationFrame(() => {
+			const el = searchDropdownEl?.querySelector(`[data-idx="${idx}"]`) as HTMLElement | null;
+			el?.scrollIntoView({ block: "nearest" });
+		});
+	});
+
+	function handleSelectFromDropdown(recipe: Recipe) {
+		selectedRecipeStore.set(recipe);
+		showSearchDropdown = false;
+	}
+
+	function handleSearchKeyDown(e: KeyboardEvent) {
+		if (!showSearchDropdown || searchMatches.length === 0) {
+			// Open dropdown on first arrow keypress if it's closed but we have matches
+			if ((e.key === "ArrowDown" || e.key === "ArrowUp") && searchMatches.length > 0) {
+				e.preventDefault();
+				showSearchDropdown = true;
+			}
+			return;
+		}
+		if (e.key === "ArrowDown") {
+			e.preventDefault();
+			searchHighlightIndex = Math.min(searchHighlightIndex + 1, searchMatches.length - 1);
+		} else if (e.key === "ArrowUp") {
+			e.preventDefault();
+			searchHighlightIndex = Math.max(searchHighlightIndex - 1, 0);
+		} else if (e.key === "Enter") {
+			e.preventDefault();
+			const recipe = searchMatches[searchHighlightIndex];
+			if (recipe) handleSelectFromDropdown(recipe);
+		} else if (e.key === "Escape") {
+			e.preventDefault();
+			showSearchDropdown = false;
+		} else if (e.key === "Home") {
+			e.preventDefault();
+			searchHighlightIndex = 0;
+		} else if (e.key === "End") {
+			e.preventDefault();
+			searchHighlightIndex = searchMatches.length - 1;
+		}
+	}
+
 	// Search for recipes that use an ingredient
 	function searchForIngredient(itemName: string) {
 		searchTextStore.set(itemName);
@@ -181,13 +245,62 @@
 		<label for="search" class="text-[10px] font-bold neon-text-cyan">
 			Search Recipe or Ingredient
 		</label>
-		<input
-			id="search"
-			type="text"
-			bind:value={$searchTextStore}
-			placeholder="Type recipe or ingredient name..."
-			class="w-full glass-input text-foreground rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-		/>
+		<div class="relative">
+			<input
+				id="search"
+				type="text"
+				bind:value={$searchTextStore}
+				onfocus={() => (showSearchDropdown = true)}
+				onblur={() => setTimeout(() => (showSearchDropdown = false), 200)}
+				onkeydown={handleSearchKeyDown}
+				placeholder="Type recipe or ingredient name..."
+				role="combobox"
+				aria-expanded={showSearchDropdown && searchMatches.length > 0}
+				aria-autocomplete="list"
+				aria-controls="search-listbox"
+				aria-activedescendant={showSearchDropdown && searchMatches.length > 0 ? `search-match-${searchHighlightIndex}` : undefined}
+				class="w-full glass-input text-foreground rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+			/>
+
+			{#if showSearchDropdown && searchMatches.length > 0}
+				<div
+					bind:this={searchDropdownEl}
+					id="search-listbox"
+					role="listbox"
+					class="absolute z-50 w-full mt-1 glass-dropdown rounded max-h-[220px] overflow-auto"
+				>
+					{#each searchMatches as recipe, i (recipe.id)}
+						<button
+							id="search-match-{i}"
+							role="option"
+							aria-selected={i === searchHighlightIndex}
+							data-idx={i}
+							onmousedown={() => handleSelectFromDropdown(recipe)}
+							onmouseenter={() => (searchHighlightIndex = i)}
+							class="w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors border-b border-border last:border-b-0 {i === searchHighlightIndex ? 'bg-primary/20 text-foreground' : 'hover:bg-secondary'}"
+						>
+							<div
+								class="w-5 h-5 border border-muted rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
+							>
+								{#if recipe.image}
+									<img
+										src="/{recipe.image}"
+										alt={recipe.name}
+										class="w-full h-full object-contain"
+										onerror={(e) => {
+											(e.currentTarget as HTMLImageElement).style.display = "none";
+										}}
+									/>
+								{/if}
+							</div>
+							<span class="flex-1 text-xs truncate">
+								{isFavorite(recipe.id) ? "★ " : ""}{recipe.name}
+							</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
+		</div>
 		<label class="flex items-center gap-1 text-[10px] font-bold neon-text-cyan cursor-pointer">
 			<input type="checkbox" bind:checked={$showOnlyFavoritesStore} class="w-3 h-3" />
 			<span>Favorites Only</span>

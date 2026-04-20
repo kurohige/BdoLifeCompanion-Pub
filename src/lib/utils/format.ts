@@ -29,6 +29,23 @@ export function formatDuration(seconds: number): string {
 }
 
 /**
+ * Format elapsed milliseconds as "Xm ago" / "Xh Ym ago" / "Xd Yh ago" (>24h).
+ * Used for "last spawn ago" indicators.
+ */
+export function formatElapsed(ms: number): string {
+	if (ms <= 0) return "just now";
+	const totalMinutes = Math.floor(ms / 60000);
+	if (totalMinutes < 1) return "just now";
+	if (totalMinutes < 60) return `${totalMinutes}m ago`;
+	const hours = Math.floor(totalMinutes / 60);
+	const minutes = totalMinutes % 60;
+	if (hours < 24) return `${hours}h ${minutes}m ago`;
+	const days = Math.floor(hours / 24);
+	const remHours = hours % 24;
+	return `${days}d ${remHours}h ago`;
+}
+
+/**
  * Format a yield rate as a percentage string (e.g., "125.0%").
  * Returns "0%" if crafted is zero.
  */

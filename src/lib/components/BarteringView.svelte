@@ -4,8 +4,7 @@
 	import ShipProgress from "./ShipProgress.svelte";
 	import ParleyCalculator from "./ParleyCalculator.svelte";
 	import SailorTracker from "./SailorTracker.svelte";
-
-	let barterSubTab = $state<"tracker" | "inventory" | "ships" | "parley" | "sailors">("tracker");
+	import { barterSubTabStore, type BarterSubTab } from "$lib/stores";
 </script>
 
 <!-- Sub-tabs: pill style (sticky) -->
@@ -18,9 +17,9 @@
 		{ id: "sailors", label: "Sailors" },
 	] as sub}
 		<button
-			onclick={() => barterSubTab = sub.id as "tracker" | "inventory" | "ships" | "parley" | "sailors"}
+			onclick={() => barterSubTabStore.set(sub.id as BarterSubTab)}
 			class="pb-2 px-1 text-[13px] font-headline font-medium transition-colors
-				{barterSubTab === sub.id
+				{$barterSubTabStore === sub.id
 					? 'obsidian-pill-active'
 					: 'obsidian-pill'}"
 		>
@@ -29,13 +28,13 @@
 	{/each}
 </div>
 
-{#if barterSubTab === "tracker"}
+{#if $barterSubTabStore === "tracker"}
 	<BarterTracker />
-{:else if barterSubTab === "inventory"}
+{:else if $barterSubTabStore === "inventory"}
 	<BarterInventory />
-{:else if barterSubTab === "ships"}
+{:else if $barterSubTabStore === "ships"}
 	<ShipProgress />
-{:else if barterSubTab === "parley"}
+{:else if $barterSubTabStore === "parley"}
 	<ParleyCalculator />
 {:else}
 	<SailorTracker />

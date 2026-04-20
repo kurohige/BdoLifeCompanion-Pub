@@ -7,10 +7,13 @@ export {
 	activeCategoryStore,
 	activeCatalogStore,
 	selectedRecipeStore,
+	selectedRecipesByCategoryStore,
 	searchTextStore,
+	searchTextByCategoryStore,
 	showOnlyFavoritesStore,
 	favoritesStore,
 	filteredRecipesStore,
+	setActiveCategory,
 } from "./recipes.js";
 
 export {
@@ -52,6 +55,9 @@ export {
 	setBarterLevel,
 	setValuePack,
 	setAlwaysOnTop,
+	setAnimationsEnabled,
+	toggleBossHidden,
+	setHiddenBosses,
 } from "./settings.js";
 
 export { appVersionStore, initAppVersion } from "./app-version.js";
@@ -106,8 +112,28 @@ export {
 	nextBossNames,
 	formatCountdown,
 	formatSpawnTime,
+	formatElapsed,
+	getBossNames,
+	previousBossSpawn,
+	previousBossElapsed,
+	previousBossNames,
 	type NextBossInfo,
+	type PreviousBossInfo,
 } from "./boss-timer.js";
+
+export {
+	barterSubTabStore,
+	logSubTabStore,
+	logCraftingSearchStore,
+	logCraftingCategoryStore,
+	logGrindingSearchStore,
+	logHuntingSearchStore,
+	settingsTabStore,
+	type BarterSubTab,
+	type LogSubTab,
+	type LogCategoryFilter,
+	type SettingsTab,
+} from "./ui-state.js";
 
 export {
 	recipeIndexStore,
@@ -117,6 +143,8 @@ export {
 	activePlanStore,
 	inventoryAwareStore,
 	plannerViewStore,
+	plannerExpandedNodesStore,
+	plannerRecipeSearchStore,
 	navigateToRecipeStore,
 	plannerTreeStore,
 	shoppingListStore,
@@ -127,6 +155,9 @@ export {
 	setGoalQuantity,
 	toggleStep,
 	loadPlannerData,
+	getExpandedSet,
+	setExpandedSet,
+	toggleExpanded,
 	type RecipeIndexEntry,
 	type PlannerView,
 } from "./planner.js";

@@ -5,7 +5,10 @@
 	import { RESET_TIMERS, type ResetTimerId } from "$lib/constants/reset-data";
 	import { getRegionUtcOffset } from "$lib/utils/dst";
 
-	type Region = "EU" | "NA";
+	type Region = "EU" | "NA" | "SEA" | "SA";
+
+	const NODE_WAR_HOUR: Record<Region, number> = { NA: 18, EU: 20, SEA: 21, SA: 21 };
+	const CONQUEST_HOUR: Record<Region, number> = { NA: 20, EU: 20, SEA: 21, SA: 21 };
 
 	interface ResetCountdown {
 		id: ResetTimerId;
@@ -50,8 +53,8 @@
 		const timers: ResetCountdown[] = [
 			{ id: "daily", name: RESET_TIMERS.daily.name, icon: RESET_TIMERS.daily.icon, description: RESET_TIMERS.daily.description, remainingMs: getNextDaily(now).getTime() - now.getTime() },
 			{ id: "weekly", name: RESET_TIMERS.weekly.name, icon: RESET_TIMERS.weekly.icon, description: RESET_TIMERS.weekly.description, remainingMs: getNextWeekly(now).getTime() - now.getTime() },
-			{ id: "nodewar", name: RESET_TIMERS.nodewar.name, icon: RESET_TIMERS.nodewar.icon, description: RESET_TIMERS.nodewar.description, remainingMs: getNextWar(region, now, region === "NA" ? 18 : 20, false).getTime() - now.getTime() },
-			{ id: "conquest", name: RESET_TIMERS.conquest.name, icon: RESET_TIMERS.conquest.icon, description: RESET_TIMERS.conquest.description, remainingMs: getNextWar(region, now, 20, true).getTime() - now.getTime() },
+			{ id: "nodewar", name: RESET_TIMERS.nodewar.name, icon: RESET_TIMERS.nodewar.icon, description: RESET_TIMERS.nodewar.description, remainingMs: getNextWar(region, now, NODE_WAR_HOUR[region], false).getTime() - now.getTime() },
+			{ id: "conquest", name: RESET_TIMERS.conquest.name, icon: RESET_TIMERS.conquest.icon, description: RESET_TIMERS.conquest.description, remainingMs: getNextWar(region, now, CONQUEST_HOUR[region], true).getTime() - now.getTime() },
 		];
 		timers.sort((a, b) => a.remainingMs - b.remainingMs);
 		return timers;

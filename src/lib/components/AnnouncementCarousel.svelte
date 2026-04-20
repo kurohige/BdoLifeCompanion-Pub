@@ -4,6 +4,7 @@
 		activeMessagesStore,
 		currentCardIndexStore,
 		nextCard,
+		dismissMessage,
 		updateAvailableStore,
 		getDownloadUrl,
 	} from "$lib/stores";
@@ -120,6 +121,17 @@
 
 	function handleMouseEnter() { isPaused = true; }
 	function handleMouseLeave() { isPaused = false; }
+
+	function handleDismiss(e: MouseEvent) {
+		e.stopPropagation();
+		if (currentMessage && currentMessage.id !== DEFAULT_MESSAGE.id) {
+			dismissMessage(currentMessage.id);
+		}
+	}
+
+	const canDismiss = $derived(
+		!!currentMessage && currentMessage.id !== DEFAULT_MESSAGE.id,
+	);
 </script>
 
 {#if compact}
@@ -150,6 +162,16 @@
 									</span>
 								{/key}
 							</div>
+							{#if canDismiss}
+								<button
+									onclick={handleDismiss}
+									class="ticker-dismiss"
+									title="Dismiss this announcement"
+									aria-label="Dismiss announcement"
+								>
+									✕
+								</button>
+							{/if}
 						</div>
 					</div>
 				{/if}
@@ -427,6 +449,28 @@
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
 		padding: 0 6px 0 8px;
+	}
+	/* Dismiss button (compact mode) */
+	.ticker-dismiss {
+		flex-shrink: 0;
+		width: 16px;
+		height: 16px;
+		margin-left: 6px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 10px;
+		color: rgba(224, 224, 224, 0.5);
+		background: transparent;
+		border: none;
+		border-radius: 2px;
+		cursor: pointer;
+		transition: color 0.15s, background 0.15s;
+		padding: 0;
+	}
+	.ticker-dismiss:hover {
+		color: #ffee10;
+		background: rgba(255, 238, 16, 0.12);
 	}
 
 	/* Marquee */

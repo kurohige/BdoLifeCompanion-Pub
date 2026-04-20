@@ -21,7 +21,7 @@ export type BossId =
 	| "blackshadow"
 	| "vell";
 
-export type Region = "EU" | "NA";
+export type Region = "EU" | "NA" | "SEA" | "SA";
 
 export interface BossInfo {
 	id: BossId;
@@ -206,6 +206,173 @@ export const NA_SCHEDULE: BossSpawn[] = [
 	{ time: "19:00", day: 6, bosses: ["garmoth"] },
 ];
 
+export const SEA_SCHEDULE: BossSpawn[] = [
+	// SEA runs on GMT+8 (no DST). UTC = SEA - 8h.
+	// Days: 0=Mon ... 6=Sun.
+
+	// 00:00 SEA Thu = 16:00 UTC Wed
+	{ time: "16:00", day: 2, bosses: ["vell"] }, // Wed (Thu 00:00 SEA)
+
+	// 01:30 SEA = 17:30 UTC previous day
+	{ time: "17:30", day: 6, bosses: ["karanda", "bulgasal"] }, // Sun (Mon 01:30 SEA)
+	{ time: "17:30", day: 0, bosses: ["nouver", "sangoon"] }, // Mon (Tue 01:30 SEA)
+	{ time: "17:30", day: 1, bosses: ["offin", "pigking"] }, // Tue (Wed 01:30 SEA)
+	{ time: "17:30", day: 2, bosses: ["kutum", "uturi"] }, // Wed (Thu 01:30 SEA)
+	{ time: "17:30", day: 3, bosses: ["nouver", "sangoon"] }, // Thu (Fri 01:30 SEA)
+	// Sat = no boss (Sun 01:30 SEA has spawn, shown below)
+	{ time: "17:30", day: 5, bosses: ["kzarka", "pigking"] }, // Sat (Sun 01:30 SEA)
+
+	// 11:00 SEA = 03:00 UTC same day
+	{ time: "03:00", day: 0, bosses: ["kzarka", "uturi"] }, // Mon
+	{ time: "03:00", day: 1, bosses: ["kutum", "pigking"] }, // Tue
+	{ time: "03:00", day: 2, bosses: ["nouver", "bulgasal"] }, // Wed
+	{ time: "03:00", day: 3, bosses: ["kzarka", "sangoon"] }, // Thu
+	{ time: "03:00", day: 4, bosses: ["kutum", "bulgasal"] }, // Fri
+	{ time: "03:00", day: 5, bosses: ["karanda", "pigking"] }, // Sat
+	{ time: "03:00", day: 6, bosses: ["nouver", "sangoon"] }, // Sun
+
+	// 14:00 SEA = 06:00 UTC same day — Garmoth daily
+	{ time: "06:00", day: 0, bosses: ["garmoth"] },
+	{ time: "06:00", day: 1, bosses: ["garmoth"] },
+	{ time: "06:00", day: 2, bosses: ["garmoth"] },
+	{ time: "06:00", day: 3, bosses: ["garmoth"] },
+	{ time: "06:00", day: 4, bosses: ["garmoth"] },
+	{ time: "06:00", day: 5, bosses: ["garmoth"] },
+	{ time: "06:00", day: 6, bosses: ["garmoth"] },
+
+	// 15:00 SEA = 07:00 UTC same day
+	{ time: "07:00", day: 0, bosses: ["kutum", "pigking"] }, // Mon
+	{ time: "07:00", day: 1, bosses: ["kzarka", "sangoon"] }, // Tue
+	{ time: "07:00", day: 2, bosses: ["karanda", "uturi"] }, // Wed
+	{ time: "07:00", day: 3, bosses: ["nouver", "pigking"] }, // Thu
+	{ time: "07:00", day: 4, bosses: ["karanda", "uturi"] }, // Fri
+	{ time: "07:00", day: 5, bosses: ["kutum", "sangoon"] }, // Sat
+	{ time: "07:00", day: 6, bosses: ["kutum", "bulgasal"] }, // Sun
+
+	// 16:00 SEA Sun = 08:00 UTC Sun
+	{ time: "08:00", day: 6, bosses: ["vell"] },
+
+	// 17:00 SEA Sat = 09:00 UTC Sat
+	{ time: "09:00", day: 5, bosses: ["blackshadow"] },
+
+	// 18:00 SEA Sat = 10:00 UTC Sat — Garmoth (replaces usual 14:00 slot for Sat)
+	{ time: "10:00", day: 5, bosses: ["garmoth"] },
+
+	// 19:00 SEA = 11:00 UTC same day
+	{ time: "11:00", day: 1, bosses: ["quint", "muraka"] }, // Tue
+	{ time: "11:00", day: 5, bosses: ["quint", "muraka"] }, // Sat
+
+	// 20:00 SEA = 12:00 UTC same day (Sun is 20:15 = 12:15)
+	{ time: "12:00", day: 0, bosses: ["karanda", "sangoon"] }, // Mon
+	{ time: "12:00", day: 1, bosses: ["kzarka", "uturi"] }, // Tue
+	{ time: "12:00", day: 2, bosses: ["kutum", "bulgasal"] }, // Wed
+	{ time: "12:00", day: 3, bosses: ["kzarka", "sangoon"] }, // Thu
+	{ time: "12:00", day: 4, bosses: ["nouver", "pigking"] }, // Fri
+	{ time: "12:00", day: 5, bosses: ["karanda", "bulgasal"] }, // Sat
+	{ time: "12:15", day: 6, bosses: ["kzarka", "uturi"] }, // Sun 20:15
+
+	// 23:15 SEA = 15:15 UTC same day — Garmoth (except Sat)
+	{ time: "15:15", day: 0, bosses: ["garmoth"] }, // Mon
+	{ time: "15:15", day: 1, bosses: ["garmoth"] }, // Tue
+	{ time: "15:15", day: 2, bosses: ["garmoth"] }, // Wed
+	{ time: "15:15", day: 3, bosses: ["garmoth"] }, // Thu
+	{ time: "15:15", day: 4, bosses: ["garmoth"] }, // Fri
+	// Sat = no boss
+	{ time: "15:15", day: 6, bosses: ["garmoth"] }, // Sun
+
+	// 23:30 SEA = 15:30 UTC same day
+	{ time: "15:30", day: 0, bosses: ["offin", "uturi"] }, // Mon
+	{ time: "15:30", day: 1, bosses: ["nouver", "bulgasal"] }, // Tue
+	// Wed = no boss
+	{ time: "15:30", day: 3, bosses: ["karanda", "uturi"] }, // Thu
+	{ time: "15:30", day: 4, bosses: ["offin", "bulgasal"] }, // Fri
+	// Sat = no boss
+	{ time: "15:30", day: 6, bosses: ["nouver", "pigking"] }, // Sun
+];
+
+export const SA_SCHEDULE: BossSpawn[] = [
+	// SA runs on UTC-3 (no DST since Brazil abolished DST in 2019). UTC = SA + 3h.
+	// Days: 0=Mon ... 6=Sun.
+
+	// 02:00 SA = 05:00 UTC same day
+	{ time: "05:00", day: 0, bosses: ["kzarka", "bulgasal"] }, // Mon
+	{ time: "05:00", day: 1, bosses: ["nouver", "uturi"] }, // Tue
+	{ time: "05:00", day: 2, bosses: ["offin", "pigking"] }, // Wed
+	// Thu = no boss
+	{ time: "05:00", day: 4, bosses: ["karanda", "sangoon"] }, // Fri
+	{ time: "05:00", day: 5, bosses: ["kutum", "bulgasal"] }, // Sat
+	{ time: "05:00", day: 6, bosses: ["nouver", "sangoon"] }, // Sun
+
+	// 11:00 SA = 14:00 UTC same day
+	{ time: "14:00", day: 0, bosses: ["nouver", "sangoon"] }, // Mon
+	{ time: "14:00", day: 1, bosses: ["kutum", "pigking"] }, // Tue
+	{ time: "14:00", day: 2, bosses: ["nouver", "uturi"] }, // Wed
+	{ time: "14:00", day: 3, bosses: ["kzarka", "sangoon"] }, // Thu
+	{ time: "14:00", day: 4, bosses: ["offin", "bulgasal"] }, // Fri
+	{ time: "14:00", day: 5, bosses: ["karanda", "uturi"] }, // Sat
+	{ time: "14:00", day: 6, bosses: ["kutum", "bulgasal"] }, // Sun
+
+	// 14:00 SA = 17:00 UTC same day — Garmoth daily
+	{ time: "17:00", day: 0, bosses: ["garmoth"] },
+	{ time: "17:00", day: 1, bosses: ["garmoth"] },
+	{ time: "17:00", day: 2, bosses: ["garmoth"] },
+	{ time: "17:00", day: 3, bosses: ["garmoth"] },
+	{ time: "17:00", day: 4, bosses: ["garmoth"] },
+	{ time: "17:00", day: 5, bosses: ["garmoth"] },
+	{ time: "17:00", day: 6, bosses: ["garmoth"] },
+
+	// 16:00 SA = 19:00 UTC same day
+	{ time: "19:00", day: 0, bosses: ["kutum", "pigking"] }, // Mon
+	{ time: "19:00", day: 1, bosses: ["nouver", "sangoon"] }, // Tue
+	{ time: "19:00", day: 2, bosses: ["karanda", "sangoon"] }, // Wed
+	{ time: "19:00", day: 3, bosses: ["nouver", "bulgasal"] }, // Thu
+	{ time: "19:00", day: 4, bosses: ["kzarka", "uturi"] }, // Fri
+	{ time: "19:00", day: 5, bosses: ["kzarka", "pigking"] }, // Sat
+	{ time: "19:00", day: 6, bosses: ["karanda", "uturi"] }, // Sun
+
+	// 17:00 SA = 20:00 UTC same day
+	{ time: "20:00", day: 5, bosses: ["blackshadow"] }, // Sat
+	{ time: "20:00", day: 6, bosses: ["vell"] }, // Sun
+
+	// 17:30 SA Sun = 20:30 UTC Sun — Garmoth
+	{ time: "20:30", day: 6, bosses: ["garmoth"] },
+
+	// 19:00 SA = 22:00 UTC same day
+	{ time: "22:00", day: 2, bosses: ["quint", "muraka"] }, // Wed
+	{ time: "22:00", day: 4, bosses: ["vell"] }, // Fri
+	{ time: "22:00", day: 5, bosses: ["quint", "muraka"] }, // Sat
+
+	// 20:00 SA = 23:00 UTC same day
+	{ time: "23:00", day: 0, bosses: ["karanda", "uturi"] }, // Mon
+	{ time: "23:00", day: 1, bosses: ["kzarka", "bulgasal"] }, // Tue
+	{ time: "23:00", day: 2, bosses: ["kutum", "pigking"] }, // Wed
+	{ time: "23:00", day: 3, bosses: ["karanda", "uturi"] }, // Thu
+	{ time: "23:00", day: 4, bosses: ["kutum", "pigking"] }, // Fri
+	// Sat = no boss
+	{ time: "23:00", day: 6, bosses: ["kzarka", "sangoon"] }, // Sun
+
+	// 23:15 SA = 02:15 UTC next day — Garmoth (except Sat)
+	{ time: "02:15", day: 1, bosses: ["garmoth"] }, // Tue UTC (Mon 23:15 SA)
+	{ time: "02:15", day: 2, bosses: ["garmoth"] }, // Wed UTC (Tue 23:15 SA)
+	{ time: "02:15", day: 3, bosses: ["garmoth"] }, // Thu UTC (Wed 23:15 SA)
+	{ time: "02:15", day: 4, bosses: ["garmoth"] }, // Fri UTC (Thu 23:15 SA)
+	{ time: "02:15", day: 5, bosses: ["garmoth"] }, // Sat UTC (Fri 23:15 SA)
+	// Sat 23:15 SA = no boss
+	{ time: "02:15", day: 0, bosses: ["garmoth"] }, // Mon UTC (Sun 23:15 SA)
+
+	// 23:30 SA = 02:30 UTC next day
+	{ time: "02:30", day: 1, bosses: ["offin", "bulgasal"] }, // Tue UTC (Mon 23:30 SA)
+	{ time: "02:30", day: 2, bosses: ["karanda", "uturi"] }, // Wed UTC (Tue 23:30 SA)
+	{ time: "02:30", day: 3, bosses: ["kzarka", "bulgasal"] }, // Thu UTC (Wed 23:30 SA)
+	{ time: "02:30", day: 4, bosses: ["kutum", "pigking"] }, // Fri UTC (Thu 23:30 SA)
+	{ time: "02:30", day: 5, bosses: ["nouver", "sangoon"] }, // Sat UTC (Fri 23:30 SA)
+	// Sat 23:30 SA = no boss
+	{ time: "02:30", day: 0, bosses: ["nouver", "pigking"] }, // Mon UTC (Sun 23:30 SA)
+];
+
 export function getSchedule(region: Region): BossSpawn[] {
-	return region === "EU" ? EU_SCHEDULE : NA_SCHEDULE;
+	if (region === "EU") return EU_SCHEDULE;
+	if (region === "SEA") return SEA_SCHEDULE;
+	if (region === "SA") return SA_SCHEDULE;
+	return NA_SCHEDULE;
 }

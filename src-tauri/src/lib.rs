@@ -93,6 +93,29 @@ fn save_inventory(items: Vec<InventoryItem>) -> Result<(), String> {
 
 // ============== Settings Commands ==============
 
+// KEEP IN SYNC with `DEFAULT_SETTINGS.window_state` in
+// tauri-svelte/src/lib/services/persistence.ts.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WindowState {
+    pub width: u32,
+    pub height: u32,
+    pub x: Option<i32>,
+    pub y: Option<i32>,
+    pub view_mode: String,
+}
+
+impl Default for WindowState {
+    fn default() -> Self {
+        WindowState {
+            width: 560,
+            height: 680,
+            x: None,
+            y: None,
+            view_mode: "full".to_string(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct AppSettings {
     #[serde(default = "default_transparency")]
@@ -108,7 +131,13 @@ pub struct AppSettings {
     #[serde(default = "default_region")]
     pub server_region: String,
     #[serde(default)]
+    pub market_region: String,
+    #[serde(default)]
     pub favorites: Vec<String>,
+    #[serde(default = "default_theme")]
+    pub theme: String,
+    #[serde(default)]
+    pub window_state: WindowState,
     #[serde(default)]
     pub dismissed_announcements: Vec<String>,
     #[serde(default = "default_true")]
@@ -129,6 +158,12 @@ pub struct AppSettings {
     pub has_value_pack: bool,
     #[serde(default)]
     pub total_barter_count: i32,
+    #[serde(default = "default_true")]
+    pub always_on_top: bool,
+    #[serde(default)]
+    pub hidden_bosses: Vec<String>,
+    #[serde(default = "default_true")]
+    pub animations_enabled: bool,
 }
 
 fn default_true() -> bool {
@@ -153,6 +188,10 @@ fn default_font_family() -> String {
 
 fn default_font_size() -> String {
     "default".to_string()
+}
+
+fn default_theme() -> String {
+    "obsidian".to_string()
 }
 
 /// Load settings from JSON file
@@ -892,6 +931,9 @@ pub struct MarketPriceEntry {
 async fn fetch_market_prices(region: String, item_ids: String) -> Result<Vec<MarketPriceEntry>, String> {
     let base_url = match region.to_uppercase().as_str() {
         "EU" => "https://eu-trade.naeu.playblackdesert.com/Trademarket/GetWorldMarketSearchList",
+        // SEA docs list trade.sea.playblackdesert.com, but that host 301s to this one.
+        // Use the destination directly since POST redirects drop the body on most clients.
+        "SEA" => "https://asia-trade.blackdesert.pearlabyss.com/Trademarket/GetWorldMarketSearchList",
         _ => "https://na-trade.naeu.playblackdesert.com/Trademarket/GetWorldMarketSearchList",
     };
 

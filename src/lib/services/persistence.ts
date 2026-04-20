@@ -30,6 +30,7 @@ export interface AppSettings {
 	cooking_total_mastery: number;
 	alchemy_total_mastery: number;
 	server_region: string;
+	market_region: string;
 	favorites: string[];
 	theme: AppTheme;
 	window_state: WindowState;
@@ -44,6 +45,8 @@ export interface AppSettings {
 	has_value_pack: boolean;
 	total_barter_count: number;
 	always_on_top: boolean;
+	hidden_bosses: string[];
+	animations_enabled: boolean;
 }
 
 // ============== Inventory ==============
@@ -96,6 +99,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	cooking_total_mastery: 0,
 	alchemy_total_mastery: 0,
 	server_region: "NA",
+	market_region: "NA",
 	favorites: [],
 	theme: "obsidian",
 	window_state: { width: 560, height: 620, x: null, y: null, view_mode: "full" },
@@ -110,6 +114,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	has_value_pack: false,
 	total_barter_count: 0,
 	always_on_top: true,
+	hidden_bosses: [],
+	animations_enabled: true,
 };
 
 /**

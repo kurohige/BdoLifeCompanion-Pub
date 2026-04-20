@@ -119,12 +119,9 @@
 
 	// Timer presets (additive — each click adds time)
 	const PRESETS = [
-		{ label: "+1m", mins: 1 },
-		{ label: "+3m", mins: 3 },
-		{ label: "+5m", mins: 5 },
-		{ label: "+10m", mins: 10 },
 		{ label: "+15m", mins: 15 },
 		{ label: "+30m", mins: 30 },
+		{ label: "+1h", mins: 60 },
 	];
 
 	// Ring stroke offset for progress

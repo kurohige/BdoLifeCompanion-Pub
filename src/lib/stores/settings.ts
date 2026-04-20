@@ -63,10 +63,21 @@ export async function initSettings(): Promise<void> {
 	settingsLoadingStore.set(true);
 	try {
 		const settings = await loadSettings();
-		// Migrate removed themes to obsidian
+		// Normalize fields to their defaults so UI consumers can read the store
+		// without `??` fallbacks everywhere. Serde fills defaults only when a
+		// field is MISSING — older settings.json files can contain empty strings
+		// that would otherwise break dropdowns. Boolean fields that come back as
+		// `undefined` (never saved before) also need defaulting here.
 		if (settings.theme !== "obsidian" && settings.theme !== "light") {
 			settings.theme = "obsidian";
 		}
+		if (!settings.server_region) settings.server_region = "NA";
+		if (!settings.market_region) settings.market_region = settings.server_region;
+		if (!settings.font_family) settings.font_family = "system";
+		if (!settings.font_size) settings.font_size = "default";
+		if (typeof settings.always_on_top !== "boolean") settings.always_on_top = true;
+		if (typeof settings.animations_enabled !== "boolean") settings.animations_enabled = true;
+		if (typeof settings.font_bold !== "boolean") settings.font_bold = false;
 		settingsStore.set(settings);
 	} catch (error) {
 		console.error("Failed to initialize settings:", error);
@@ -139,10 +150,17 @@ export function setAlchemyTotalMastery(value: number): void {
 }
 
 /**
- * Set server region (EU/NA)
+ * Set server region (EU/NA) — drives boss schedule, node/conquest war times
  */
 export function setServerRegion(value: string): void {
 	updateSetting("server_region", value);
+}
+
+/**
+ * Set market region (NA/EU/SEA) — drives Central Market price endpoint
+ */
+export function setMarketRegion(value: string): void {
+	updateSetting("market_region", value);
 }
 
 /**
@@ -204,6 +222,31 @@ export function setValuePack(value: boolean): void {
 
 export function setAlwaysOnTop(value: boolean): void {
 	updateSetting("always_on_top", value);
+}
+
+/** Toggle the animated hex background. Off = pure CPU/battery savings. */
+export function setAnimationsEnabled(value: boolean): void {
+	updateSetting("animations_enabled", value);
+}
+
+/**
+ * Toggle whether a boss is hidden in the UI (boss bar, mini/medium modes).
+ * Hidden bosses are filtered out of next/previous spawn lists.
+ */
+export function toggleBossHidden(bossId: string): void {
+	settingsStore.update((s) => {
+		const hidden = s.hidden_bosses ?? [];
+		const next = hidden.includes(bossId)
+			? hidden.filter((id) => id !== bossId)
+			: [...hidden, bossId];
+		return { ...s, hidden_bosses: next };
+	});
+	debouncedSave();
+}
+
+/** Set the full list of hidden bosses (bulk: show all / hide all shortcuts). */
+export function setHiddenBosses(ids: string[]): void {
+	updateSetting("hidden_bosses", ids);
 }
 
 /**

@@ -8,6 +8,8 @@
 		activePlanStore,
 		inventoryAwareStore,
 		plannerViewStore,
+		plannerExpandedNodesStore,
+		plannerRecipeSearchStore,
 		plannerTreeStore,
 		shoppingListStore,
 		craftingStepsStore,
@@ -17,37 +19,78 @@
 		setActivePlan,
 		setGoalQuantity,
 		toggleStep,
+		setExpandedSet,
+		toggleExpanded,
 		type PlannerView,
 	} from "$lib/stores";
 	import { inventoryStore, setInventoryQuantity } from "$lib/stores/inventory";
 
-	// ── Local State ──
-	let recipeSearch = $state("");
+	// ── Local UI State (truly per-render — not worth persisting across tabs) ──
 	let showRecipeDropdown = $state(false);
 	let creatingPlan = $state(false);
-	let expandedNodes = $state(new Set<string>());
-	let prevPlanId: string | null = null;
+	let recipeHighlightIndex = $state(0);
+	let recipeDropdownEl: HTMLDivElement | null = $state(null);
 
-	// ── Reset expanded nodes when active plan changes ──
-	$effect(() => {
-		const id = $activePlanIdStore;
-		if (id !== prevPlanId) {
-			prevPlanId = id;
-			const plan = $plannerPlansStore.find((p) => p.id === id);
-			expandedNodes = plan ? new Set([plan.goalRecipeId]) : new Set();
-		}
-	});
+	// ── Derived expansion set for the active plan ──
+	const expandedNodes = $derived(
+		new Set($plannerExpandedNodesStore[$activePlanIdStore ?? ""] ?? []),
+	);
 
 	// ── Recipe search filter (min 2 chars) ──
 	const filteredGoalRecipes = $derived(
-		recipeSearch.trim().length >= 2
+		$plannerRecipeSearchStore.trim().length >= 2
 			? $allRecipesStore
 					.filter(({ recipe }) =>
-						recipe.name.toLowerCase().includes(recipeSearch.toLowerCase()),
+						recipe.name.toLowerCase().includes($plannerRecipeSearchStore.toLowerCase()),
 					)
 					.slice(0, 15)
 			: [],
 	);
+
+	// Keep the keyboard highlight in bounds + scroll into view
+	$effect(() => {
+		const len = filteredGoalRecipes.length;
+		if (recipeHighlightIndex >= len) recipeHighlightIndex = 0;
+	});
+
+	$effect(() => {
+		const idx = recipeHighlightIndex;
+		if (!showRecipeDropdown || !recipeDropdownEl) return;
+		requestAnimationFrame(() => {
+			const el = recipeDropdownEl?.querySelector(`[data-idx="${idx}"]`) as HTMLElement | null;
+			el?.scrollIntoView({ block: "nearest" });
+		});
+	});
+
+	function handleGoalSearchKeyDown(e: KeyboardEvent) {
+		if (!showRecipeDropdown || filteredGoalRecipes.length === 0) {
+			if ((e.key === "ArrowDown" || e.key === "ArrowUp") && filteredGoalRecipes.length > 0) {
+				e.preventDefault();
+				showRecipeDropdown = true;
+			}
+			return;
+		}
+		if (e.key === "ArrowDown") {
+			e.preventDefault();
+			recipeHighlightIndex = Math.min(recipeHighlightIndex + 1, filteredGoalRecipes.length - 1);
+		} else if (e.key === "ArrowUp") {
+			e.preventDefault();
+			recipeHighlightIndex = Math.max(recipeHighlightIndex - 1, 0);
+		} else if (e.key === "Enter") {
+			e.preventDefault();
+			const match = filteredGoalRecipes[recipeHighlightIndex];
+			if (match) handleSelectGoal(match.recipe, match.category);
+		} else if (e.key === "Escape") {
+			e.preventDefault();
+			showRecipeDropdown = false;
+		} else if (e.key === "Home") {
+			e.preventDefault();
+			recipeHighlightIndex = 0;
+		} else if (e.key === "End") {
+			e.preventDefault();
+			recipeHighlightIndex = filteredGoalRecipes.length - 1;
+		}
+	}
 
 	// ── Tree flattening for rendering ──
 	interface TreeRow {
@@ -126,19 +169,19 @@
 	// ── Handlers ──
 	function handleSelectGoal(recipe: Recipe, category: RecipeCategory) {
 		createPlan(recipe.id, recipe.name, category, 1);
-		recipeSearch = "";
+		plannerRecipeSearchStore.set("");
 		showRecipeDropdown = false;
 		creatingPlan = false;
 	}
 
 	function handleNewPlan() {
 		creatingPlan = true;
-		recipeSearch = "";
+		plannerRecipeSearchStore.set("");
 	}
 
 	function handleCancelNew() {
 		creatingPlan = false;
-		recipeSearch = "";
+		plannerRecipeSearchStore.set("");
 		showRecipeDropdown = false;
 	}
 
@@ -147,10 +190,7 @@
 	}
 
 	function toggleNodeExpand(nodeId: string) {
-		const next = new Set(expandedNodes);
-		if (next.has(nodeId)) next.delete(nodeId);
-		else next.add(nodeId);
-		expandedNodes = next;
+		toggleExpanded($activePlanIdStore, nodeId);
 	}
 
 	function expandAll() {
@@ -162,11 +202,11 @@
 			for (const child of node.children) collect(child);
 		}
 		collect(tree);
-		expandedNodes = ids;
+		setExpandedSet($activePlanIdStore, ids);
 	}
 
 	function collapseAll() {
-		expandedNodes = new Set();
+		setExpandedSet($activePlanIdStore, new Set());
 	}
 
 	function handleJumpToCraft(step: CraftingStep) {
@@ -198,7 +238,7 @@
 	}
 </script>
 
-<div class="space-y-2">
+<div class="flex flex-col h-full min-h-0 gap-2">
 	<!-- ═══ Plan Selector Row ═══ -->
 	<div class="flex items-center gap-1">
 		{#if $plannerPlansStore.length > 0 && !creatingPlan}
@@ -253,21 +293,35 @@
 			<input
 				id="goal-search"
 				type="text"
-				bind:value={recipeSearch}
+				bind:value={$plannerRecipeSearchStore}
 				onfocus={() => (showRecipeDropdown = true)}
 				onblur={() => setTimeout(() => (showRecipeDropdown = false), 200)}
+				onkeydown={handleGoalSearchKeyDown}
 				placeholder="Type recipe name (min 2 chars)..."
+				role="combobox"
+				aria-expanded={showRecipeDropdown && filteredGoalRecipes.length > 0}
+				aria-autocomplete="list"
+				aria-controls="goal-search-listbox"
+				aria-activedescendant={showRecipeDropdown && filteredGoalRecipes.length > 0 ? `goal-match-${recipeHighlightIndex}` : undefined}
 				class="w-full bg-input text-foreground border border-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
 			/>
 
 			{#if showRecipeDropdown && filteredGoalRecipes.length > 0}
 				<div
+					bind:this={recipeDropdownEl}
+					id="goal-search-listbox"
+					role="listbox"
 					class="absolute z-50 w-full mt-1 glass-dropdown rounded max-h-[200px] overflow-auto"
 				>
-					{#each filteredGoalRecipes as { recipe, category } (recipe.id)}
+					{#each filteredGoalRecipes as { recipe, category }, i (recipe.id)}
 						<button
+							id="goal-match-{i}"
+							role="option"
+							aria-selected={i === recipeHighlightIndex}
+							data-idx={i}
 							onmousedown={() => handleSelectGoal(recipe, category)}
-							class="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-secondary transition-colors border-b border-border last:border-b-0"
+							onmouseenter={() => (recipeHighlightIndex = i)}
+							class="w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors border-b border-border last:border-b-0 {i === recipeHighlightIndex ? 'bg-primary/20 text-foreground' : 'hover:bg-secondary'}"
 						>
 							<div
 								class="w-5 h-5 border border-muted rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
@@ -292,7 +346,7 @@
 				</div>
 			{/if}
 
-			{#if recipeSearch.trim().length >= 2 && filteredGoalRecipes.length === 0}
+			{#if $plannerRecipeSearchStore.trim().length >= 2 && filteredGoalRecipes.length === 0}
 				<p class="text-[10px] text-muted-foreground mt-1">No recipes found</p>
 			{/if}
 		</div>
@@ -415,7 +469,7 @@
 				</div>
 
 				<!-- Tree Rows -->
-				<div class="space-y-0 max-h-[340px] overflow-auto">
+				<div class="space-y-0 flex-1 min-h-[200px] overflow-auto">
 					{#each treeRows as { node, depth }, i (i)}
 						<div
 							class="flex items-center gap-1 py-0.5 px-1 hover:bg-secondary/50 rounded transition-colors"
@@ -527,7 +581,7 @@
 			</div>
 
 			<!-- Shopping Items -->
-			<div class="space-y-0 max-h-[340px] overflow-auto">
+			<div class="space-y-0 flex-1 min-h-[200px] overflow-auto">
 				{#each $shoppingListStore as item (item.itemId)}
 					{@const fulfilled = item.deficit === 0}
 					<div
@@ -623,7 +677,7 @@
 			{/if}
 
 			<!-- Step Groups -->
-			<div class="space-y-2 max-h-[320px] overflow-auto">
+			<div class="space-y-2 flex-1 min-h-[200px] overflow-auto">
 				{#each groupedSteps as group, groupIdx (groupIdx)}
 					<!-- Group Header -->
 					<div class="border-b border-border pb-0.5">

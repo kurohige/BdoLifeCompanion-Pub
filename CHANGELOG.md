@@ -2,6 +2,50 @@
 
 ---
 
+## v2.5.1 — 2026-04-20
+
+### New Features
+
+- **Configurable boss visibility** — new Bosses tab in Settings with per-boss toggle cards (Regular / Rare groupings). Hide the bosses you don't care about and they disappear from the boss bar, mini / medium modes, and the next-spawn alerts. Show all / Hide all shortcuts.
+- **Time-since-last-spawn** — boss bar now shows the most recent past spawn ("Xh Ym ago") alongside the next spawn, live-updating every second. Medium mode boss card gets the same line.
+- **Recipe autocomplete** — Cooking / Alchemy / Draughts search opens a dropdown of matching recipes (with images + favorite star) as you type two or more characters. Full keyboard navigation: ↓ / ↑ to move, Enter to select, Esc to close, Home / End for endpoints. Same nav added to the Planner goal search.
+- **Dismissible announcements** — the top message bar now has an ✕ button to dismiss the current message.
+- **Background Animation toggle** — Settings → Display. Turn off the animated hex background for zero canvas overhead on weaker hardware or for battery savings.
+- **Per-category recipe memory** — Cooking / Alchemy / Draughts each remember the recipe you had open and your search text. Switching between categories restores the previous state instead of dumping you on a blank page.
+- **Per-tab state memory** — Planner expansion + search, Bartering sub-tab, Dashboard / Log sub-tab and filters, Settings tab — every navigational state now survives tab switches within a session.
+
+### Improvements
+
+- **Announcement bar** — the big card on the main view shrunk to a compact scrolling ticker; the inline tickers in Mini and Medium modes were removed entirely.
+- **Boss bar** — reordered chronologically (`Previous | Next`) and dropped the cramped "boss after next" cluster. Names no longer overlap.
+- **Crafting Planner** — tree, shopping, and steps panels now fill the available window height instead of capping at 340px. Deep recipes no longer force double-scroll.
+- **Grinding timer** — Reset now restarts at the configured duration instead of zeroing your preset; preset buttons trimmed to `+15m`, `+30m`, `+1h`.
+- **Settings → Display**:
+  - "Transparency" renamed to "Opacity" (more accurate — 100% = fully opaque)
+  - Font Size active button now has a clear gold fill with black text
+  - Bold Text toggle now applies globally to the whole app (not just body text)
+- **Hex particle background** — particle count reduced 50 → 30 (~40% fewer shadow-blurred draws per frame). Automatically pauses when the window is minimized. Visual density barely changes; CPU / battery cost drops noticeably.
+- **Input hygiene** — spellcheck squiggles and browser saved-value / autofill popups disabled on every input across the app.
+
+### Fixed
+
+- **Always-on-Top toggle, theme choice, and window size/position** now persist across app restarts. The Rust settings struct was silently dropping those fields — settings roundtrip correctly now.
+- **Empty-string settings** (server region, font size, font family) from older installs were leaving dropdowns un-selected on load. Values are now auto-normalized to safe defaults at startup.
+- **Crafting Planner** no longer loses expanded nodes + recipe search when you switch tabs.
+- **Boss Visibility panel** — Show all / Hide all buttons no longer overlap the heading description at narrow widths.
+
+### Technical
+
+- New `ui-state.ts` store module for session-only UI state (sub-tab selections, planner expansion keyed by plan ID, category memory). Not persisted to disk.
+- New `BossSettingsPanel.svelte` component + `ToggleSwitch.svelte` shared toggle extracted from duplicate markup.
+- Rust `AppSettings` struct filled out — `theme`, `window_state` (new `WindowState` struct), `always_on_top`, `hidden_bosses`, `animations_enabled` all serialize correctly now.
+- `initSettings()` normalizes every enum and boolean field on load.
+- Stronger types: `Set<BossId>` filtering, `Record<RecipeCategory, T>` memory keys, dropped `any` casts in boss-timer derived stores.
+- Shared `getBossNames(spawn, separator)` helper + `formatElapsed()` moved to `utils/format.ts`.
+- Dead `BossCountdown.svelte` removed.
+
+---
+
 ## v2.5.0 — 2026-04-18
 
 ### New Features

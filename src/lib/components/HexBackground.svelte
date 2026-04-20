@@ -2,9 +2,10 @@
 	import { onMount, onDestroy } from "svelte";
 
 	let canvas: HTMLCanvasElement;
-	let animationId: number;
+	let animationId: number | null = null;
 	let resizeHandler: () => void;
 	let resizeTimeout: ReturnType<typeof setTimeout>;
+	let visibilityHandler: () => void;
 
 	onMount(() => {
 		const ctx = canvas.getContext("2d")!;
@@ -22,7 +23,7 @@
 
 		const opts = {
 			len: 18,
-			count: 50,
+			count: 30,
 			baseTime: 10,
 			addedTime: 10,
 			dieChance: 0.05,
@@ -129,7 +130,29 @@
 			for (const line of lines) line.step();
 		}
 
-		loop();
+		function startLoop() {
+			if (animationId === null) loop();
+		}
+
+		function stopLoop() {
+			if (animationId !== null) {
+				cancelAnimationFrame(animationId);
+				animationId = null;
+			}
+		}
+
+		// Don't spin up the rAF loop if we mounted while hidden — visibilitychange
+		// will start it when the window comes back into focus.
+		if (!document.hidden) startLoop();
+
+		// Pause the canvas when the window is minimized / hidden. rAF is already
+		// throttled by the browser in that case, but stopping cleanly avoids
+		// waking up every few seconds for no visible effect.
+		visibilityHandler = () => {
+			if (document.hidden) stopLoop();
+			else startLoop();
+		};
+		document.addEventListener("visibilitychange", visibilityHandler);
 
 		resizeHandler = () => {
 			clearTimeout(resizeTimeout);
@@ -149,8 +172,9 @@
 	});
 
 	onDestroy(() => {
-		if (animationId) cancelAnimationFrame(animationId);
+		if (animationId !== null) cancelAnimationFrame(animationId);
 		if (resizeHandler) window.removeEventListener("resize", resizeHandler);
+		if (visibilityHandler) document.removeEventListener("visibilitychange", visibilityHandler);
 		clearTimeout(resizeTimeout);
 	});
 </script>

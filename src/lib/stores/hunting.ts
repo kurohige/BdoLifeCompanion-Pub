@@ -203,7 +203,8 @@ export async function fetchHuntingMarketPrices(): Promise<void> {
 	if (items.length === 0) return;
 
 	const itemIds = items.map((i) => i.source_id).join(",");
-	const region = get(settingsStore).server_region ?? "NA";
+	const s = get(settingsStore);
+	const region = s.market_region || s.server_region || "NA";
 
 	huntingMarketPricesLoadingStore.set(true);
 	try {

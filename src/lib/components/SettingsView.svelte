@@ -8,6 +8,7 @@
 		setCookingTotalMastery,
 		setAlchemyTotalMastery,
 		setServerRegion,
+		setMarketRegion,
 		setTheme,
 		setBossSoundEnabled,
 		setTimerSoundEnabled,
@@ -17,6 +18,7 @@
 		setBarterLevel,
 		setValuePack,
 		setAlwaysOnTop,
+		setAnimationsEnabled,
 		LIFE_SKILL_RANKS,
 	} from "$lib/stores/settings";
 	import { BARTER_LEVELS } from "$lib/models/bartering";
@@ -34,7 +36,9 @@
 	import { treasureProgressStore } from "$lib/stores/treasure";
 	import { weeklyTasksProgressStore } from "$lib/stores/weekly-tasks";
 	import { invoke } from "@tauri-apps/api/core";
-	import { appVersionStore } from "$lib/stores";
+	import { appVersionStore, settingsTabStore } from "$lib/stores";
+	import BossSettingsPanel from "./BossSettingsPanel.svelte";
+	import ToggleSwitch from "./ui/ToggleSwitch.svelte";
 	import type { AppTheme, FontSize } from "$lib/services/persistence";
 
 	const appWindow = getCurrentWindow();
@@ -130,6 +134,30 @@
 <div class="space-y-1.5 max-h-[calc(100vh-150px)] overflow-auto pr-1">
 	<h2 class="text-sm font-bold neon-text-cyan mb-1">Settings</h2>
 
+	<!-- Top tabs: General / Bosses -->
+	<div class="flex gap-1 border-b border-outline-variant/30 mb-2">
+		{#each [
+			{ id: "general" as const, label: "General" },
+			{ id: "bosses" as const, label: "Bosses" },
+		] as tab}
+			<button
+				onclick={() => settingsTabStore.set(tab.id)}
+				class="px-3 py-1.5 text-[11px] font-bold transition-colors relative
+					{$settingsTabStore === tab.id
+						? 'text-[var(--gold-glow)]'
+						: 'text-muted-foreground hover:text-foreground'}"
+			>
+				{tab.label}
+				{#if $settingsTabStore === tab.id}
+					<div class="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-[var(--gold-glow)]"></div>
+				{/if}
+			</button>
+		{/each}
+	</div>
+
+	{#if $settingsTabStore === "bosses"}
+		<BossSettingsPanel />
+	{:else}
 	<!-- ===== DISPLAY SECTION ===== -->
 	<div class="glass-card rounded overflow-hidden">
 		<button
@@ -147,10 +175,10 @@
 		</button>
 		{#if openSections.display}
 			<div class="px-2 pb-2 space-y-2 border-t border-border/50 pt-1.5">
-				<!-- Transparency -->
+				<!-- Opacity (how solid the window is — 100% = fully opaque) -->
 				<div class="space-y-1.5">
 					<div class="flex items-center justify-between">
-						<span class="text-[10px] text-muted-foreground">Transparency</span>
+						<span class="text-[10px] text-muted-foreground">Opacity</span>
 						<span class="text-[11px] font-mono font-bold text-foreground">{transparencyPercent}%</span>
 					</div>
 					<input
@@ -198,11 +226,12 @@
 					<span class="text-[10px] text-muted-foreground">Font Size</span>
 					<div class="grid grid-cols-6 gap-1.5">
 						{#each FONT_SIZES as size}
+							{@const isActive = ($settingsStore.font_size ?? 'default') === size.id}
 							<button
 								onclick={() => setFontSize(size.id)}
 								class="px-1.5 py-1.5 rounded border-2 text-[10px] font-bold transition-all
-									{($settingsStore.font_size ?? 'default') === size.id
-										? 'border-[var(--gold-glow)] bg-[rgba(255,238,16,0.08)] text-foreground shadow-[0_0_6px_rgba(255,238,16,0.15)]'
+									{isActive
+										? 'border-[var(--gold-glow)] bg-[var(--gold-glow)] text-black shadow-[0_0_8px_rgba(255,238,16,0.4)]'
 										: 'border-outline-variant/30 text-muted-foreground hover:border-outline-variant/60 hover:text-foreground'}"
 							>
 								{size.name}
@@ -214,25 +243,34 @@
 				<!-- Font Bold -->
 				<div class="flex items-center justify-between">
 					<span class="text-[10px] text-muted-foreground">Bold Text</span>
-					<button
-						onclick={() => setFontBold(!($settingsStore.font_bold ?? false))}
+					<ToggleSwitch
+						checked={$settingsStore.font_bold}
+						onchange={setFontBold}
 						title="Toggle bold text"
-						class="relative w-9 h-5 rounded-full transition-colors {$settingsStore.font_bold ? 'bg-[var(--gold-glow)]' : 'bg-secondary border border-outline-variant/30'}"
-					>
-						<div class="absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-foreground transition-transform {$settingsStore.font_bold ? 'translate-x-[18px]' : ''}"></div>
-					</button>
+					/>
 				</div>
 
 				<!-- Always on Top -->
 				<div class="flex items-center justify-between">
 					<span class="text-[10px] text-muted-foreground">Always on Top</span>
-					<button
-						onclick={() => setAlwaysOnTop(!($settingsStore.always_on_top ?? true))}
+					<ToggleSwitch
+						checked={$settingsStore.always_on_top}
+						onchange={setAlwaysOnTop}
 						title="Keep window above all other windows"
-						class="relative w-9 h-5 rounded-full transition-colors {($settingsStore.always_on_top ?? true) ? 'bg-[var(--gold-glow)]' : 'bg-secondary border border-outline-variant/30'}"
-					>
-						<div class="absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-foreground transition-transform {($settingsStore.always_on_top ?? true) ? 'translate-x-[18px]' : ''}"></div>
-					</button>
+					/>
+				</div>
+
+				<!-- Background Animation -->
+				<div class="flex items-center justify-between">
+					<div class="min-w-0">
+						<span class="text-[10px] text-muted-foreground">Background Animation</span>
+						<p class="text-[9px] text-muted-foreground/70">Disable to save CPU on weaker hardware.</p>
+					</div>
+					<ToggleSwitch
+						checked={$settingsStore.animations_enabled}
+						onchange={setAnimationsEnabled}
+						title="Toggle the animated hex particle background"
+					/>
 				</div>
 			</div>
 		{/if}
@@ -328,7 +366,25 @@
 					>
 						<option value="NA">NA (North America)</option>
 						<option value="EU">EU (Europe)</option>
+						<option value="SEA">SEA (Southeast Asia)</option>
+						<option value="SA">SA (South America)</option>
 					</select>
+					<span class="text-[9px] text-muted-foreground/60">Boss schedule, war times</span>
+				</div>
+
+				<!-- Market Region -->
+				<div class="space-y-0.5">
+					<span class="text-[10px] text-muted-foreground">Market Region</span>
+					<select
+						value={$settingsStore.market_region}
+						onchange={(e) => setMarketRegion((e.target as HTMLSelectElement).value)}
+						class="w-full bg-input text-foreground border border-border rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+					>
+						<option value="NA">NA (North America)</option>
+						<option value="EU">EU (Europe)</option>
+						<option value="SEA">SEA (Southeast Asia)</option>
+					</select>
+					<span class="text-[9px] text-muted-foreground/60">Central Market price source</span>
 				</div>
 
 				<!-- Life Skill Ranks -->
@@ -480,4 +536,5 @@
 		{/if}
 	</div>
 
+	{/if}
 	</div>

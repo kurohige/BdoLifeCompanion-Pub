@@ -14,7 +14,10 @@
 		nextBossSpawn,
 		nextBossSpawns,
 		nextBossCountdown,
-		activeMessagesStore,
+		previousBossSpawn,
+		previousBossElapsed,
+		previousBossNames,
+		getBossNames,
 	} from "$lib/stores";
 	import { tickStore } from "$lib/stores/boss-timer";
 	import { BOSSES } from "$lib/constants/boss-data";
@@ -48,16 +51,14 @@
 	const primaryBoss = $derived(
 		$nextBossSpawn ? (BOSSES[$nextBossSpawn.spawn.bosses[0]] ?? null) : null
 	);
-	const bossNames = $derived(
-		$nextBossSpawn ? $nextBossSpawn.spawn.bosses.map((id) => BOSSES[id]?.name ?? id).join(" & ") : ""
-	);
+	const bossNames = $derived($nextBossSpawn ? getBossNames($nextBossSpawn.spawn) : "");
 
 	// Second upcoming boss
 	const nextUpcoming = $derived.by(() => {
 		const spawns = $nextBossSpawns;
 		if (!spawns || spawns.length < 2) return null;
 		const s = spawns[1];
-		const names = s.spawn.bosses.map((id) => BOSSES[id]?.name ?? id).join(" & ");
+		const names = getBossNames(s.spawn);
 		const ms = s.remainingMs;
 		const h = Math.floor(ms / 3600000);
 		const m = Math.floor((ms % 3600000) / 60000);
@@ -79,7 +80,8 @@
 	}
 
 	// Reset timers
-	type Region = "EU" | "NA";
+	type Region = "EU" | "NA" | "SEA" | "SA";
+	const NODE_WAR_HOUR: Record<Region, number> = { NA: 18, EU: 20, SEA: 21, SA: 21 };
 	function getNextDaily(now: Date): Date { const t = new Date(now); t.setUTCHours(0,0,0,0); t.setUTCDate(t.getUTCDate()+1); return t; }
 	function getNextWeekly(now: Date): Date { const t = new Date(now); t.setUTCHours(0,0,0,0); const d=(7-t.getUTCDay())%7||7; t.setUTCDate(t.getUTCDate()+d); return t; }
 	function getNextWar(region: Region, now: Date, lh: number, satOnly: boolean): Date {
@@ -92,7 +94,7 @@
 		return [
 			{ label: "Daily", ms: getNextDaily(now).getTime()-now.getTime() },
 			{ label: "Weekly", ms: getNextWeekly(now).getTime()-now.getTime() },
-			{ label: "Node War", ms: getNextWar(r,now,r==="NA"?18:20,false).getTime()-now.getTime() },
+			{ label: "Node War", ms: getNextWar(r,now,NODE_WAR_HOUR[r],false).getTime()-now.getTime() },
 		];
 	});
 	function fmtReset(ms: number): string {
@@ -101,13 +103,6 @@
 		if(h>=24){const d=Math.floor(h/24); return `${d}d ${h%24}h`;}
 		return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}h`;
 	}
-	// Announcement ticker
-	const announcementText = $derived.by(() => {
-		const messages = $activeMessagesStore;
-		if (!messages || messages.length === 0) return "";
-		return messages.map((m) => m.title + (m.body ? ` — ${m.body}` : "")).join("   ·   ");
-	});
-
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -167,6 +162,15 @@
 					<span class="text-[8px] font-bold text-[#dac839] shrink-0" style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">{nextUpcoming!.countdown}</span>
 				</div>
 			{/if}
+			<!-- Last spawn -->
+			{#if $previousBossSpawn}
+				<div class="flex items-center gap-1.5 w-full opacity-60" title="Most recent spawn">
+					<span class="text-[8px] text-[#e5e2e1] truncate" style="font-family:'Manrope',sans-serif">
+						{$previousBossNames}
+					</span>
+					<span class="text-[8px] text-[#e5e2e1]/70 shrink-0 ml-auto" style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">{$previousBossElapsed}</span>
+				</div>
+			{/if}
 		</div>
 
 		<!-- CARD 3: RESETS -->
@@ -200,18 +204,6 @@
 
 	</div>
 
-	<!-- BOTTOM: Announcement ticker -->
-	<div class="h-[18px] shrink-0 overflow-hidden px-2 flex items-center" style="background:rgba(14,14,14,0.8)">
-		{#if announcementText}
-			<div class="med-marquee-track">
-				<span class="med-marquee-text">{announcementText}</span>
-				<span class="med-marquee-text" aria-hidden="true">{announcementText}</span>
-			</div>
-		{:else}
-			<span class="text-[8px] text-[#e5e2e1]/60" style="font-family:'Manrope',sans-serif">No announcements</span>
-		{/if}
-	</div>
-
 </div>
 
 <style>
@@ -236,25 +228,5 @@
 		letter-spacing: 0.8px;
 		color: #ffee10;
 		text-shadow: 0 0 6px rgba(255, 238, 16, 0.4);
-	}
-	.med-marquee-track {
-		display: flex;
-		width: max-content;
-		animation: med-scroll 25s linear infinite;
-	}
-	.med-marquee-text {
-		font-family: 'Manrope', sans-serif;
-		font-size: 10px;
-		font-weight: 500;
-		color: #e5e2e1;
-		white-space: nowrap;
-		padding-right: 60px;
-	}
-	@keyframes med-scroll {
-		0% { transform: translateX(0); }
-		100% { transform: translateX(-50%); }
-	}
-	.med-marquee-track:hover {
-		animation-play-state: paused;
 	}
 </style>

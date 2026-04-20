@@ -10,11 +10,25 @@ import {
 	BOSSES,
 	getSchedule,
 } from "$lib/constants/boss-data";
+import { formatElapsed } from "$lib/utils/format";
 import { settingsStore } from "./settings";
+
+export { formatElapsed };
+
+/** Join a spawn's boss display names with the given separator. */
+export function getBossNames(spawn: BossSpawn, separator = " & "): string {
+	return spawn.bosses.map((id) => BOSSES[id]?.name ?? id).join(separator);
+}
 
 export interface NextBossInfo {
 	spawn: BossSpawn;
 	remainingMs: number;
+	spawnDate: Date;
+}
+
+export interface PreviousBossInfo {
+	spawn: BossSpawn;
+	elapsedMs: number;
 	spawnDate: Date;
 }
 
@@ -85,13 +99,54 @@ function getNextSpawnDate(spawn: BossSpawn, now: Date): Date {
 }
 
 /**
- * Find the next N boss spawns from now
+ * Get the most recent past occurrence of a spawn time from a given reference time.
+ * Mirror of getNextSpawnDate — walks backward instead of forward.
  */
-function findNextSpawns(region: Region, now: Date, count: number): NextBossInfo[] {
+function getMostRecentSpawnDate(spawn: BossSpawn, now: Date): Date {
+	const [hours, minutes] = spawn.time.split(":").map(Number);
+	const targetJsDay = scheduleToJsDay(spawn.day);
+	const currentJsDay = now.getUTCDay();
+
+	// Days since target day (0-6)
+	let daysSince = currentJsDay - targetJsDay;
+	if (daysSince < 0) daysSince += 7;
+
+	const target = new Date(now);
+	target.setUTCDate(target.getUTCDate() - daysSince);
+	target.setUTCHours(hours, minutes, 0, 0);
+
+	// If same day but time hasn't arrived yet today, the most recent occurrence is last week
+	if (daysSince === 0 && target.getTime() > now.getTime()) {
+		target.setUTCDate(target.getUTCDate() - 7);
+	}
+
+	return target;
+}
+
+/** Remove hidden boss IDs from a spawn's boss list. Returns null if all bosses were hidden. */
+function filterSpawnBosses(spawn: BossSpawn, hidden: Set<BossId>): BossSpawn | null {
+	if (hidden.size === 0) return spawn;
+	const filtered = spawn.bosses.filter((id) => !hidden.has(id));
+	if (filtered.length === 0) return null;
+	if (filtered.length === spawn.bosses.length) return spawn;
+	return { ...spawn, bosses: filtered };
+}
+
+/**
+ * Find the next N boss spawns from now, excluding hidden bosses.
+ */
+function findNextSpawns(
+	region: Region,
+	now: Date,
+	count: number,
+	hidden: Set<BossId>,
+): NextBossInfo[] {
 	const schedule = getSchedule(region);
 	const results: NextBossInfo[] = [];
 
-	for (const spawn of schedule) {
+	for (const rawSpawn of schedule) {
+		const spawn = filterSpawnBosses(rawSpawn, hidden);
+		if (!spawn) continue;
 		const spawnDate = getNextSpawnDate(spawn, now);
 		const remainingMs = spawnDate.getTime() - now.getTime();
 		results.push({ spawn, remainingMs, spawnDate });
@@ -100,6 +155,32 @@ function findNextSpawns(region: Region, now: Date, count: number): NextBossInfo[
 	// Sort by remaining time and take the closest N
 	results.sort((a, b) => a.remainingMs - b.remainingMs);
 	return results.slice(0, count);
+}
+
+/**
+ * Find the single most recent past spawn, excluding hidden bosses.
+ * Returns null if the schedule is empty or every spawn is fully hidden.
+ */
+function findPreviousSpawn(
+	region: Region,
+	now: Date,
+	hidden: Set<BossId>,
+): PreviousBossInfo | null {
+	const schedule = getSchedule(region);
+	let best: PreviousBossInfo | null = null;
+
+	for (const rawSpawn of schedule) {
+		const spawn = filterSpawnBosses(rawSpawn, hidden);
+		if (!spawn) continue;
+		const spawnDate = getMostRecentSpawnDate(spawn, now);
+		const elapsedMs = now.getTime() - spawnDate.getTime();
+		if (elapsedMs < 0) continue;
+		if (!best || elapsedMs < best.elapsedMs) {
+			best = { spawn, elapsedMs, spawnDate };
+		}
+	}
+
+	return best;
 }
 
 /**
@@ -130,25 +211,43 @@ export function formatSpawnTime(spawnDate: Date): string {
 export const nextBossSpawns = derived(
 	[tickStore, settingsStore],
 	([$tick, $settings]) => {
-		const region = ($settings as any).server_region ?? "NA";
+		const region = ($settings.server_region ?? "NA") as Region;
+		const hidden = new Set<BossId>(($settings.hidden_bosses ?? []) as BossId[]);
 		const now = new Date($tick);
-		return findNextSpawns(region as Region, now, 5);
+		return findNextSpawns(region, now, 5, hidden);
 	}
 );
 
 // Convenience: just the very next spawn
 export const nextBossSpawn = derived(nextBossSpawns, ($spawns) => $spawns[0] ?? null);
 
-// Formatted countdown string for the next boss
-export const nextBossCountdown = derived(nextBossSpawn, ($next) => {
-	if (!$next) return "--:--";
-	return formatCountdown($next.remainingMs);
-});
+// Most recent past spawn (for "last spawn X ago" indicator)
+export const previousBossSpawn = derived(
+	[tickStore, settingsStore],
+	([$tick, $settings]) => {
+		const region = ($settings.server_region ?? "NA") as Region;
+		const hidden = new Set<BossId>(($settings.hidden_bosses ?? []) as BossId[]);
+		const now = new Date($tick);
+		return findPreviousSpawn(region, now, hidden);
+	}
+);
 
-// Boss names for the next spawn
-export const nextBossNames = derived(nextBossSpawn, ($next) => {
-	if (!$next) return "";
-	return $next.spawn.bosses
-		.map((id) => BOSSES[id]?.name ?? id)
-		.join(" & ");
-});
+// Formatted "Xh Ym ago" string for the most recent spawn
+export const previousBossElapsed = derived(previousBossSpawn, ($prev) =>
+	$prev ? formatElapsed($prev.elapsedMs) : "",
+);
+
+// Joined boss names for the most recent spawn (e.g. "Kzarka & Karanda")
+export const previousBossNames = derived(previousBossSpawn, ($prev) =>
+	$prev ? getBossNames($prev.spawn) : "",
+);
+
+// Formatted countdown string for the next boss
+export const nextBossCountdown = derived(nextBossSpawn, ($next) =>
+	$next ? formatCountdown($next.remainingMs) : "--:--",
+);
+
+// Joined boss names for the next spawn (e.g. "Kzarka & Karanda")
+export const nextBossNames = derived(nextBossSpawn, ($next) =>
+	$next ? getBossNames($next.spawn) : "",
+);

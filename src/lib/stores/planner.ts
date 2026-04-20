@@ -120,11 +120,44 @@ export const inventoryAwareStore = writable<boolean>(true);
 /** Active planner sub-view */
 export const plannerViewStore = writable<PlannerView>("tree");
 
+/**
+ * Expanded-node IDs keyed by plan ID. Stored as string[] (not Set) so writable
+ * reactivity triggers cleanly and we can structured-clone. Runtime-only — not
+ * persisted across app restarts.
+ */
+export const plannerExpandedNodesStore = writable<Record<string, string[]>>({});
+
+/** Runtime-only recipe search text for the "new plan" flow. */
+export const plannerRecipeSearchStore = writable<string>("");
+
 /** Navigation target for jump-to-craft (consumed by +page.svelte) */
 export const navigateToRecipeStore = writable<{
 	recipe: Recipe;
 	category: RecipeCategory;
 } | null>(null);
+
+// ============== Expansion Helpers ==============
+
+export function getExpandedSet(planId: string | null): Set<string> {
+	if (!planId) return new Set();
+	const map = get(plannerExpandedNodesStore);
+	return new Set(map[planId] ?? []);
+}
+
+export function setExpandedSet(planId: string | null, nodes: Set<string>): void {
+	if (!planId) return;
+	plannerExpandedNodesStore.update((m) => ({ ...m, [planId]: Array.from(nodes) }));
+}
+
+export function toggleExpanded(planId: string | null, nodeId: string): void {
+	if (!planId) return;
+	plannerExpandedNodesStore.update((m) => {
+		const cur = new Set(m[planId] ?? []);
+		if (cur.has(nodeId)) cur.delete(nodeId);
+		else cur.add(nodeId);
+		return { ...m, [planId]: Array.from(cur) };
+	});
+}
 
 // ============== Tree Resolution Algorithm ==============
 
@@ -416,6 +449,8 @@ export function createPlan(
 	};
 
 	plannerPlansStore.update((plans) => [...plans, plan]);
+	// Seed expansion with the goal recipe expanded so the tree opens useful by default
+	plannerExpandedNodesStore.update((m) => ({ ...m, [plan.id]: [goalRecipeId] }));
 	activePlanIdStore.set(plan.id);
 	debouncedSavePlanner();
 }
@@ -424,6 +459,10 @@ export function createPlan(
 export function deletePlan(planId: string): void {
 	plannerPlansStore.update((plans) => plans.filter((p) => p.id !== planId));
 	activePlanIdStore.update((id) => (id === planId ? null : id));
+	plannerExpandedNodesStore.update((m) => {
+		const { [planId]: _removed, ...rest } = m;
+		return rest;
+	});
 	debouncedSavePlanner();
 }
 
