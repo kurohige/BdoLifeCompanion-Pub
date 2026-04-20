@@ -143,8 +143,8 @@ npm run tauri build   # Production build
 
 ## Special Thanks
 
-- **[BDO Codex](https://bdocodex.com/)** — recipe, item, and icon assets that power the crafting, inventory, and planner views.
-- **Lifeskill Chat Discord community** — feedback, bug reports, and feature suggestions that continue to shape the app.
+- BDO Codex
+- Lifeskill Chat Discord
 
 ---
 
