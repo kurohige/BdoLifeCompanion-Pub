@@ -6,6 +6,10 @@
 
 ### New Features
 
+- **SEA + SA region support** — the app now works for Southeast Asia and South America players:
+  - **Server Region** dropdown extended with SEA and SA options — drives the boss schedule, daily / weekly resets, and node / conquest war times. Schedules added for both regions in UTC with proper timezone offsets (SEA = GMT+8, SA = UTC-3, neither observes DST).
+  - **Market Region** became its own independent setting (NA / EU / SEA) so you can play on one server while fetching prices from another. Existing users' market region auto-inherits from their server region on first load. SEA marketplace prices fetched via the Asia Pearl Abyss endpoint.
+  - Per-region node / conquest war hours baked in (NA 18:00 / 20:00, EU 20:00 / 20:00, SEA 21:00 / 21:00, SA 21:00 / 21:00 local time).
 - **Configurable boss visibility** — new Bosses tab in Settings with per-boss toggle cards (Regular / Rare groupings). Hide the bosses you don't care about and they disappear from the boss bar, mini / medium modes, and the next-spawn alerts. Show all / Hide all shortcuts.
 - **Time-since-last-spawn** — boss bar now shows the most recent past spawn ("Xh Ym ago") alongside the next spawn, live-updating every second. Medium mode boss card gets the same line.
 - **Recipe autocomplete** — Cooking / Alchemy / Draughts search opens a dropdown of matching recipes (with images + favorite star) as you type two or more characters. Full keyboard navigation: ↓ / ↑ to move, Enter to select, Esc to close, Home / End for endpoints. Same nav added to the Planner goal search.
