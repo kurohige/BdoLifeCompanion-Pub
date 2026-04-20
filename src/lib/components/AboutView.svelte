@@ -2,16 +2,16 @@
 	import { openUrl } from "@tauri-apps/plugin-opener";
 	import { appVersionStore } from "$lib/stores";
 
-	async function openBMC() {
-		try { await openUrl("https://buymeacoffee.com/jhidalgo_dev"); } catch { /* */ }
-	}
-
 	async function openGitHub() {
 		try { await openUrl("https://github.com/kurohige/BdoLifeCompanion-Pub"); } catch { /* */ }
 	}
 
 	async function openIssues() {
 		try { await openUrl("https://github.com/kurohige/BdoLifeCompanion-Pub/issues"); } catch { /* */ }
+	}
+
+	async function openBdoCodex() {
+		try { await openUrl("https://bdocodex.com/"); } catch { /* */ }
 	}
 </script>
 
@@ -42,18 +42,26 @@
 		</div>
 	</div>
 
-	<!-- Support -->
+	<!-- Special Thanks -->
 	<div class="glass-card rounded p-3 space-y-2">
-		<h3 class="text-[10px] font-headline font-bold text-primary uppercase tracking-wider">Support</h3>
-		<button
-			onclick={openBMC}
-			class="w-full py-2 rounded flex items-center justify-center gap-2 font-headline font-bold text-[12px] uppercase tracking-wider transition-all"
-			style="background: #ffdd00; color: #000; box-shadow: 0 0 12px rgba(255, 221, 0, 0.3);"
-		>
-			<span class="text-[16px]">&#9749;</span>
-			Buy Me a Coffee
-		</button>
-		<p class="text-[9px] text-muted-foreground text-center">If you find this tool useful, consider supporting development</p>
+		<h3 class="text-[10px] font-headline font-bold text-primary uppercase tracking-wider">Special Thanks</h3>
+		<div class="space-y-1.5">
+			<button onclick={openBdoCodex} class="w-full text-left px-2 py-1.5 rounded text-[11px] text-foreground hover:bg-white/5 transition-colors flex items-start gap-2">
+				<span class="text-muted-foreground mt-px">&#127981;</span>
+				<span class="flex-1 min-w-0">
+					<span class="font-semibold">BDO Codex</span>
+					<span class="block text-[9px] text-muted-foreground leading-snug">Recipe, item, and icon assets.</span>
+				</span>
+				<span class="text-[9px] text-muted-foreground flex-shrink-0 mt-0.5">bdocodex.com</span>
+			</button>
+			<div class="px-2 py-1.5 text-[11px] text-foreground flex items-start gap-2">
+				<span class="text-muted-foreground mt-px">&#128172;</span>
+				<span class="flex-1 min-w-0">
+					<span class="font-semibold">Lifeskill Chat Discord</span>
+					<span class="block text-[9px] text-muted-foreground leading-snug">Feedback, bug reports, and feature suggestions that shaped the app.</span>
+				</span>
+			</div>
+		</div>
 	</div>
 
 	<!-- Links -->

@@ -51,7 +51,7 @@
 			BDO LIFE COMPANION
 		</span>
 		<span class="text-[9px] font-mono pointer-events-none text-muted-foreground">
-			v{$appVersionStore} — <span class="text-foreground/70">by jhidalgo_dev</span>
+			v{$appVersionStore}
 		</span>
 	</div>
 

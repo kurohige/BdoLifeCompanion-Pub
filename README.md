@@ -141,11 +141,10 @@ npm run tauri build   # Production build
 
 ---
 
-## Support
+## Special Thanks
 
-If you find this tool useful, consider supporting development:
-
-[Buy Me a Coffee](https://buymeacoffee.com/jhidalgo_dev)
+- **[BDO Codex](https://bdocodex.com/)** — recipe, item, and icon assets that power the crafting, inventory, and planner views.
+- **Lifeskill Chat Discord community** — feedback, bug reports, and feature suggestions that continue to shape the app.
 
 ---
 
