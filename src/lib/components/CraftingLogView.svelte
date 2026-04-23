@@ -360,7 +360,7 @@
 								</div>
 								{#if session.loot.length > 0}
 									<div class="flex flex-wrap gap-1 mt-1.5">
-										{#each session.loot as lootEntry}
+										{#each session.loot as lootEntry (lootEntry.itemId)}
 											<span class="px-1.5 py-0.5 text-[9px] bg-secondary rounded text-foreground/70">
 												{lootEntry.itemName}: <span class="text-accent font-medium">{lootEntry.count}</span>
 											</span>
@@ -463,7 +463,7 @@
 								</div>
 								{#if session.loot.length > 0}
 									<div class="flex flex-wrap gap-1 mt-1.5">
-										{#each session.loot as lootEntry}
+										{#each session.loot as lootEntry (lootEntry.itemId)}
 											<span class="px-1.5 py-0.5 text-[9px] bg-secondary rounded text-foreground/70">
 												{lootEntry.itemName}: <span class="text-accent font-medium">{lootEntry.count}</span>
 											</span>

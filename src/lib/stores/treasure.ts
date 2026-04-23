@@ -51,6 +51,7 @@ export async function loadTreasureData(): Promise<void> {
 	treasureDataLoadingStore.set(true);
 	try {
 		const response = await fetch("/data/treasures/treasures.json");
+		if (!response.ok) throw new Error(`HTTP ${response.status} loading treasure data`);
 		const data: TreasuresData = await response.json();
 		treasureDataStore.set(data);
 	} catch (error) {

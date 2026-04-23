@@ -64,6 +64,7 @@
 		nextBossSpawn,
 		cleanupGrindingTimer,
 		saveWindowState,
+		flushSettings,
 		setViewMode,
 		initAnnouncements,
 		fetchAnnouncements,
@@ -88,6 +89,21 @@
 	let activeTab = $state("crafting");
 	let jumpingToCraft = false;
 	let unlistenClickThrough: UnlistenFn | null = null;
+	let unlistenCloseRequested: UnlistenFn | null = null;
+	let unlistenResized: UnlistenFn | null = null;
+	let unlistenMoved: UnlistenFn | null = null;
+	let unsubscribeSettings: (() => void) | null = null;
+
+	// Debounce window-state captures so a drag or resize doesn't spam disk writes.
+	// persistWindowState() schedules a save; the 500ms debounce inside the settings
+	// store coalesces multiple captures into a single write.
+	let windowStateDebounce: ReturnType<typeof setTimeout> | null = null;
+	function schedulePersistWindowState() {
+		if (windowStateDebounce) clearTimeout(windowStateDebounce);
+		windowStateDebounce = setTimeout(() => {
+			if (!loading) persistWindowState();
+		}, 300);
+	}
 
 	// Boss alert tracking — prevent re-firing for the same spawn
 	let lastAlertedSpawnTime: number | null = null;
@@ -169,11 +185,13 @@
 			// Apply transparency, theme, font, and always-on-top whenever settings change.
 			// All fields are normalized by initSettings before the subscription fires,
 			// so no `??` fallbacks needed here.
-			settingsStore.subscribe((settings) => {
+			unsubscribeSettings = settingsStore.subscribe((settings) => {
 				document.documentElement.style.setProperty("--app-opacity", String(settings.transparency));
 				applyTheme(settings.theme);
 				applyFontSettings(settings.font_family, settings.font_bold, settings.font_size);
-				appWindow.setAlwaysOnTop(settings.always_on_top);
+				appWindow.setAlwaysOnTop(settings.always_on_top).catch((e) => {
+					console.warn("Failed to set always-on-top:", e);
+				});
 			});
 
 			// Restore saved window state. The whole block is wrapped in try/catch
@@ -231,9 +249,27 @@
 				await appWindow.setIgnoreCursorEvents(current);
 			});
 
-			// Save window state periodically and on close
-			const closeUnlisten = await appWindow.onCloseRequested(async () => {
+			// Capture window state on every resize/move, debounced so a drag doesn't
+			// spam disk writes. persistWindowState() schedules the settings save;
+			// flushSettings() in the close handler writes any pending change to disk
+			// before the window process exits.
+			unlistenResized = await appWindow.onResized(() => {
+				schedulePersistWindowState();
+			});
+			unlistenMoved = await appWindow.onMoved(() => {
+				schedulePersistWindowState();
+			});
+
+			// On close: capture final state, then force-flush the pending debounced
+			// save. Tauri waits for this handler to resolve before destroying the
+			// window, so the write completes before the process dies.
+			unlistenCloseRequested = await appWindow.onCloseRequested(async () => {
+				if (windowStateDebounce) {
+					clearTimeout(windowStateDebounce);
+					windowStateDebounce = null;
+				}
 				await persistWindowState();
+				await flushSettings();
 			});
 
 			loading = false;
@@ -248,6 +284,11 @@
 		cleanupGrindingTimer();
 		stopAnnouncementPolling();
 		unlistenClickThrough?.();
+		unlistenCloseRequested?.();
+		unlistenResized?.();
+		unlistenMoved?.();
+		unsubscribeSettings?.();
+		if (windowStateDebounce) clearTimeout(windowStateDebounce);
 	});
 
 	// Save window state when view mode changes

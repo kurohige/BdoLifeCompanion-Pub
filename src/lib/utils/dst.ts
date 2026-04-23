@@ -10,7 +10,7 @@
  * US DST: 2nd Sunday of March (2:00 AM local / 10:00 UTC) to
  *          1st Sunday of November (2:00 AM local / 9:00 UTC).
  */
-export function isUsDst(date: Date): boolean {
+function isUsDst(date: Date): boolean {
 	const year = date.getUTCFullYear();
 	const month = date.getUTCMonth(); // 0-indexed
 
@@ -43,7 +43,7 @@ export function isUsDst(date: Date): boolean {
  * EU DST: last Sunday of March (01:00 UTC) to
  *          last Sunday of October (01:00 UTC).
  */
-export function isEuDst(date: Date): boolean {
+function isEuDst(date: Date): boolean {
 	const year = date.getUTCFullYear();
 	const month = date.getUTCMonth(); // 0-indexed
 

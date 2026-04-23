@@ -1,6 +1,7 @@
 import { writable, get } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
 import { generateId } from "$lib/utils/id";
+import { showToast } from "$lib/stores/toast";
 import type {
 	BarterItemsData,
 	BarterItemDef,
@@ -19,11 +20,22 @@ import type {
 
 // ============== Debounce Utility ==============
 
-function createDebouncedSave(saveFn: () => Promise<void>, delay = 500): () => void {
+// Label identifies what was being saved so a failure toast gives the user useful context
+// (e.g. "Failed to save barter inventory") instead of a silent console error.
+function createDebouncedSave(
+	label: string,
+	saveFn: () => Promise<void>,
+	delay = 500,
+): () => void {
 	let timeout: ReturnType<typeof setTimeout> | null = null;
 	return () => {
 		if (timeout) clearTimeout(timeout);
-		timeout = setTimeout(() => saveFn(), delay);
+		timeout = setTimeout(() => {
+			saveFn().catch((e) => {
+				console.error(`Failed to save ${label}:`, e);
+				showToast(`Failed to save ${label}`, "error");
+			});
+		}, delay);
 	};
 }
 
@@ -43,6 +55,8 @@ export async function loadBarterData(): Promise<void> {
 			fetch("/data/bartering/barter-items.json"),
 			fetch("/data/bartering/parley-mastery.json"),
 		]);
+		if (!itemsRes.ok) throw new Error(`HTTP ${itemsRes.status} loading barter items`);
+		if (!masteryRes.ok) throw new Error(`HTTP ${masteryRes.status} loading parley mastery`);
 		const itemsData: BarterItemsData = await itemsRes.json();
 		const masteryData: ParleyMasteryData = await masteryRes.json();
 		barterItemsStore.set(itemsData);
@@ -88,7 +102,7 @@ export async function loadBarterInventory(): Promise<void> {
 	}
 }
 
-const debouncedSaveInventory = createDebouncedSave(async () => {
+const debouncedSaveInventory = createDebouncedSave("barter inventory", async () => {
 	const data = get(barterInventoryStore);
 	await invoke("save_barter_inventory", { data });
 });
@@ -243,7 +257,7 @@ export async function loadShipProgress(): Promise<void> {
 	}
 }
 
-const debouncedSaveShipProgress = createDebouncedSave(async () => {
+const debouncedSaveShipProgress = createDebouncedSave("ship progress", async () => {
 	const paths = get(shipProgressStore);
 	await invoke("save_ship_progress", { data: { paths } });
 });
@@ -300,7 +314,7 @@ export async function loadSailorRoster(): Promise<void> {
 	}
 }
 
-const debouncedSaveSailors = createDebouncedSave(async () => {
+const debouncedSaveSailors = createDebouncedSave("sailor roster", async () => {
 	const sailors = get(sailorRosterStore);
 	await invoke("save_sailor_roster", { data: { sailors } });
 });

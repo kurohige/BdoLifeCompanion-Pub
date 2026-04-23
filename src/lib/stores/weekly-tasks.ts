@@ -16,6 +16,7 @@ export async function loadWeeklyTasksData(): Promise<void> {
 	weeklyTasksDataLoadingStore.set(true);
 	try {
 		const res = await fetch("/data/weekly-tasks/weekly-tasks.json");
+		if (!res.ok) throw new Error(`HTTP ${res.status} loading weekly tasks data`);
 		const data: WeeklyTasksData = await res.json();
 		weeklyTasksDataStore.set(data);
 	} catch (error) {

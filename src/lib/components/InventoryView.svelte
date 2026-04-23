@@ -192,7 +192,7 @@
 					<div
 						class="absolute z-10 w-full mt-1 glass-dropdown rounded-lg max-h-48 overflow-auto"
 					>
-						{#each suggestions() as suggestion}
+						{#each suggestions() as suggestion (suggestion.id)}
 							<button
 								type="button"
 								onmousedown={() => handleSelectSuggestion(suggestion.id, suggestion.name)}

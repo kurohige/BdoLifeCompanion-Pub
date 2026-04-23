@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Emitter;
 
@@ -24,6 +24,45 @@ fn ensure_app_data_dir() -> Result<PathBuf, String> {
         fs::create_dir_all(&dir).map_err(|e| format!("Failed to create app data dir: {}", e))?;
     }
     Ok(dir)
+}
+
+/// Load a JSON file with corrupt-file recovery. If the file is missing, returns the
+/// default. If present but unparseable, renames it to `<name>.corrupt-<unix-ts>` and
+/// returns the default instead of failing — matches the v2.5.2 settings recovery pattern.
+fn load_json_with_recovery<T, F>(path: &Path, label: &str, default: F) -> Result<T, String>
+where
+    T: serde::de::DeserializeOwned,
+    F: FnOnce() -> T,
+{
+    if !path.exists() {
+        return Ok(default());
+    }
+
+    let content =
+        fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", label, e))?;
+
+    match serde_json::from_str::<T>(&content) {
+        Ok(data) => Ok(data),
+        Err(e) => {
+            let ts = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or(label);
+            let parent = path.parent().unwrap_or_else(|| Path::new("."));
+            let backup = parent.join(format!("{}.corrupt-{}", file_name, ts));
+            if let Err(re) = fs::rename(path, &backup) {
+                eprintln!("Failed to back up corrupt {}: {}", label, re);
+            }
+            eprintln!(
+                "Failed to parse {} ({}); moved to {} and loaded defaults.",
+                label,
+                e,
+                backup.display()
+            );
+            Ok(default())
+        }
+    }
 }
 
 // ============== Inventory Commands ==============
@@ -52,11 +91,7 @@ fn load_inventory() -> Result<Vec<InventoryItem>, String> {
         let record = result.map_err(|e| format!("Failed to read record: {}", e))?;
         if record.len() >= 2 {
             let item_id = record.get(0).unwrap_or("").to_string();
-            let quantity: i32 = record
-                .get(1)
-                .unwrap_or("0")
-                .parse()
-                .unwrap_or(0);
+            let quantity: i32 = record.get(1).unwrap_or("0").parse().unwrap_or(0);
 
             if !item_id.is_empty() && quantity > 0 {
                 items.push(InventoryItem { item_id, quantity });
@@ -88,7 +123,9 @@ fn save_inventory(items: Vec<InventoryItem>) -> Result<(), String> {
         }
     }
 
-    writer.flush().map_err(|e| format!("Failed to flush: {}", e))?;
+    writer
+        .flush()
+        .map_err(|e| format!("Failed to flush: {}", e))?;
     Ok(())
 }
 
@@ -223,7 +260,9 @@ fn load_settings() -> Result<AppSettings, String> {
                 .map(|d| d.as_secs())
                 .unwrap_or(0);
             let backup = dir.join(format!("settings.json.corrupt-{}", ts));
-            let _ = fs::rename(&path, &backup);
+            if let Err(re) = fs::rename(&path, &backup) {
+                eprintln!("Failed to back up corrupt settings: {}", re);
+            }
             eprintln!(
                 "Failed to parse settings.json ({}); moved to {} and loaded defaults.",
                 e,
@@ -243,8 +282,7 @@ fn save_settings(settings: AppSettings) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&settings)
         .map_err(|e| format!("Failed to serialize settings: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write settings: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write settings: {}", e))?;
 
     Ok(())
 }
@@ -272,7 +310,11 @@ pub struct CraftingSession {
     pub yielded: i32,
     #[serde(rename = "canCraft")]
     pub can_craft: i32,
-    #[serde(rename = "silverEarned", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "silverEarned",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub silver_earned: Option<i64>,
 }
 
@@ -281,16 +323,7 @@ pub struct CraftingSession {
 fn load_crafting_log() -> Result<Vec<CraftingSession>, String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("crafting_log.json");
-
-    if !path.exists() {
-        return Ok(Vec::new());
-    }
-
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read crafting log: {}", e))?;
-
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse crafting log: {}", e))
+    load_json_with_recovery(&path, "crafting log", Vec::new)
 }
 
 /// Save crafting log to JSON file
@@ -302,8 +335,7 @@ fn save_crafting_log(sessions: Vec<CraftingSession>) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&sessions)
         .map_err(|e| format!("Failed to serialize crafting log: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write crafting log: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write crafting log: {}", e))?;
 
     Ok(())
 }
@@ -343,16 +375,7 @@ pub struct GrindingSession {
 fn load_grinding_log() -> Result<Vec<GrindingSession>, String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("grinding_log.json");
-
-    if !path.exists() {
-        return Ok(Vec::new());
-    }
-
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read grinding log: {}", e))?;
-
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse grinding log: {}", e))
+    load_json_with_recovery(&path, "grinding log", Vec::new)
 }
 
 /// Save grinding log to JSON file
@@ -364,8 +387,7 @@ fn save_grinding_log(sessions: Vec<GrindingSession>) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&sessions)
         .map_err(|e| format!("Failed to serialize grinding log: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write grinding log: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write grinding log: {}", e))?;
 
     Ok(())
 }
@@ -404,15 +426,17 @@ fn load_planner() -> Result<PlannerData, String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("planner.json");
 
+    let default = || PlannerData {
+        plans: Vec::new(),
+        active_plan_id: None,
+    };
+
     if !path.exists() {
-        return Ok(PlannerData {
-            plans: Vec::new(),
-            active_plan_id: None,
-        });
+        return Ok(default());
     }
 
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read planner: {}", e))?;
+    let content =
+        fs::read_to_string(&path).map_err(|e| format!("Failed to read planner: {}", e))?;
 
     // Try new format first (PlannerData with activePlanId)
     if let Ok(data) = serde_json::from_str::<PlannerData>(&content) {
@@ -420,13 +444,27 @@ fn load_planner() -> Result<PlannerData, String> {
     }
 
     // Fallback: old format was a plain array of plans
-    let plans: Vec<CraftingPlan> = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse planner: {}", e))?;
+    if let Ok(plans) = serde_json::from_str::<Vec<CraftingPlan>>(&content) {
+        return Ok(PlannerData {
+            plans,
+            active_plan_id: None,
+        });
+    }
 
-    Ok(PlannerData {
-        plans,
-        active_plan_id: None,
-    })
+    // Neither format parsed — treat as corrupt and recover (matches v2.5.2 pattern).
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let backup = dir.join(format!("planner.json.corrupt-{}", ts));
+    if let Err(re) = fs::rename(&path, &backup) {
+        eprintln!("Failed to back up corrupt planner: {}", re);
+    }
+    eprintln!(
+        "Failed to parse planner (no known format matched); moved to {} and loaded defaults.",
+        backup.display()
+    );
+    Ok(default())
 }
 
 /// Save planner data to JSON file
@@ -443,8 +481,7 @@ fn save_planner(plans: Vec<CraftingPlan>, active_plan_id: Option<String>) -> Res
     let content = serde_json::to_string_pretty(&data)
         .map_err(|e| format!("Failed to serialize planner: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write planner: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write planner: {}", e))?;
 
     Ok(())
 }
@@ -460,7 +497,11 @@ pub struct PieceProgress {
     #[serde(rename = "hoursSpent")]
     pub hours_spent: f64,
     pub obtained: bool,
-    #[serde(rename = "obtainedDate", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "obtainedDate",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub obtained_date: Option<String>,
 }
 
@@ -474,18 +515,9 @@ pub struct TreasureProgressData {
 fn load_treasure_progress() -> Result<TreasureProgressData, String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("treasure_progress.json");
-
-    if !path.exists() {
-        return Ok(TreasureProgressData {
-            pieces: Vec::new(),
-        });
-    }
-
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read treasure progress: {}", e))?;
-
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse treasure progress: {}", e))
+    load_json_with_recovery(&path, "treasure progress", || TreasureProgressData {
+        pieces: Vec::new(),
+    })
 }
 
 /// Save treasure progress to JSON file
@@ -497,8 +529,7 @@ fn save_treasure_progress(data: TreasureProgressData) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&data)
         .map_err(|e| format!("Failed to serialize treasure progress: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write treasure progress: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write treasure progress: {}", e))?;
 
     Ok(())
 }
@@ -529,9 +560,17 @@ pub struct HuntingSession {
     pub loot: Vec<HuntingLootItem>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mastery: Option<i32>,
-    #[serde(rename = "matchlockTier", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "matchlockTier",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub matchlock_tier: Option<String>,
-    #[serde(rename = "butcheringKnife", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "butcheringKnife",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub butchering_knife: Option<String>,
 }
 
@@ -540,16 +579,7 @@ pub struct HuntingSession {
 fn load_hunting_log() -> Result<Vec<HuntingSession>, String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("hunting_log.json");
-
-    if !path.exists() {
-        return Ok(Vec::new());
-    }
-
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read hunting log: {}", e))?;
-
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse hunting log: {}", e))
+    load_json_with_recovery(&path, "hunting log", Vec::new)
 }
 
 /// Save hunting log to JSON file
@@ -561,8 +591,7 @@ fn save_hunting_log(sessions: Vec<HuntingSession>) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&sessions)
         .map_err(|e| format!("Failed to serialize hunting log: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write hunting log: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write hunting log: {}", e))?;
 
     Ok(())
 }
@@ -584,20 +613,11 @@ pub struct BarterInventoryData {
 fn load_barter_inventory() -> Result<BarterInventoryData, String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("barter_inventory.json");
-
-    if !path.exists() {
-        return Ok(BarterInventoryData {
-            items: std::collections::HashMap::new(),
-            crow_coins: 0,
-            last_updated: String::new(),
-        });
-    }
-
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read barter inventory: {}", e))?;
-
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse barter inventory: {}", e))
+    load_json_with_recovery(&path, "barter inventory", || BarterInventoryData {
+        items: std::collections::HashMap::new(),
+        crow_coins: 0,
+        last_updated: String::new(),
+    })
 }
 
 /// Save barter inventory to JSON file
@@ -609,8 +629,7 @@ fn save_barter_inventory(data: BarterInventoryData) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&data)
         .map_err(|e| format!("Failed to serialize barter inventory: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write barter inventory: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write barter inventory: {}", e))?;
 
     Ok(())
 }
@@ -671,16 +690,7 @@ pub struct BarterSessionEntry {
 fn load_barter_log() -> Result<Vec<BarterSessionEntry>, String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("barter_log.json");
-
-    if !path.exists() {
-        return Ok(Vec::new());
-    }
-
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read barter log: {}", e))?;
-
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse barter log: {}", e))
+    load_json_with_recovery(&path, "barter log", Vec::new)
 }
 
 /// Save barter log to JSON file
@@ -692,8 +702,7 @@ fn save_barter_log(sessions: Vec<BarterSessionEntry>) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&sessions)
         .map_err(|e| format!("Failed to serialize barter log: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write barter log: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write barter log: {}", e))?;
 
     Ok(())
 }
@@ -720,16 +729,9 @@ pub struct ShipProgressData {
 fn load_ship_progress() -> Result<ShipProgressData, String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("ship_progress.json");
-
-    if !path.exists() {
-        return Ok(ShipProgressData { paths: Vec::new() });
-    }
-
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read ship progress: {}", e))?;
-
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse ship progress: {}", e))
+    load_json_with_recovery(&path, "ship progress", || ShipProgressData {
+        paths: Vec::new(),
+    })
 }
 
 /// Save ship progress to JSON file
@@ -741,8 +743,7 @@ fn save_ship_progress(data: ShipProgressData) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&data)
         .map_err(|e| format!("Failed to serialize ship progress: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write ship progress: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write ship progress: {}", e))?;
 
     Ok(())
 }
@@ -771,16 +772,9 @@ pub struct SailorRosterData {
 fn load_sailor_roster() -> Result<SailorRosterData, String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("sailor_roster.json");
-
-    if !path.exists() {
-        return Ok(SailorRosterData { sailors: Vec::new() });
-    }
-
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read sailor roster: {}", e))?;
-
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse sailor roster: {}", e))
+    load_json_with_recovery(&path, "sailor roster", || SailorRosterData {
+        sailors: Vec::new(),
+    })
 }
 
 /// Save sailor roster to JSON file
@@ -792,8 +786,7 @@ fn save_sailor_roster(data: SailorRosterData) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&data)
         .map_err(|e| format!("Failed to serialize sailor roster: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write sailor roster: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write sailor roster: {}", e))?;
 
     Ok(())
 }
@@ -826,19 +819,10 @@ pub struct WeeklyTaskProgressData {
 fn load_weekly_tasks() -> Result<WeeklyTaskProgressData, String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("weekly_tasks.json");
-
-    if !path.exists() {
-        return Ok(WeeklyTaskProgressData {
-            tasks: Vec::new(),
-            last_reset_check: String::new(),
-        });
-    }
-
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read weekly tasks: {}", e))?;
-
-    serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse weekly tasks: {}", e))
+    load_json_with_recovery(&path, "weekly tasks", || WeeklyTaskProgressData {
+        tasks: Vec::new(),
+        last_reset_check: String::new(),
+    })
 }
 
 #[tauri::command]
@@ -849,8 +833,7 @@ fn save_weekly_tasks(data: WeeklyTaskProgressData) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&data)
         .map_err(|e| format!("Failed to serialize weekly tasks: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write weekly tasks: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write weekly tasks: {}", e))?;
 
     Ok(())
 }
@@ -877,8 +860,7 @@ fn clear_all_data() -> Result<(), String> {
     for file in &data_files {
         let path = dir.join(file);
         if path.exists() {
-            fs::remove_file(&path)
-                .map_err(|e| format!("Failed to delete {}: {}", file, e))?;
+            fs::remove_file(&path).map_err(|e| format!("Failed to delete {}: {}", file, e))?;
         }
     }
     Ok(())
@@ -894,9 +876,7 @@ async fn fetch_announcements(url: String, token: Option<String>) -> Result<Strin
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
-    let mut request = client
-        .get(&url)
-        .header("Accept", "application/json");
+    let mut request = client.get(&url).header("Accept", "application/json");
 
     if let Some(ref t) = token {
         request = request.header("Authorization", format!("Bearer {}", t));
@@ -927,8 +907,7 @@ fn load_announcements_cache() -> Result<String, String> {
         return Ok(String::new());
     }
 
-    fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read announcements cache: {}", e))
+    fs::read_to_string(&path).map_err(|e| format!("Failed to read announcements cache: {}", e))
 }
 
 /// Save announcements cache to JSON file
@@ -937,8 +916,7 @@ fn save_announcements_cache(data: String) -> Result<(), String> {
     let dir = ensure_app_data_dir()?;
     let path = dir.join("announcements_cache.json");
 
-    fs::write(&path, data)
-        .map_err(|e| format!("Failed to write announcements cache: {}", e))
+    fs::write(&path, data).map_err(|e| format!("Failed to write announcements cache: {}", e))
 }
 
 // ============== Marketplace Commands ==============
@@ -951,12 +929,17 @@ pub struct MarketPriceEntry {
 
 /// Fetch marketplace prices from BDO Central Market API
 #[tauri::command]
-async fn fetch_market_prices(region: String, item_ids: String) -> Result<Vec<MarketPriceEntry>, String> {
+async fn fetch_market_prices(
+    region: String,
+    item_ids: String,
+) -> Result<Vec<MarketPriceEntry>, String> {
     let base_url = match region.to_uppercase().as_str() {
         "EU" => "https://eu-trade.naeu.playblackdesert.com/Trademarket/GetWorldMarketSearchList",
         // SEA docs list trade.sea.playblackdesert.com, but that host 301s to this one.
         // Use the destination directly since POST redirects drop the body on most clients.
-        "SEA" => "https://asia-trade.blackdesert.pearlabyss.com/Trademarket/GetWorldMarketSearchList",
+        "SEA" => {
+            "https://asia-trade.blackdesert.pearlabyss.com/Trademarket/GetWorldMarketSearchList"
+        }
         _ => "https://na-trade.naeu.playblackdesert.com/Trademarket/GetWorldMarketSearchList",
     };
 
@@ -1031,7 +1014,8 @@ pub fn run() {
             use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyL);
             tauri_plugin_global_shortcut::Builder::new()
-                .with_shortcut(shortcut).unwrap()
+                .with_shortcut(shortcut)
+                .unwrap()
                 .with_handler(move |app, scut, event| {
                     if scut == &shortcut && event.state() == ShortcutState::Pressed {
                         let _ = app.emit("toggle-click-through", ());

@@ -65,6 +65,7 @@ export async function loadGrindingData(): Promise<void> {
 	grindingDataLoadingStore.set(true);
 	try {
 		const response = await fetch("/data/grinding/grindspots.json");
+		if (!response.ok) throw new Error(`HTTP ${response.status} loading grinding data`);
 		const data: GrindingSpotsData = await response.json();
 		grindingDataStore.set(data);
 	} catch (error) {

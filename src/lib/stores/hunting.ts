@@ -86,6 +86,7 @@ export async function loadHuntingData(): Promise<void> {
 	huntingDataLoadingStore.set(true);
 	try {
 		const response = await fetch("/data/hunting/huntingspots.json");
+		if (!response.ok) throw new Error(`HTTP ${response.status} loading hunting data`);
 		const data: HuntingSpotsData = await response.json();
 		huntingDataStore.set(data);
 	} catch (error) {

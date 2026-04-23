@@ -90,7 +90,7 @@
 	}
 	const resetTimers = $derived.by(() => {
 		const now = new Date($tickStore);
-		const r = (($settingsStore as any).server_region ?? "NA") as Region;
+		const r = ($settingsStore.server_region ?? "NA") as Region;
 		return [
 			{ label: "Daily", ms: getNextDaily(now).getTime()-now.getTime() },
 			{ label: "Weekly", ms: getNextWeekly(now).getTime()-now.getTime() },

@@ -198,7 +198,7 @@
 							title="Item to adjust in inventory"
 						>
 							<option value="">Auto (first)</option>
-							{#each items as item}
+							{#each items as item (item.id)}
 								<option value={item.id}>{item.name}</option>
 							{/each}
 						</select>
@@ -216,7 +216,7 @@
 		<!-- Live Activity Log -->
 		{#if $barterDraftStore.activityLog.length > 0}
 			<div class="max-h-[80px] overflow-y-auto border-t border-outline-variant/10 pt-1">
-				{#each $barterDraftStore.activityLog as entry}
+				{#each $barterDraftStore.activityLog as entry, i (i)}
 					{@const tierColor = TIER_COLORS[entry.tier as BarterTier]?.color ?? "text-foreground"}
 					<div class="text-[9px] font-mono flex gap-1 py-0.5 text-muted-foreground/80">
 						<span class="{tierColor} font-bold">{entry.amount > 0 ? `+${entry.amount}` : entry.amount} T{entry.tier}</span>

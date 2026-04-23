@@ -95,9 +95,9 @@ function getTimeRangeStart(range: TimeRange): Date | null {
 }
 
 function getPreviousPeriodRange(range: TimeRange): { start: Date; end: Date } | null {
-	if (range === "all") return null;
+	const currentStart = getTimeRangeStart(range);
+	if (!currentStart) return null;
 	const now = new Date();
-	const currentStart = getTimeRangeStart(range)!;
 	const periodMs = now.getTime() - currentStart.getTime();
 	return {
 		start: new Date(currentStart.getTime() - periodMs),

@@ -2,6 +2,22 @@
 
 ---
 
+## v2.5.3 — 2026-04-24
+
+### Fixed
+
+- **Window position and size now persist reliably.** Previously, moving or resizing the window and then closing it would sometimes lose those changes — the save was scheduled but the app closed before it could write to disk. The app now captures position and size whenever you drag or resize, and forces a save before the window closes.
+- **Logs and progress files self-heal from corruption.** If your crafting log, grinding log, hunting log, barter log, ship progress, sailor roster, weekly tasks, treasure progress, barter inventory, or planner file ever becomes corrupted (e.g. a power loss mid-write), the app now renames the bad file and loads defaults instead of refusing to open that feature. Matches how the settings file already recovered.
+- **Silent save failures now surface as a toast.** If saving barter inventory, ship progress, or sailor roster fails, you'll now see an error message instead of losing data without warning.
+- **Failed data downloads give clearer errors.** Hunting spots, grinding spots, treasures, weekly tasks, and barter items used to fail with an obscure parse error if the file couldn't be loaded. Now the error identifies what failed and why.
+
+### Changed
+
+- Dead code removed behind the scenes (two unused view components + an unused tab wrapper). No visible change — just less to maintain.
+- Small internal cleanups: fixed a couple of listeners that weren't being cleaned up properly on window close, and tightened a few type casts.
+
+---
+
 ## v2.5.2 — 2026-04-21
 
 ### Fixed

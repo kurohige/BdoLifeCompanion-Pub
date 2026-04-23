@@ -47,6 +47,7 @@ export {
 	setServerRegion,
 	setTheme,
 	saveWindowState,
+	flushSettings,
 	setBossSoundEnabled,
 	setTimerSoundEnabled,
 	setBossAlertMinutes,

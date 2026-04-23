@@ -104,6 +104,25 @@ function debouncedSave() {
 }
 
 /**
+ * Cancel any pending debounced save and write to disk immediately.
+ *
+ * Must be awaited before the window closes — the debounced save's 500ms
+ * timer is killed when the process dies, so a pending write would be lost.
+ */
+export async function flushSettings(): Promise<void> {
+	if (saveTimeout) {
+		clearTimeout(saveTimeout);
+		saveTimeout = null;
+	}
+	try {
+		const settings = get(settingsStore);
+		await saveSettings(settings);
+	} catch (error) {
+		console.error("Failed to flush settings:", error);
+	}
+}
+
+/**
  * Update a single setting
  */
 export function updateSetting<K extends keyof AppSettings>(
