@@ -2,6 +2,30 @@
 
 ---
 
+## v2.6.0 — 2026-05-02
+
+### New Features
+
+- **Bartering Routes & Logs.** The flat barter tracker is replaced by two new sub-tabs:
+  - **Routes** — a real map of all 90 official barter destinations drawn over the in-game sea map. Pan and zoom freely; click any island to log a trade (autocomplete by item name, tier picker fallback, qty stepper). Trades append to the active route; the parley bar tracks spend with a refill popover; the ledger lists every trade in order. Finishing a route auto-syncs the delivered tier counts into your inventory and saves a route log.
+  - **Logs** — full per-route history with date filters (All / Today / Week / Month), an aggregate ribbon at the top, and per-route mini-maps. Click any log to open the full route detail with map + ledger.
+  - Existing sub-tabs (Inventory, Ships, Parley, Sailors) are unchanged. Default sub-tab is now Routes. Old tracker state automatically remaps to the new Routes view.
+- **Mini Mode dual-clock cluster.** The mini bar now shows local time and BDO server time (UTC) side-by-side with the existing controls. Live-ticking, mounts only when you're in mini mode.
+- **Mini Mode Clocks toggle** (Settings → Display) — turn the cluster off if you prefer the original layout.
+- **12h / 24h clock format selector** (Settings → Display) — drives both the LOCAL and SVR rows. Hidden when the clock cluster itself is off.
+
+### Fixed
+
+- **Fresh-install settings defaults were inverted.** On a brand-new install (no `settings.json` yet), every default-on toggle (background animation, always-on-top, boss alert sound, timer alert sound, and the new mini clocks + 24h format) was loading as **off** instead of on. The fix routes the no-file and corrupt-file branches through the same code path that respects per-field defaults, so first-run state matches the design intent.
+- **Tier picker in the route popover sometimes reverted your choice.** If you opened a node, picked a different tier, then opened the same node again, the picker would snap back to the node's default tier. The seed value is now read once on mount and your override sticks until you close the popover.
+- Five small accessibility improvements (label-for-input on Crow Coins, editable name in the sailor list is now a proper button, scoped lint suppressions where the violation is intentional).
+
+### Behind the Scenes
+
+- Repo cleanup reclaimed ~560 MB by removing the legacy WPF version (preserved in git history) and a large set of obsolete docs. No runtime impact — the public release zip is unaffected.
+
+---
+
 ## v2.5.3 — 2026-04-24
 
 ### Fixed

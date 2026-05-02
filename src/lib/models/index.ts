@@ -47,6 +47,17 @@ export type {
 	SAILOR_SPEED_TABLE,
 	BARTER_LEVELS,
 	TIER_COLORS,
+	IslandRegion,
+	ParleyCostKey,
+	IslandNode,
+	IslandsData,
+	Trade,
+	RouteSession,
+	RouteLog,
+	CustomNode,
+	BarterMapLayout,
+	REGION_CENTROIDS,
+	REGION_LABELS,
 } from "./bartering.js";
 export type {
 	StageCategory,

@@ -8,7 +8,7 @@ A lightweight desktop overlay for **Black Desert Online** that helps you track c
 
 ## Download
 
-**Latest version: v2.5.0**
+**Latest version: v2.6.0**
 
 - [GitHub Releases](https://github.com/kurohige/BdoLifeCompanion-Pub/releases) — Portable `.zip`, no installer needed
 
@@ -17,6 +17,40 @@ Just extract the zip and run the `.exe`. That's it.
 > **Note:** Windows Defender SmartScreen may show a warning because the app is not yet code-signed. Code-signing certificates cost **~$200–500/year** from a trusted certificate authority, which is more than a free hobby project can justify right now — so for the time being the build ships unsigned. This is normal for indie software. Click **"More info"** then **"Run anyway"** to proceed. **Only the source code is open-source** — you can inspect it or build it yourself. The in-app game assets (item icons, boss images, recipe data, etc.) are the property of **Pearl Abyss / Black Desert Online** and are not redistributed here, which is why the public repo ships code only and the runnable build is offered separately via Releases.
 
 For a walkthrough of first launch and features, check the [User Guide](USER-GUIDE.md).
+
+---
+
+## Screenshots
+
+### Bartering Routes (new in v2.6.0)
+
+A spatial map of all 90 official barter destinations rendered over the in-game sea map. Click any island to log a trade; the parley bar tracks spend; finishing a route auto-syncs the delivered tier counts into your inventory.
+
+![Bartering Routes](Screenshots/Barteringroute.png)
+
+### Crafting & Planner
+
+| Recipe browser | Crafting planner |
+|---|---|
+| ![Recipe browser](Screenshots/recipe.png) | ![Crafting planner](Screenshots/CraftingPlanner.png) |
+
+### Bartering Inventory & Grinding Tracker
+
+| Barter inventory | Grinding tracker |
+|---|---|
+| ![Barter inventory](Screenshots/BarteringInventory.png) | ![Grinding tracker](Screenshots/tracker-grinding.png) |
+
+### Dashboard & Settings
+
+| Profit dashboard | Settings |
+|---|---|
+| ![Profit dashboard](Screenshots/ProfitDashboard.png) | ![Settings](Screenshots/Settings.png) |
+
+### Overlay Modes
+
+| Mini mode | Medium mode |
+|---|---|
+| ![Mini mode](Screenshots/miniview.png) | ![Medium mode](Screenshots/mediumView.png) |
 
 ---
 

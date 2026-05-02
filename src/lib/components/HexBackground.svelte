@@ -52,6 +52,7 @@
 
 		clearCanvas();
 
+		// svelte-ignore perf_avoid_nested_class -- defined inside onMount (runs once), not a reactive scope
 		class Line {
 			x = 0; y = 0; addedX = 0; addedY = 0;
 			rad = 0; lightInputMultiplier = 0;

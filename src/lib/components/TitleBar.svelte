@@ -33,6 +33,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<!-- svelte-ignore a11y_no_redundant_roles -- explicit role="banner" required for the mousedown handler (a11y_no_static_element_interactions) -->
 <header
 	role="banner"
 	onmousedown={startDrag}

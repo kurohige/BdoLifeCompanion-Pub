@@ -46,6 +46,16 @@
   --primary-container: #c77dff;
   --tertiary: #dac839;
   --gold-glow: #ffee10;
+  /* Barter tier colors (T1-T7 + Special) — used by Routes/Logs map nodes,
+     TierBadge, and ledger row borders. Matches obsidian.css from design handoff. */
+  --t1: #998d9d;
+  --t2: #81c784;
+  --t3: #64b5f6;
+  --t4: #e1b6ff;
+  --t5: #dac839;
+  --t6: #ff9eb4;
+  --t7: #ff6b35;
+  --tsp: #f5d97a;
 }
 
 /* --- Obsidian typography --- */
@@ -122,6 +132,15 @@ input[type="number"] {
   --secondary-container: hsl(195 70% 38%);
   --primary-container: hsl(260 60% 50%);
   --tertiary: hsl(45 70% 40%);
+  /* Barter tier colors — darker variants for legibility on the warm light bg */
+  --t1: #6b6573;
+  --t2: #4a8e4d;
+  --t3: #2e7dc7;
+  --t4: #9b6abf;
+  --t5: #b3a01f;
+  --t6: #cc6680;
+  --t7: #d04a18;
+  --tsp: #b89c3f;
 }
 
 /* Light theme: revert sharp styles that don't work well */

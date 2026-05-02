@@ -77,8 +77,9 @@
 	<div class="glass-card p-3 flex items-center justify-between">
 		<div class="flex items-center gap-3">
 			<div>
-				<label class="text-[10px] text-muted-foreground">Crow Coins</label>
+				<label for="crow-coins-input" class="text-[10px] text-muted-foreground">Crow Coins</label>
 				<input
+					id="crow-coins-input"
 					type="number"
 					bind:value={crowCoinsInput}
 					onchange={handleCrowCoinsChange}

@@ -1,1 +1,1 @@
-﻿Place weekly-tasks.json here
+Place weekly-tasks.json here

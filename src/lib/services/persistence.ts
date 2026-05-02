@@ -47,6 +47,8 @@ export interface AppSettings {
 	always_on_top: boolean;
 	hidden_bosses: string[];
 	animations_enabled: boolean;
+	mini_show_clocks: boolean;
+	clock_format_24h: boolean;
 }
 
 // ============== Inventory ==============
@@ -116,6 +118,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	always_on_top: true,
 	hidden_bosses: [],
 	animations_enabled: true,
+	mini_show_clocks: true,
+	clock_format_24h: true,
 };
 
 /**

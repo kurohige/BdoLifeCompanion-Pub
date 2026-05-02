@@ -19,6 +19,8 @@
 		setValuePack,
 		setAlwaysOnTop,
 		setAnimationsEnabled,
+		setMiniShowClocks,
+		setClockFormat24h,
 		LIFE_SKILL_RANKS,
 	} from "$lib/stores/settings";
 	import { BARTER_LEVELS } from "$lib/models/bartering";
@@ -31,8 +33,12 @@
 		barterInventoryStore,
 		shipProgressStore,
 		sailorRosterStore,
-		resetBarterDraft,
 	} from "$lib/stores/bartering";
+	import {
+		currentRouteStore,
+		routeLogsStore,
+		barterMapLayoutStore,
+	} from "$lib/stores/bartering-routes";
 	import { treasureProgressStore } from "$lib/stores/treasure";
 	import { weeklyTasksProgressStore } from "$lib/stores/weekly-tasks";
 	import { invoke } from "@tauri-apps/api/core";
@@ -114,7 +120,9 @@
 			clearGrindingLog();
 			clearHuntingLog();
 			clearBarterLog();
-			resetBarterDraft();
+			currentRouteStore.set(null);
+			routeLogsStore.set([]);
+			barterMapLayoutStore.set({ positionOverrides: {}, customNodes: [] });
 			barterInventoryStore.set({ items: {}, crowCoins: 0, lastUpdated: "" });
 			shipProgressStore.set([]);
 			sailorRosterStore.set([]);
@@ -272,6 +280,44 @@
 						title="Toggle the animated hex particle background"
 					/>
 				</div>
+
+				<!-- Mini Mode Clocks -->
+				<div class="flex items-center justify-between">
+					<div class="min-w-0">
+						<span class="text-[10px] text-muted-foreground">Mini Mode Clocks</span>
+						<p class="text-[9px] text-muted-foreground/70">Show local + server (UTC) time in the mini bar.</p>
+					</div>
+					<ToggleSwitch
+						checked={$settingsStore.mini_show_clocks ?? true}
+						onchange={setMiniShowClocks}
+						title="Toggle the local + server clock cluster in mini mode"
+					/>
+				</div>
+
+				<!-- Clock Format -->
+				{#if ($settingsStore.mini_show_clocks ?? true)}
+					<div class="space-y-1.5">
+						<span class="text-[10px] text-muted-foreground">Clock Format</span>
+						<div class="grid grid-cols-2 gap-1.5">
+							{#each [
+								{ id: true, label: "24h", sample: "20:14" },
+								{ id: false, label: "12h", sample: "8:14 PM" },
+							] as opt}
+								{@const isActive = ($settingsStore.clock_format_24h ?? true) === opt.id}
+								<button
+									onclick={() => setClockFormat24h(opt.id)}
+									class="px-2 py-1.5 rounded border-2 text-[11px] font-bold transition-all flex items-center justify-center gap-2
+										{isActive
+											? 'border-[var(--gold-glow)] bg-[var(--gold-glow)] text-black shadow-[0_0_8px_rgba(255,238,16,0.4)]'
+											: 'border-outline-variant/30 text-muted-foreground hover:border-outline-variant/60 hover:text-foreground'}"
+								>
+									<span>{opt.label}</span>
+									<span class="text-[9px] font-mono opacity-70">{opt.sample}</span>
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>

@@ -1,1 +1,1 @@
-﻿Place treasures.json here
+Place treasures.json here

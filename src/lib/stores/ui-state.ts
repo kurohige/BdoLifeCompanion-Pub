@@ -8,8 +8,10 @@ import { writable } from "svelte/store";
 import type { RecipeCategory } from "$lib/models";
 
 // ── Bartering sub-tab selection ──
-export type BarterSubTab = "tracker" | "inventory" | "ships" | "parley" | "sailors";
-export const barterSubTabStore = writable<BarterSubTab>("tracker");
+// "tracker" remains in the type for back-compat with persisted state from older versions;
+// we remap it to "routes" on read in BarteringView.
+export type BarterSubTab = "routes" | "logs" | "tracker" | "inventory" | "ships" | "parley" | "sailors";
+export const barterSubTabStore = writable<BarterSubTab>("routes");
 
 // ── Log view sub-tab + search filters ──
 export type LogSubTab = "crafting" | "grinding" | "hunting";

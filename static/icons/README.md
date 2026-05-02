@@ -1,1 +1,1 @@
-﻿Custom navigation icons (png/webp) - add your own icons here
+Custom navigation icons (png/webp) - add your own icons here

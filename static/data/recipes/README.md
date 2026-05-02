@@ -1,1 +1,1 @@
-﻿Place cooking.json, alchemy.json, draughts.json here
+Place cooking.json, alchemy.json, draughts.json here

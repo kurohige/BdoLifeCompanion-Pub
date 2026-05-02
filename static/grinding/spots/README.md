@@ -1,1 +1,1 @@
-﻿Grinding spot icons (128x128 png)
+Grinding spot icons (128x128 png)

@@ -1,1 +1,1 @@
-﻿Place grindspots.json here
+Place grindspots.json here

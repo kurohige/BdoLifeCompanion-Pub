@@ -1,6 +1,6 @@
 {
   "name": "bdo-life-companion",
-  "version": "2.5.3",
+  "version": "2.6.0",
   "description": "BDO Life Companion - Cross-platform crafting calculator and timer",
   "type": "module",
   "scripts": {
@@ -19,6 +19,7 @@
     "@tauri-apps/plugin-global-shortcut": "^2.3.1",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-process": "^2",
+    "@xyflow/svelte": "^1.5.2",
     "chart.js": "^4.5.1"
   },
   "devDependencies": {

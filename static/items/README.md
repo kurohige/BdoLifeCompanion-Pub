@@ -1,1 +1,1 @@
-﻿Recipe item images (762 png files)
+Recipe item images (762 png files)

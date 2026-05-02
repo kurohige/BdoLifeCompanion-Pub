@@ -195,11 +195,12 @@
 							class="glass-input text-[11px] px-1 py-0.5"
 						/>
 					{:else}
-						<span
-							class="text-[11px] text-foreground cursor-pointer hover:text-primary"
+						<button
+							type="button"
+							class="text-[11px] text-foreground cursor-pointer hover:text-primary text-left bg-transparent border-0 p-0"
 							onclick={() => editingId = sailor.id}
 							title="Click to edit name"
-						>{sailor.name}</span>
+						>{sailor.name}</button>
 					{/if}
 
 					<!-- Level -->

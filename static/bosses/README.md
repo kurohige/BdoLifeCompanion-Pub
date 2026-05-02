@@ -1,1 +1,1 @@
-﻿Boss images (14 png files)
+Boss images (14 png files)

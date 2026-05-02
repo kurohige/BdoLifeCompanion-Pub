@@ -12,6 +12,7 @@
 		grindingTimerDisplay,
 	} from "$lib/stores";
 	import { BOSSES } from "$lib/constants/boss-data";
+	import { fmt24, fmt12, fmtServer, fmtServer12 } from "$lib/utils/time";
 
 	const appWindow = getCurrentWindow();
 
@@ -77,6 +78,18 @@
 	const spotName = $derived(
 		$selectedSpotStore?.name ?? ""
 	);
+
+	// Live wall clock — only ticks while MiniMode is mounted (this view).
+	let now = $state(new Date());
+	$effect(() => {
+		const id = setInterval(() => { now = new Date(); }, 1000);
+		return () => clearInterval(id);
+	});
+
+	const showClocks = $derived($settingsStore.mini_show_clocks ?? true);
+	const use24h = $derived($settingsStore.clock_format_24h ?? true);
+	const localTime = $derived(use24h ? fmt24(now) : fmt12(now));
+	const serverTime = $derived(use24h ? fmtServer(now) : fmtServer12(now));
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -130,20 +143,37 @@
 		</div>
 	{/if}
 
-	<!-- CONTROLS CLUSTER -->
-	<div class="mini-controls">
-		<button onclick={minimize} class="mini-btn" title="Minimize">
-			<span class="text-[11px]">&#x2014;</span>
-		</button>
-		<button onclick={expandToMedium} class="mini-btn" title="Medium mode">
-			<span class="text-[9px] font-bold">[+]</span>
-		</button>
-		<button onclick={expandToFull} class="mini-btn" title="Full mode">
-			<span class="text-[11px]">&#x229E;</span>
-		</button>
-		<button onclick={close} class="mini-btn mini-btn-close" title="Close">
-			<span class="text-[11px]">&#x2715;</span>
-		</button>
+	<!-- RIGHT CLUSTER (clocks + controls) -->
+	<div class="mini-right">
+		{#if showClocks}
+			<div class="mini-divider mini-divider-clock"></div>
+			<div class="mini-clock-cluster" title="Local · Server (UTC)">
+				<div class="mini-clock-row">
+					<span class="mini-clock-label">LOCAL</span>
+					<span class="mini-clock-time">{localTime}</span>
+				</div>
+				<div class="mini-clock-row">
+					<span class="mini-clock-label">SVR</span>
+					<span class="mini-clock-time mini-clock-time-svr">{serverTime}</span>
+				</div>
+			</div>
+		{/if}
+
+		<!-- CONTROLS CLUSTER -->
+		<div class="mini-controls">
+			<button onclick={minimize} class="mini-btn" title="Minimize">
+				<span class="text-[11px]">&#x2014;</span>
+			</button>
+			<button onclick={expandToMedium} class="mini-btn" title="Medium mode">
+				<span class="text-[9px] font-bold">[+]</span>
+			</button>
+			<button onclick={expandToFull} class="mini-btn" title="Full mode">
+				<span class="text-[11px]">&#x229E;</span>
+			</button>
+			<button onclick={close} class="mini-btn mini-btn-close" title="Close">
+				<span class="text-[11px]">&#x2715;</span>
+			</button>
+		</div>
 	</div>
 </div>
 
@@ -154,13 +184,13 @@
 		height: 100%;
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 10px;
 		padding: 0 10px;
-		background: rgba(14, 14, 14, 0.75);
+		background: rgba(14, 14, 14, 0.78);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
 		border-radius: 4px;
-		box-shadow: 0 0 10px rgba(255, 238, 16, 0.15);
+		box-shadow: 0 0 10px rgba(255, 238, 16, 0.12), inset 0 0 0 1px rgba(225, 182, 255, 0.08);
 		cursor: move;
 		user-select: none;
 		overflow: hidden;
@@ -260,6 +290,52 @@
 		background: #2a2a2a;
 		flex-shrink: 0;
 	}
+	.mini-divider-clock {
+		height: 28px;
+	}
+
+	/* ── Right cluster (clocks + controls) ── */
+	.mini-right {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin-left: auto;
+		flex-shrink: 0;
+	}
+
+	/* ── Clock cluster ── */
+	.mini-clock-cluster {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		line-height: 1.15;
+		flex-shrink: 0;
+	}
+	.mini-clock-row {
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+	}
+	.mini-clock-label {
+		font-family: 'Space Grotesk', sans-serif;
+		font-size: 8px;
+		letter-spacing: 0.18em;
+		color: #b0a4b4;
+	}
+	.mini-clock-time {
+		font-family: 'JetBrains Mono', ui-monospace, monospace;
+		font-size: 13px;
+		font-weight: 700;
+		color: #e5e2e1;
+		letter-spacing: 0.5px;
+		font-variant-numeric: tabular-nums;
+	}
+	.mini-clock-time-svr {
+		font-size: 11px;
+		font-weight: 600;
+		color: #bdf4ff;
+		opacity: 0.85;
+	}
 
 	/* ── Control buttons ── */
 	.mini-controls {
@@ -267,7 +343,6 @@
 		align-items: center;
 		gap: 4px;
 		flex-shrink: 0;
-		margin-left: auto;
 	}
 	.mini-btn {
 		width: 20px;

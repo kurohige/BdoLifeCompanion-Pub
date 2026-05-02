@@ -1,1 +1,1 @@
-﻿Sample session data for dashboard demo
+Sample session data for dashboard demo

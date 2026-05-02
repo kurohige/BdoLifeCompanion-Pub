@@ -78,6 +78,8 @@ export async function initSettings(): Promise<void> {
 		if (typeof settings.always_on_top !== "boolean") settings.always_on_top = true;
 		if (typeof settings.animations_enabled !== "boolean") settings.animations_enabled = true;
 		if (typeof settings.font_bold !== "boolean") settings.font_bold = false;
+		if (typeof settings.mini_show_clocks !== "boolean") settings.mini_show_clocks = true;
+		if (typeof settings.clock_format_24h !== "boolean") settings.clock_format_24h = true;
 		settingsStore.set(settings);
 	} catch (error) {
 		console.error("Failed to initialize settings:", error);
@@ -246,6 +248,16 @@ export function setAlwaysOnTop(value: boolean): void {
 /** Toggle the animated hex background. Off = pure CPU/battery savings. */
 export function setAnimationsEnabled(value: boolean): void {
 	updateSetting("animations_enabled", value);
+}
+
+/** Toggle the local + server time cluster in the mini mode bar. */
+export function setMiniShowClocks(value: boolean): void {
+	updateSetting("mini_show_clocks", value);
+}
+
+/** Choose 24-hour (true) or 12-hour AM/PM (false) display for clock readouts. */
+export function setClockFormat24h(value: boolean): void {
+	updateSetting("clock_format_24h", value);
 }
 
 /**

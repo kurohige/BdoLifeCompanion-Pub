@@ -129,53 +129,6 @@ export function setCrowCoins(amount: number): void {
 	debouncedSaveInventory();
 }
 
-// ============== Barter Session Draft (persists across tab switches) ==============
-
-export interface BarterDraftEntry {
-	tier: number;
-	amount: number;
-	itemName: string;
-}
-
-export interface BarterDraft {
-	tierCounts: Record<number, number>;
-	tierItemSelection: Record<number, string>;
-	refreshesUsed: string;
-	t5Sold: string;
-	t5SoldMargoria: string;
-	t6Sold: string;
-	t7Sold: string;
-	crowCoinsEarned: string;
-	silverInvested: string;
-	notes: string;
-	activityLog: BarterDraftEntry[];
-}
-
-const EMPTY_DRAFT: BarterDraft = {
-	tierCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
-	tierItemSelection: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "", 7: "" },
-	refreshesUsed: "",
-	t5Sold: "",
-	t5SoldMargoria: "",
-	t6Sold: "",
-	t7Sold: "",
-	crowCoinsEarned: "",
-	silverInvested: "",
-	notes: "",
-	activityLog: [],
-};
-
-export const barterDraftStore = writable<BarterDraft>({ ...EMPTY_DRAFT });
-
-export function resetBarterDraft(): void {
-	barterDraftStore.set({
-		...EMPTY_DRAFT,
-		tierCounts: { ...EMPTY_DRAFT.tierCounts },
-		tierItemSelection: { ...EMPTY_DRAFT.tierItemSelection },
-		activityLog: [],
-	});
-}
-
 // ============== Barter Session Log ==============
 
 export const barterLogStore = writable<BarterSession[]>([]);

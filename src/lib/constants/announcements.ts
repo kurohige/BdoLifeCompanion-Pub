@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Announcements system constants
  */
 

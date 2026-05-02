@@ -238,3 +238,120 @@ export interface ShipProgress {
 	/** stageId -> completed flag */
 	completedStages: Record<string, boolean>;
 }
+
+// ============== Routes & Logs (spatial route tracker) ==============
+
+export type IslandRegion = "inner" | "alHalam" | "morningLight" | "margoria" | "kamasylvia";
+
+/** Keys into ParleyBaseCosts — drives effective parley cost per node */
+export type ParleyCostKey =
+	| "regular"
+	| "crowCoin"
+	| "kashuma"
+	| "halmad"
+	| "derko"
+	| "hakoven"
+	| "margoriaLow"
+	| "margoriaHigh";
+
+/** A barter destination on the map (island, NPC vessel, etc.) */
+export interface IslandNode {
+	id: string;
+	name: string;
+	tier: BarterTier;
+	region: IslandRegion;
+	x: number;
+	y: number;
+	parleyCostKey: ParleyCostKey;
+}
+
+export interface IslandsData {
+	version: number;
+	nodes: IslandNode[];
+}
+
+/** A single barter trade row in the live ledger */
+export interface Trade {
+	id: string;
+	ts: number;
+	nodeId: string;
+	receiveName: string;
+	receiveTier: BarterTier;
+	receiveSp?: boolean;
+	qty: number;
+	silverPerUnit: number;
+	giveText?: string;
+	/** barter-items.json item id, if the receive name matched a known item */
+	receiveItemId?: string;
+}
+
+/** The in-progress route session — only one exists at a time */
+export interface RouteSession {
+	id: string;
+	startedAt: number;
+	trades: Trade[];
+	parleyMax: number;
+	parleyRefilled: number;
+	barterLevelAtStart: string;
+	hasValuePackAtStart: boolean;
+	/** Total ms the timer was paused — subtracted from elapsed at finalize time */
+	pausedMs: number;
+	/** ms epoch of last pause start, or null if running */
+	pausedAt: number | null;
+}
+
+/** A finalized route, persisted in the log */
+export interface RouteLog {
+	id: string;
+	date: string;
+	startedAt: number;
+	endedAt: number;
+	durationSeconds: number;
+	trades: Trade[];
+	totalSilver: number;
+	totalQty: number;
+	visitedNodeIds: string[];
+	label?: string;
+	parleyMax: number;
+	parleySpent: number;
+	parleyRefilled: number;
+	barterLevelAtStart: string;
+	hasValuePackAtStart: boolean;
+	/** Migrated from pre-Routes barter_log.json — render with no map */
+	legacy?: true;
+}
+
+/** User-added island not in the shipped data */
+export interface CustomNode extends IslandNode {
+	custom: true;
+}
+
+/** User-mutable map customization (positions + custom nodes).
+ * `schemaVersion` bumps when shipped islands.json changes coordinate space,
+ * triggering a one-shot wipe of stale positionOverrides on load. */
+export interface BarterMapLayout {
+	schemaVersion?: number;
+	positionOverrides: Record<string, { x: number; y: number }>;
+	customNodes: CustomNode[];
+}
+
+/** Bump whenever shipped islands.json coords change in a way that invalidates user overrides. */
+export const BARTER_MAP_LAYOUT_SCHEMA_VERSION = 2;
+
+/** Centroid coordinates per region — used by the region jump buttons.
+ * Coords are in the 1400×1050 islands.json space (Iliya at 700,525). */
+export const REGION_CENTROIDS: Record<IslandRegion, { x: number; y: number }> = {
+	inner: { x: 700, y: 525 },        // Iliya neighborhood (canvas center)
+	alHalam: { x: 1100, y: 480 },     // east cluster (Halmad..Arehaza)
+	morningLight: { x: 130, y: 270 },  // northwest (Dallae Pier + Haemo)
+	margoria: { x: 380, y: 200 },      // floating NPCs in the north
+	kamasylvia: { x: 440, y: 890 },    // far south (Grandiha + Starry Midnight)
+};
+
+export const REGION_LABELS: Record<IslandRegion, string> = {
+	inner: "Inner Sea",
+	alHalam: "Al Halam",
+	morningLight: "Morning Light",
+	margoria: "Margoria",
+	kamasylvia: "Kamasylvia",
+};

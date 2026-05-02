@@ -202,6 +202,10 @@ pub struct AppSettings {
     pub hidden_bosses: Vec<String>,
     #[serde(default = "default_true")]
     pub animations_enabled: bool,
+    #[serde(default = "default_true")]
+    pub mini_show_clocks: bool,
+    #[serde(default = "default_true")]
+    pub clock_format_24h: bool,
 }
 
 fn default_true() -> bool {
@@ -232,6 +236,16 @@ fn default_theme() -> String {
     "obsidian".to_string()
 }
 
+/// Build an AppSettings via serde so `#[serde(default = "...")]` annotations
+/// run. `AppSettings::default()` (from `#[derive(Default)]`) ignores those and
+/// would yield `false` for every default-true bool — so a fresh install would
+/// have animations/clocks/always-on-top off until the user discovered the
+/// toggles. Going through `from_str("{}")` makes every field follow its serde
+/// default.
+fn defaulted_app_settings() -> AppSettings {
+    serde_json::from_str("{}").unwrap_or_default()
+}
+
 /// Load settings from JSON file.
 ///
 /// On parse failure, renames the bad file to `settings.json.corrupt-<unix-ts>`
@@ -244,7 +258,7 @@ fn load_settings() -> Result<AppSettings, String> {
     let path = dir.join("settings.json");
 
     if !path.exists() {
-        return Ok(AppSettings::default());
+        return Ok(defaulted_app_settings());
     }
 
     let content = match fs::read_to_string(&path) {
@@ -268,7 +282,7 @@ fn load_settings() -> Result<AppSettings, String> {
                 e,
                 backup.display()
             );
-            Ok(AppSettings::default())
+            Ok(defaulted_app_settings())
         }
     }
 }
@@ -707,6 +721,212 @@ fn save_barter_log(sessions: Vec<BarterSessionEntry>) -> Result<(), String> {
     Ok(())
 }
 
+// ============== Bartering Routes Commands (Routes/Logs feature) ==============
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct TradeEntry {
+    pub id: String,
+    pub ts: i64,
+    #[serde(rename = "nodeId")]
+    pub node_id: String,
+    #[serde(rename = "receiveName")]
+    pub receive_name: String,
+    #[serde(rename = "receiveTier")]
+    pub receive_tier: i32,
+    #[serde(rename = "receiveSp", default, skip_serializing_if = "Option::is_none")]
+    pub receive_sp: Option<bool>,
+    pub qty: i32,
+    #[serde(rename = "silverPerUnit")]
+    pub silver_per_unit: i64,
+    #[serde(rename = "giveText", default, skip_serializing_if = "Option::is_none")]
+    pub give_text: Option<String>,
+    #[serde(rename = "receiveItemId", default, skip_serializing_if = "Option::is_none")]
+    pub receive_item_id: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RouteSessionData {
+    pub id: String,
+    #[serde(rename = "startedAt")]
+    pub started_at: i64,
+    #[serde(default)]
+    pub trades: Vec<TradeEntry>,
+    #[serde(rename = "parleyMax")]
+    pub parley_max: i64,
+    #[serde(rename = "parleyRefilled", default)]
+    pub parley_refilled: i64,
+    #[serde(rename = "barterLevelAtStart")]
+    pub barter_level_at_start: String,
+    #[serde(rename = "hasValuePackAtStart", default)]
+    pub has_value_pack_at_start: bool,
+    #[serde(rename = "pausedMs", default)]
+    pub paused_ms: i64,
+    #[serde(rename = "pausedAt", default)]
+    pub paused_at: Option<i64>,
+}
+
+/// Load the in-progress route session, or null if none exists
+#[tauri::command]
+fn load_barter_route_current() -> Result<Option<RouteSessionData>, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_route_current.json");
+    load_json_with_recovery(&path, "current route", || None)
+}
+
+/// Save (or clear with `null`) the in-progress route session
+#[tauri::command]
+fn save_barter_route_current(data: Option<RouteSessionData>) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_route_current.json");
+
+    let content = serde_json::to_string_pretty(&data)
+        .map_err(|e| format!("Failed to serialize current route: {}", e))?;
+
+    fs::write(&path, content).map_err(|e| format!("Failed to write current route: {}", e))?;
+
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RouteLogEntry {
+    pub id: String,
+    pub date: String,
+    #[serde(rename = "startedAt")]
+    pub started_at: i64,
+    #[serde(rename = "endedAt")]
+    pub ended_at: i64,
+    #[serde(rename = "durationSeconds")]
+    pub duration_seconds: i64,
+    #[serde(default)]
+    pub trades: Vec<TradeEntry>,
+    #[serde(rename = "totalSilver")]
+    pub total_silver: i64,
+    #[serde(rename = "totalQty")]
+    pub total_qty: i32,
+    #[serde(rename = "visitedNodeIds", default)]
+    pub visited_node_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(rename = "parleyMax")]
+    pub parley_max: i64,
+    #[serde(rename = "parleySpent")]
+    pub parley_spent: i64,
+    #[serde(rename = "parleyRefilled", default)]
+    pub parley_refilled: i64,
+    #[serde(rename = "barterLevelAtStart")]
+    pub barter_level_at_start: String,
+    #[serde(rename = "hasValuePackAtStart", default)]
+    pub has_value_pack_at_start: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub legacy: Option<bool>,
+}
+
+#[tauri::command]
+fn load_barter_route_log() -> Result<Vec<RouteLogEntry>, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_route_log.json");
+    load_json_with_recovery(&path, "route log", Vec::new)
+}
+
+#[tauri::command]
+fn save_barter_route_log(logs: Vec<RouteLogEntry>) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_route_log.json");
+
+    let content = serde_json::to_string_pretty(&logs)
+        .map_err(|e| format!("Failed to serialize route log: {}", e))?;
+
+    fs::write(&path, content).map_err(|e| format!("Failed to write route log: {}", e))?;
+
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PositionOverride {
+    pub x: f64,
+    pub y: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CustomNodeData {
+    pub id: String,
+    pub name: String,
+    pub tier: i32,
+    pub region: String,
+    pub x: f64,
+    pub y: f64,
+    #[serde(rename = "parleyCostKey")]
+    pub parley_cost_key: String,
+    #[serde(default = "default_true")]
+    pub custom: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct BarterMapLayoutData {
+    #[serde(rename = "schemaVersion", default, skip_serializing_if = "Option::is_none")]
+    pub schema_version: Option<u32>,
+    #[serde(rename = "positionOverrides", default)]
+    pub position_overrides: std::collections::HashMap<String, PositionOverride>,
+    #[serde(rename = "customNodes", default)]
+    pub custom_nodes: Vec<CustomNodeData>,
+}
+
+#[tauri::command]
+fn load_barter_map_layout() -> Result<BarterMapLayoutData, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_map_layout.json");
+    load_json_with_recovery(&path, "map layout", || BarterMapLayoutData {
+        schema_version: None,
+        position_overrides: std::collections::HashMap::new(),
+        custom_nodes: Vec::new(),
+    })
+}
+
+#[tauri::command]
+fn save_barter_map_layout(data: BarterMapLayoutData) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_map_layout.json");
+
+    let content = serde_json::to_string_pretty(&data)
+        .map_err(|e| format!("Failed to serialize map layout: {}", e))?;
+
+    fs::write(&path, content).map_err(|e| format!("Failed to write map layout: {}", e))?;
+
+    Ok(())
+}
+
+/// One-shot migration: if the legacy barter_log.json still exists, return its
+/// contents to the frontend (which folds them into the new route log) and
+/// rename the file to barter_log.legacy.json so it's never read again. Returns
+/// None if the file is already migrated or never existed.
+#[tauri::command]
+fn migrate_legacy_barter_log() -> Result<Option<Vec<BarterSessionEntry>>, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("barter_log.json");
+    if !path.exists() {
+        return Ok(None);
+    }
+    let content = match fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(e) => return Err(format!("Failed to read legacy barter log: {}", e)),
+    };
+    let sessions: Vec<BarterSessionEntry> = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => {
+            // Corrupt file — back it up and skip migration so the user isn't blocked
+            let backup = dir.join("barter_log.json.corrupt-migration");
+            let _ = fs::rename(&path, &backup);
+            eprintln!("Legacy barter log unparseable ({}); backed up.", e);
+            return Ok(None);
+        }
+    };
+    // Rename so we never re-read the legacy file
+    let archive = dir.join("barter_log.legacy.json");
+    fs::rename(&path, &archive)
+        .map_err(|e| format!("Failed to archive legacy barter log: {}", e))?;
+    Ok(Some(sessions))
+}
+
 // ============== Ship Progress Commands ==============
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -852,6 +1072,10 @@ fn clear_all_data() -> Result<(), String> {
         "treasure_progress.json",
         "barter_inventory.json",
         "barter_log.json",
+        "barter_log.legacy.json",
+        "barter_route_current.json",
+        "barter_route_log.json",
+        "barter_map_layout.json",
         "ship_progress.json",
         "sailor_roster.json",
         "weekly_tasks.json",
@@ -1048,6 +1272,13 @@ pub fn run() {
             save_barter_inventory,
             load_barter_log,
             save_barter_log,
+            load_barter_route_current,
+            save_barter_route_current,
+            load_barter_route_log,
+            save_barter_route_log,
+            load_barter_map_layout,
+            save_barter_map_layout,
+            migrate_legacy_barter_log,
             load_ship_progress,
             save_ship_progress,
             load_sailor_roster,
