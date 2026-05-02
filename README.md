@@ -46,12 +46,6 @@ A spatial map of all 90 official barter destinations rendered over the in-game s
 |---|---|
 | ![Profit dashboard](Screenshots/ProfitDashboard.png) | ![Settings](Screenshots/Settings.png) |
 
-### Overlay Modes
-
-| Mini mode | Medium mode |
-|---|---|
-| ![Mini mode](Screenshots/miniview.png) | ![Medium mode](Screenshots/mediumView.png) |
-
 ---
 
 ## What It Does
