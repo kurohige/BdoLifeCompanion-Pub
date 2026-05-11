@@ -17,6 +17,7 @@
 	import { toggleFavorite as toggleSettingsFavorite, settingsStore } from "$lib/stores/settings";
 	import { addCraftingSession } from "$lib/stores/crafting-log";
 	import { getMaterialExplanation } from "$lib/constants/materials";
+	import { m } from "$lib/paraglide/messages";
 
 	// Crafting logger state
 	let logCrafted = $state(1);
@@ -239,11 +240,11 @@
 	const usedInRecipes = $derived($selectedRecipeStore ? getUsedInRecipes($selectedRecipeStore) : []);
 </script>
 
-<div class="space-y-2">
+<div class="flex flex-col h-full min-h-0 gap-2">
 	<!-- Search and Filters -->
-	<div class="space-y-1">
+	<div class="space-y-1 flex-shrink-0">
 		<label for="search" class="text-[10px] font-bold neon-text-cyan">
-			Search Recipe or Ingredient
+			{m.crafting_search_label()}
 		</label>
 		<div class="relative">
 			<input
@@ -253,7 +254,7 @@
 				onfocus={() => (showSearchDropdown = true)}
 				onblur={() => setTimeout(() => (showSearchDropdown = false), 200)}
 				onkeydown={handleSearchKeyDown}
-				placeholder="Type recipe or ingredient name..."
+				placeholder={m.crafting_search_placeholder()}
 				role="combobox"
 				aria-expanded={showSearchDropdown && searchMatches.length > 0}
 				aria-autocomplete="list"
@@ -303,19 +304,19 @@
 		</div>
 		<label class="flex items-center gap-1 text-[10px] font-bold neon-text-cyan cursor-pointer">
 			<input type="checkbox" bind:checked={$showOnlyFavoritesStore} class="w-3 h-3" />
-			<span>Favorites Only</span>
+			<span>{m.crafting_favorites_only()}</span>
 		</label>
 	</div>
 
 	<!-- Recipe Selector -->
-	<div>
-		<label for="recipe-select" class="sr-only">Select Recipe</label>
+	<div class="flex-shrink-0">
+		<label for="recipe-select" class="sr-only">{m.crafting_select_recipe_sr()}</label>
 		<select
 			id="recipe-select"
 			bind:value={$selectedRecipeStore}
 			class="w-full bg-input text-foreground border border-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
 		>
-			<option value={null}>-- Select Recipe ({$filteredRecipesStore.length}) --</option>
+			<option value={null}>{m.crafting_select_recipe_option({ count: $filteredRecipesStore.length })}</option>
 			{#each $filteredRecipesStore as recipe (recipe.id)}
 				<option value={recipe}>{isFavorite(recipe.id) ? "★ " : ""}{recipe.name}</option>
 			{/each}
@@ -325,7 +326,8 @@
 	<!-- Selected Recipe Display -->
 	{#if $selectedRecipeStore}
 		{@const recipe = $selectedRecipeStore}
-		<div class="glass-card border-primary rounded p-2 neon-glow-purple">
+		<div class="flex flex-col flex-1 min-h-0 gap-2">
+		<div class="glass-card border-primary rounded p-2 neon-glow-purple flex-shrink-0">
 			<div class="flex gap-2">
 				<!-- Recipe Image -->
 				<div class="flex-shrink-0">
@@ -354,8 +356,8 @@
 						{recipe.name}
 					</h3>
 					<p class="text-xs neon-text-cyan">
-						Can craft: <span class="text-accent font-bold">{canCraft}</span>
-						<span class="text-muted-foreground">({ingredientCount} ingredients)</span>
+						{m.crafting_can_craft()} <span class="text-accent font-bold">{canCraft}</span>
+						<span class="text-muted-foreground">{m.crafting_ingredient_count({ count: ingredientCount })}</span>
 					</p>
 					{#if recipe.effect}
 						<p class="text-[10px] text-yellow-400 mt-0.5 leading-tight">{recipe.effect}{#if recipe.duration} <span class="text-muted-foreground">({recipe.duration})</span>{/if}</p>
@@ -378,16 +380,16 @@
 						)
 							? 'text-yellow-400'
 							: 'text-muted-foreground'}"
-						title={isFavorite(recipe.id) ? "Remove from favorites" : "Add to favorites"}
+						title={isFavorite(recipe.id) ? m.crafting_remove_favorite() : m.crafting_add_favorite()}
 					>
 						{isFavorite(recipe.id) ? "★" : "☆"}
 					</button>
 					<button
 						onclick={() => (showLogger = !showLogger)}
 						class="px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-primary hover:text-primary-foreground transition-colors"
-						title="Log crafting session"
+						title={m.crafting_log_session_title()}
 					>
-						{showLogger ? "Hide" : "Log"}
+						{showLogger ? m.crafting_btn_hide() : m.crafting_btn_log()}
 					</button>
 				</div>
 			</div>
@@ -397,7 +399,7 @@
 				<div class="mt-2 p-2 bg-secondary rounded border border-border space-y-2">
 					<div class="grid grid-cols-2 gap-1">
 						<div>
-							<label for="log-crafted" class="text-[10px] text-muted-foreground">Crafted</label>
+							<label for="log-crafted" class="text-[10px] text-muted-foreground">{m.crafting_logger_crafted()}</label>
 							<input
 								id="log-crafted"
 								type="text"
@@ -413,7 +415,7 @@
 							/>
 						</div>
 						<div>
-							<label for="log-yielded" class="text-[10px] text-muted-foreground">Yielded</label>
+							<label for="log-yielded" class="text-[10px] text-muted-foreground">{m.crafting_logger_yielded()}</label>
 							<input
 								id="log-yielded"
 								type="text"
@@ -433,16 +435,16 @@
 						onclick={handleLogSession}
 						class="w-full py-1 text-xs bg-accent text-accent-foreground font-bold rounded hover:opacity-80 transition-opacity"
 					>
-						Save & Consume
+						{m.crafting_logger_save()}
 					</button>
 				</div>
 			{/if}
 		</div>
 
 		<!-- Ingredients List -->
-		<div class="space-y-1">
-			<h4 class="text-[10px] font-bold neon-text-cyan">Ingredients (per craft)</h4>
-			<div class="space-y-1 max-h-[180px] overflow-auto">
+		<div class="space-y-1 flex-1 min-h-0 flex flex-col">
+			<h4 class="text-[10px] font-bold neon-text-cyan flex-shrink-0">{m.crafting_ingredients_header()}</h4>
+			<div class="space-y-1 flex-1 min-h-0 overflow-auto">
 				{#each recipe.ingredients as ingredient (ingredient.itemId)}
 					{@const item = $activeCatalogStore?.itemFor(ingredient.itemId)}
 					{@const available = $inventoryStore.get(ingredient.itemId.toLowerCase()) ?? 0}
@@ -480,7 +482,7 @@
 							<div class="flex items-center gap-1">
 								<p class="font-medium text-xs truncate">{item?.name ?? ingredient.itemId}</p>
 								{#if ingredientHasRecipe}
-									<span class="text-primary text-xs" title="Double-click to view recipe">⚗️</span>
+									<span class="text-primary text-xs" title={m.crafting_double_click_recipe()}>⚗️</span>
 								{/if}
 								{#if materialExplanation}
 									<span class="text-accent text-xs" title={materialExplanation}>ℹ️</span>
@@ -524,9 +526,9 @@
 
 		<!-- Used In Section -->
 		{#if usedInRecipes.length > 0}
-			<div class="space-y-1">
-				<h4 class="text-[10px] font-bold neon-text-purple">Used In ({usedInRecipes.length})</h4>
-				<div class="flex flex-wrap gap-1 max-h-[60px] overflow-auto">
+			<div class="space-y-1 flex-shrink-0">
+				<h4 class="text-[10px] font-bold neon-text-purple">{m.crafting_used_in({ count: usedInRecipes.length })}</h4>
+				<div class="flex flex-wrap gap-1 max-h-[80px] overflow-auto">
 					{#each usedInRecipes as { recipe: usedRecipe, category } (usedRecipe.id)}
 						<button
 							onclick={() => {
@@ -555,12 +557,13 @@
 				</div>
 			</div>
 		{/if}
+		</div>
 	{:else}
 		<div class="text-center py-6 text-muted-foreground">
-			<img src="/icons/crafting.png" alt="Crafting" class="w-8 h-8 mx-auto mb-1 opacity-60" />
-			<p class="text-sm">Select a recipe to view ingredients</p>
+			<img src="/icons/crafting.png" alt={m.crafting_alt_image()} class="w-8 h-8 mx-auto mb-1 opacity-60" />
+			<p class="text-sm">{m.crafting_select_to_view()}</p>
 			<p class="text-xs mt-1">
-				{$filteredRecipesStore.length} recipes available
+				{m.crafting_recipes_available({ count: $filteredRecipesStore.length })}
 			</p>
 		</div>
 	{/if}

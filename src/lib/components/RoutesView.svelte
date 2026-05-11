@@ -35,6 +35,7 @@
 	import TierBadge from "./ui/TierBadge.svelte";
 	import { formatSilverShort } from "$lib/constants/chart-theme";
 	import type { IslandNode as IslandNodeType } from "$lib/models/bartering";
+	import { m } from "$lib/paraglide/messages";
 
 	// ==================== Map state ====================
 
@@ -82,15 +83,22 @@
 	let lastNodeId = $derived(visitOrder.at(-1) ?? null);
 
 	// Sync the derived data into the SvelteFlow nodes/edges arrays.
+	// zIndex tier — labels live below the dot, so nodes with visible labels need to win
+	// the cross-node stacking battle (xyflow renders nodes as DOM siblings; default
+	// z-index draws them in DOM order, which is why visited labels were randomly
+	// landing under adjacent dots).
 	$effect(() => {
 		nodes = effectiveNodes.map((n) => {
+			const count = counts[n.id] ?? 0;
+			const isOpen = $routeOpenNodeStore === n.id;
+			const isLast = lastNodeId === n.id;
 			const data: IslandNodeData = {
 				name: n.name,
 				tier: n.tier,
 				region: n.region,
-				count: counts[n.id] ?? 0,
-				isLast: lastNodeId === n.id,
-				isOpen: $routeOpenNodeStore === n.id,
+				count,
+				isLast,
+				isOpen,
 				isCustom: "custom" in n && (n as { custom?: boolean }).custom === true,
 				onSelect: () => routeOpenNodeStore.set(n.id),
 			};
@@ -102,6 +110,7 @@
 				draggable: false,
 				selectable: false,
 				connectable: false,
+				zIndex: isOpen ? 200 : isLast ? 150 : count > 0 ? 100 : 1,
 			};
 		});
 
@@ -166,7 +175,7 @@
 			clearRoute();
 			return;
 		}
-		if (confirm("Clear current route? This cannot be undone.")) {
+		if (confirm(m.bartering_routes_clear_confirm())) {
 			clearRoute();
 		}
 	}
@@ -193,15 +202,14 @@
 
 	function onRefill() {
 		const result = refillParley(refillAmount);
+		const applied = (result.applied / 1000).toFixed(0);
+		const capped = (result.capped / 1000).toFixed(0);
 		if (result.applied <= 0 && result.capped > 0) {
-			showToast("Parley already at cap", "info");
+			showToast(m.bartering_routes_toast_cap(), "info");
 		} else if (result.capped > 0) {
-			showToast(
-				`+${(result.applied / 1000).toFixed(0)}K applied (${(result.capped / 1000).toFixed(0)}K capped)`,
-				"info"
-			);
+			showToast(m.bartering_routes_toast_capped({ applied, capped }), "info");
 		} else {
-			showToast(`+${(result.applied / 1000).toFixed(0)}K parley`, "success");
+			showToast(m.bartering_routes_toast_added({ applied }), "success");
 		}
 		refillOpen = false;
 	}
@@ -244,17 +252,17 @@
 			class:running={isRunning}
 			onclick={toggleRunning}
 			disabled={!$currentRouteStore}
-			aria-label={isRunning ? "Pause route timer" : "Resume route timer"}
+			aria-label={isRunning ? m.bartering_routes_timer_pause() : m.bartering_routes_timer_resume()}
 		>
 			{isRunning ? "❚❚" : "▶"}
 		</button>
 		<div class="timer-info">
-			<span class="timer-label">ROUTE</span>
+			<span class="timer-label">{m.bartering_routes_timer_label()}</span>
 			<span class="timer-clock font-mono">{fmtTime(timerSeconds)}</span>
 			<span class="timer-rate font-mono">{formatSilverShort(silverPerHr)}/h</span>
 		</div>
 		<button type="button" class="strip-btn" onclick={onReset} disabled={!$currentRouteStore}>
-			RESET
+			{m.bartering_routes_btn_reset()}
 		</button>
 		<button
 			type="button"
@@ -262,7 +270,7 @@
 			onclick={onLogRoute}
 			disabled={!$currentRouteStore || trades.length === 0}
 		>
-			LOG ROUTE
+			{m.bartering_routes_btn_log()}
 		</button>
 	</div>
 
@@ -313,15 +321,15 @@
 	<!-- Parley bar -->
 	<div class="parley-strip glass-card">
 		<div class="parley-row">
-			<span class="parley-label">PARLEY</span>
+			<span class="parley-label">{m.bartering_routes_parley_label()}</span>
 			<span class="parley-amount font-mono" class:low={parleyPct < 25}>
 				{Math.round(parleyRem / 1000)}K <span class="opacity-60">/ 1.0M</span>
 			</span>
 			{#if parleyRefilled > 0}
-				<span class="parley-refilled font-mono">+{Math.round(parleyRefilled / 1000)}K refilled</span>
+				<span class="parley-refilled font-mono">{m.bartering_routes_refilled_suffix({ amount: Math.round(parleyRefilled / 1000) })}</span>
 			{/if}
 			<button type="button" class="refill-btn" onclick={() => (refillOpen = !refillOpen)}>
-				+ REFILL
+				{m.bartering_routes_btn_refill()}
 			</button>
 		</div>
 		<div class="parley-bar">
@@ -334,7 +342,7 @@
 		{#if refillOpen}
 			<div class="refill-pop glass-card">
 				<label class="refill-label">
-					Amount
+					{m.bartering_routes_refill_amount()}
 					<input
 						type="number"
 						min="1"
@@ -349,7 +357,7 @@
 						</button>
 					{/each}
 				</div>
-				<button type="button" class="refill-confirm" onclick={onRefill}>APPLY</button>
+				<button type="button" class="refill-confirm" onclick={onRefill}>{m.bartering_routes_refill_apply()}</button>
 			</div>
 		{/if}
 	</div>
@@ -357,14 +365,14 @@
 	<!-- Ledger -->
 	<div class="ledger glass-card">
 		<div class="ledger-head">
-			<span class="ledger-title">TRADE LEDGER · {trades.length}</span>
+			<span class="ledger-title">{m.bartering_routes_ledger_title({ count: trades.length })}</span>
 			{#if trades.length > 0}
 				<span class="ledger-total font-mono">{formatSilverShort(totalSilver)}</span>
 			{/if}
 		</div>
 		<div class="ledger-rows">
 			{#if trades.length === 0}
-				<div class="ledger-empty">Click an island on the map to add a trade</div>
+				<div class="ledger-empty">{m.bartering_routes_ledger_empty()}</div>
 			{:else}
 				{#each reversedTrades as trade (trade.id)}
 					{@const node = nodeById.get(trade.nodeId)}
@@ -384,7 +392,7 @@
 							type="button"
 							class="row-remove"
 							onclick={() => removeTrade(trade.id)}
-							aria-label="Remove trade"
+							aria-label={m.bartering_routes_remove_trade()}
 						>×</button>
 					</div>
 				{/each}
@@ -488,6 +496,12 @@
 	.map-shell :global(.svelte-flow__edge-path) {
 		stroke: var(--secondary);
 		stroke-width: 1.5;
+	}
+	/* Elevate hovered node above its neighbors so the hover label is never clipped
+	   by an adjacent dot. Per-node zIndex (set in the $effect above) handles the
+	   visited / open / last cases; this catches hover on unvisited nodes. */
+	.map-shell :global(.svelte-flow__node:hover) {
+		z-index: 300 !important;
 	}
 	.map-underlay-wrap {
 		position: absolute;

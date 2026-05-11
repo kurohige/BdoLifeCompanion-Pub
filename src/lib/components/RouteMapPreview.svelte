@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { islandsDataStore, barterMapLayoutStore } from "$lib/stores";
 	import type { IslandNode } from "$lib/models/bartering";
+	import { m } from "$lib/paraglide/messages";
 
 	interface Props {
 		visitedNodeIds: string[];
@@ -74,7 +75,7 @@
 		viewBox="{viewBox.x} {viewBox.y} {viewBox.w} {viewBox.h}"
 		preserveAspectRatio="xMidYMid meet"
 		role="img"
-		aria-label="Route map ({visitedNodes.length} stops)"
+		aria-label={m.route_map_aria({ stops: visitedNodes.length })}
 	>
 		{#if visitedNodes.length > 1}
 			<polyline

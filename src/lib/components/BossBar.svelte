@@ -7,6 +7,7 @@
 		getBossNames,
 	} from "$lib/stores";
 	import { BOSSES } from "$lib/constants/boss-data";
+	import { m } from "$lib/paraglide/messages";
 
 	// Next upcoming boss
 	const next = $derived($nextBossSpawn);
@@ -26,7 +27,7 @@
 	{#if next || $previousBossSpawn}
 		<!-- Previous spawn (past, dim) — left -->
 		{#if $previousBossSpawn}
-			<div class="flex items-center gap-1.5 flex-shrink-0 opacity-60 min-w-0" title="Most recent spawn">
+			<div class="flex items-center gap-1.5 flex-shrink-0 opacity-60 min-w-0" title={m.medium_recent_spawn_title()}>
 				<div class="flex -space-x-1 flex-shrink-0">
 					{#each $previousBossSpawn.spawn.bosses.slice(0, 2) as bossId}
 						{@const boss = BOSSES[bossId]}

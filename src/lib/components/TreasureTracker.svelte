@@ -8,6 +8,7 @@
 		type TreasureDefinition,
 		type PieceProgress,
 	} from "$lib/stores";
+	import { m } from "$lib/paraglide/messages";
 
 	// Build a Map<pieceId, PieceProgress> for O(1) lookups
 	const progressMap = $derived(
@@ -83,7 +84,7 @@
 	function handleToggleObtained(pieceId: string, treasureId: string) {
 		const prog = getPieceProgress(pieceId);
 		if (prog.obtained) {
-			if (confirm("Unmark this piece as obtained?")) {
+			if (confirm(m.treasure_unmark_confirm())) {
 				unmarkPieceObtained(pieceId, treasureId);
 			}
 		} else {
@@ -101,55 +102,55 @@
 		}
 	}
 
-	// Type badge styling
-	function typeBadge(type: "grind" | "craft" | "exchange"): { label: string; classes: string } {
+	// Type badge styling — labels resolved as thunks for live re-translation
+	function typeBadge(type: "grind" | "craft" | "exchange"): { label: () => string; classes: string } {
 		switch (type) {
 			case "grind":
-				return { label: "Grind", classes: "bg-accent/20 text-accent" };
+				return { label: () => m.treasure_type_grind(), classes: "bg-accent/20 text-accent" };
 			case "craft":
-				return { label: "Craft", classes: "bg-primary/20 text-primary" };
+				return { label: () => m.treasure_type_craft(), classes: "bg-primary/20 text-primary" };
 			case "exchange":
-				return { label: "Exchange", classes: "bg-cyan/20 text-cyan" };
+				return { label: () => m.treasure_type_exchange(), classes: "bg-cyan/20 text-cyan" };
 		}
 	}
 </script>
 
-<div class="space-y-3">
+<div class="flex flex-col h-full min-h-0 gap-3">
 	{#if !$treasureDataStore}
 		<div class="text-center py-6 text-muted-foreground text-[11px]">
-			<p class="text-2xl mb-1">Loading...</p>
+			<p class="text-2xl mb-1">{m.treasure_loading()}</p>
 		</div>
 	{:else}
 		<!-- Overall Stats Bar -->
-		<div class="grid grid-cols-4 gap-2">
+		<div class="grid grid-cols-4 gap-2 flex-shrink-0">
 			<div class="glass-stats p-2 text-center">
 				<p class="text-lg font-bold neon-text-cyan">
 					{overallStats().obtained}/{overallStats().total}
 				</p>
-				<p class="text-[9px] text-muted-foreground">Pieces</p>
+				<p class="text-[9px] text-muted-foreground">{m.treasure_stat_pieces()}</p>
 			</div>
 			<div class="glass-stats p-2 text-center">
 				<p class="text-lg font-bold neon-text-purple">
 					{overallStats().totalHours.toFixed(1)}h
 				</p>
-				<p class="text-[9px] text-muted-foreground">Total Hours</p>
+				<p class="text-[9px] text-muted-foreground">{m.treasure_stat_total_hours()}</p>
 			</div>
 			<div class="glass-stats p-2 text-center">
 				<p class="text-lg font-bold text-foreground">
 					{overallStats().avgHours.toFixed(1)}h
 				</p>
-				<p class="text-[9px] text-muted-foreground">Avg / Piece</p>
+				<p class="text-[9px] text-muted-foreground">{m.treasure_stat_avg_piece()}</p>
 			</div>
 			<div class="glass-stats p-2 text-center">
 				<p class="text-lg font-bold text-accent">
 					~{overallStats().remaining.toFixed(0)}h
 				</p>
-				<p class="text-[9px] text-muted-foreground">Est. Left</p>
+				<p class="text-[9px] text-muted-foreground">{m.treasure_stat_est_left()}</p>
 			</div>
 		</div>
 
 		<!-- Treasure Cards -->
-		<div class="space-y-2 max-h-[400px] overflow-auto">
+		<div class="space-y-2 flex-1 min-h-0 overflow-auto">
 			{#each $treasureDataStore.treasures as treasure (treasure.id)}
 				{@const stats = getTreasureStats(treasure)}
 				{@const isExpanded = expandedTreasures.has(treasure.id)}
@@ -174,7 +175,7 @@
 						<!-- Complete Badge -->
 						{#if isComplete}
 							<span class="px-1.5 py-0.5 text-[9px] font-bold bg-accent/20 text-accent rounded">
-								Complete!
+								{m.treasure_complete_badge()}
 							</span>
 						{/if}
 
@@ -204,7 +205,7 @@
 									<button
 										onclick={() => handleToggleObtained(piece.id, treasure.id)}
 										class="w-4 h-4 flex items-center justify-center rounded border {prog.obtained ? 'bg-accent border-accent text-black' : 'border-border hover:border-primary'} transition-colors flex-shrink-0"
-										title={prog.obtained ? "Unmark obtained" : "Mark as obtained"}
+										title={prog.obtained ? m.treasure_unmark_obtained() : m.treasure_mark_obtained()}
 									>
 										{#if prog.obtained}
 											<svg viewBox="0 0 24 24" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -239,7 +240,7 @@
 											oninput={(e) => handleHoursChange(piece.id, treasure.id, e.currentTarget.value)}
 											class="w-14 bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[10px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner flex-shrink-0"
 										/>
-										<span class="text-[9px] text-muted-foreground flex-shrink-0">h</span>
+										<span class="text-[9px] text-muted-foreground flex-shrink-0">{m.treasure_hours_suffix()}</span>
 									{:else}
 										<span class="w-14 flex-shrink-0"></span>
 										<span class="text-[9px] text-muted-foreground flex-shrink-0 w-1.5"></span>
@@ -247,7 +248,7 @@
 
 									<!-- Type Badge -->
 									<span class="px-1.5 py-0.5 text-[8px] font-bold rounded flex-shrink-0 {badge.classes}">
-										{badge.label}
+										{badge.label()}
 									</span>
 
 									<!-- Obtained Date -->
@@ -263,12 +264,12 @@
 
 							<!-- Card Footer Stats -->
 							<div class="flex items-center justify-center gap-4 px-3 py-1.5 bg-secondary/30 text-[9px] text-muted-foreground">
-								<span>{stats.totalHours.toFixed(1)}h total</span>
+								<span>{m.treasure_footer_total({ hours: stats.totalHours.toFixed(1) })}</span>
 								<span class="text-border">|</span>
-								<span>{stats.avgHours.toFixed(1)}h avg</span>
+								<span>{m.treasure_footer_avg({ hours: stats.avgHours.toFixed(1) })}</span>
 								{#if stats.obtained < stats.total && stats.obtained > 0}
 									<span class="text-border">|</span>
-									<span>~{stats.remaining.toFixed(0)}h est. left</span>
+									<span>{m.treasure_footer_remaining({ hours: stats.remaining.toFixed(0) })}</span>
 								{/if}
 							</div>
 						</div>
@@ -282,7 +283,7 @@
 	{#if $treasureDataStore && $treasureDataStore.treasures.length === 0}
 		<div class="text-center py-8 text-muted-foreground text-[11px]">
 			<p class="text-2xl mb-1">💎</p>
-			<p>No treasure data available</p>
+			<p>{m.treasure_no_data()}</p>
 		</div>
 	{/if}
 </div>

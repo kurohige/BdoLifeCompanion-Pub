@@ -13,6 +13,7 @@
 	} from "$lib/stores";
 	import { BOSSES } from "$lib/constants/boss-data";
 	import { fmt24, fmt12, fmtServer, fmtServer12 } from "$lib/utils/time";
+	import { m } from "$lib/paraglide/messages";
 
 	const appWindow = getCurrentWindow();
 
@@ -103,7 +104,7 @@
 		<button
 			onclick={expandToFull}
 			class="mini-boss-circle"
-			title="Expand to full"
+			title={m.mini_expand_full()}
 		>
 			{#if primaryBoss}
 				<img
@@ -124,7 +125,7 @@
 				<span class="mini-label truncate max-w-[100px]">{bossNames}</span>
 				<span class="mini-timer">{$nextBossCountdown}</span>
 			{:else}
-				<span class="mini-muted">No boss</span>
+				<span class="mini-muted">{m.mini_no_boss()}</span>
 			{/if}
 		</div>
 	</div>
@@ -147,13 +148,13 @@
 	<div class="mini-right">
 		{#if showClocks}
 			<div class="mini-divider mini-divider-clock"></div>
-			<div class="mini-clock-cluster" title="Local · Server (UTC)">
+			<div class="mini-clock-cluster" title={m.mini_clock_cluster_title()}>
 				<div class="mini-clock-row">
-					<span class="mini-clock-label">LOCAL</span>
+					<span class="mini-clock-label">{m.mini_local_label()}</span>
 					<span class="mini-clock-time">{localTime}</span>
 				</div>
 				<div class="mini-clock-row">
-					<span class="mini-clock-label">SVR</span>
+					<span class="mini-clock-label">{m.mini_server_label()}</span>
 					<span class="mini-clock-time mini-clock-time-svr">{serverTime}</span>
 				</div>
 			</div>
@@ -161,16 +162,16 @@
 
 		<!-- CONTROLS CLUSTER -->
 		<div class="mini-controls">
-			<button onclick={minimize} class="mini-btn" title="Minimize">
+			<button onclick={minimize} class="mini-btn" title={m.chrome_titlebar_minimize_title()}>
 				<span class="text-[11px]">&#x2014;</span>
 			</button>
-			<button onclick={expandToMedium} class="mini-btn" title="Medium mode">
+			<button onclick={expandToMedium} class="mini-btn" title={m.chrome_titlebar_medium_mode_title()}>
 				<span class="text-[9px] font-bold">[+]</span>
 			</button>
-			<button onclick={expandToFull} class="mini-btn" title="Full mode">
+			<button onclick={expandToFull} class="mini-btn" title={m.mini_full_mode_title()}>
 				<span class="text-[11px]">&#x229E;</span>
 			</button>
-			<button onclick={close} class="mini-btn mini-btn-close" title="Close">
+			<button onclick={close} class="mini-btn mini-btn-close" title={m.chrome_titlebar_close_title()}>
 				<span class="text-[11px]">&#x2715;</span>
 			</button>
 		</div>

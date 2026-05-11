@@ -20,7 +20,7 @@
 	import SettingsView from "$lib/components/SettingsView.svelte";
 	import AnnouncementCarousel from "$lib/components/AnnouncementCarousel.svelte";
 	import BossBar from "$lib/components/BossBar.svelte";
-	import HexBackground from "$lib/components/HexBackground.svelte";
+	import NotesPanel from "$lib/components/NotesPanel.svelte";
 	import ToastContainer from "$lib/components/ToastContainer.svelte";
 	// Tabs import removed — using side nav with direct state switching
 	import { onMount, onDestroy } from "svelte";
@@ -57,6 +57,8 @@
 		loadSailorRoster,
 		loadWeeklyTasksData,
 		loadWeeklyTasksProgress,
+		loadNotesData,
+		flushNotes,
 		initAppVersion,
 		appVersionStore,
 		navigateToRecipeStore,
@@ -73,12 +75,18 @@
 		initAnnouncements,
 		fetchAnnouncements,
 		stopAnnouncementPolling,
+		notesPanelOpenStore,
+		setReminderFireCallback,
+		startReminderTick,
+		stopReminderTick,
+		showToast,
 		type ActiveTab,
 		type AppTheme,
 		type FontFamily,
 		type FontSize,
 	} from "$lib/stores";
 	import { playBossAlert } from "$lib/utils/audio";
+	import { m } from "$lib/paraglide/messages";
 
 	const appWindow = getCurrentWindow();
 
@@ -185,6 +193,7 @@
 				loadSailorRoster(),
 				loadWeeklyTasksData(),
 				loadWeeklyTasksProgress(),
+				loadNotesData(),
 				initAppVersion(),
 			]);
 
@@ -195,7 +204,7 @@
 			// so no `??` fallbacks needed here.
 			unsubscribeSettings = settingsStore.subscribe((settings) => {
 				document.documentElement.style.setProperty("--app-opacity", String(settings.transparency));
-				applyTheme(settings.theme);
+				applyTheme(settings.theme, settings.theme_overrides?.[settings.theme]);
 				applyFontSettings(settings.font_family, settings.font_bold, settings.font_size);
 				appWindow.setAlwaysOnTop(settings.always_on_top).catch((e) => {
 					console.warn("Failed to set always-on-top:", e);
@@ -247,6 +256,15 @@
 			// Start boss countdown timer
 			startBossTimer();
 
+			// Wire reminder firing: toast + reuse the boss-alert sound. The store
+			// only invokes this when a reminder's `when` time has arrived and
+			// `fired` is still false. One-shot — see notes store.
+			setReminderFireCallback((r) => {
+				showToast(m.notes_reminder_fired({ title: r.title }), "info", 6000);
+				void playBossAlert();
+			});
+			startReminderTick();
+
 			// Initialize announcements (loads cache, then fetches if URL set)
 			initAnnouncements();
 
@@ -278,6 +296,7 @@
 				}
 				await persistWindowState();
 				await flushSettings();
+				await flushNotes();
 			});
 
 			loading = false;
@@ -289,6 +308,7 @@
 
 	onDestroy(() => {
 		stopBossTimer();
+		stopReminderTick();
 		cleanupGrindingTimer();
 		stopAnnouncementPolling();
 		unlistenClickThrough?.();
@@ -331,7 +351,7 @@
 		// Fire alert when we cross below the threshold for a new spawn
 		if (next.remainingMs <= thresholdMs && lastAlertedSpawnTime !== spawnTime) {
 			lastAlertedSpawnTime = spawnTime;
-			playBossAlert();
+			void playBossAlert();
 			// Piggyback: also refresh announcements on boss alert
 			fetchAnnouncements();
 		}
@@ -403,10 +423,6 @@
 		<MediumMode />
 	</div>
 {:else}
-	{#if $settingsStore.animations_enabled}
-		<HexBackground />
-	{/if}
-
 	<!-- Full Mode — Obsidian HUD layout -->
 	<div class="flex flex-col h-screen overflow-hidden relative z-[1]">
 		<!-- Title Bar -->
@@ -428,14 +444,14 @@
 			{#if !loading && !error}
 				<nav class="w-9 backdrop-blur-md flex flex-col items-center py-3 gap-3 z-30 flex-shrink-0" style="background: rgba(14, 14, 14, 0.3);">
 					{#each [
-						{ id: "crafting", label: "Crafting", img: "/icons/crafting.png" },
-						{ id: "timer", label: "Grinding", img: "/icons/grinding.png" },
-						{ id: "bartering", label: "Bartering", img: "/icons/bartering.png" },
-						{ id: "inventory", label: "Inventory", img: "/icons/inventory.png" },
-						{ id: "weekly", label: "Weekly", img: "/icons/weekly.png" },
-						{ id: "log", label: "Dashboard", img: "/icons/dashboard.png" },
-						{ id: "settings", label: "Settings", img: "/icons/settings.png" },
-						{ id: "about", label: "About", img: "/icons/about.png", glow: "neon" },
+						{ id: "crafting", label: m.nav_crafting(), img: "/icons/crafting.png" },
+						{ id: "timer", label: m.nav_grinding(), img: "/icons/grinding.png" },
+						{ id: "bartering", label: m.nav_bartering(), img: "/icons/bartering.png" },
+						{ id: "inventory", label: m.nav_inventory(), img: "/icons/inventory.png" },
+						{ id: "weekly", label: m.nav_weekly(), img: "/icons/weekly.png" },
+						{ id: "log", label: m.nav_dashboard(), img: "/icons/dashboard.png" },
+						{ id: "settings", label: m.nav_settings(), img: "/icons/settings.png" },
+						{ id: "about", label: m.nav_about(), img: "/icons/about.png", glow: "neon" },
 					] as tab}
 						<button
 							onclick={() => { activeTab = tab.id; activeTabStore.set(tab.id as ActiveTab); }}
@@ -450,10 +466,24 @@
 
 			<!-- Main Content Area -->
 			<main class="flex-1 flex flex-col overflow-hidden min-w-0">
-				<!-- Announcement ticker (compact marquee) -->
+				<!-- Announcement ticker (compact marquee) + Note trigger -->
 				{#if !loading}
-					<div class="flex-shrink-0 px-2 pt-1">
-						<AnnouncementCarousel compact />
+					<div class="flex-shrink-0 px-2 pt-1 flex items-center gap-2">
+						<div class="flex-1 min-w-0">
+							<AnnouncementCarousel compact />
+						</div>
+						<button
+							type="button"
+							class="note-trigger"
+							onclick={() => notesPanelOpenStore.set(!$notesPanelOpenStore)}
+							title={m.notes_button_title()}
+						>
+							<svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+								<path d="M2.5 2h6.5l3 3v7H2.5z" stroke="currentColor" stroke-width="1.2" />
+								<path d="M9 2v3h3" stroke="currentColor" stroke-width="1.2" />
+							</svg>
+							<span>{m.notes_button_label()}</span>
+						</button>
 					</div>
 				{/if}
 
@@ -461,18 +491,18 @@
 				<div class="flex-1 overflow-auto p-2 flex flex-col min-h-0">
 					{#if loading}
 						<div class="text-center py-8">
-							<p class="obsidian-timer text-sm">Loading...</p>
-							<p class="text-[#b0a4b4] text-xs mt-1">Loading recipes and inventory...</p>
+							<p class="obsidian-timer text-sm">{m.chrome_loading()}</p>
+							<p class="text-[#b0a4b4] text-xs mt-1">{m.chrome_loading_subtitle()}</p>
 						</div>
 					{:else if error}
 						<div class="text-center py-8">
-							<p class="text-destructive text-sm">Error</p>
+							<p class="text-destructive text-sm">{m.chrome_error()}</p>
 							<p class="text-[#b0a4b4] text-xs mt-1">{error}</p>
 						</div>
 					{:else}
 						<!-- Crafting -->
 						{#if activeTab === "crafting"}
-							<div class="glass-panel p-2 obsidian-accent {craftingSubTab === 'planner' ? 'flex-1 flex flex-col min-h-0' : ''}">
+							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
 								<!-- Sub-tabs: pill style (sticky) -->
 								<div class="flex gap-2 mb-2 sticky top-0 z-10 backdrop-blur-sm py-1 -mx-2 px-2 items-center justify-center flex-shrink-0">
 									{#each [
@@ -491,36 +521,36 @@
 									{/each}
 								</div>
 
-								{#if craftingSubTab === "planner"}
-									<div class="flex-1 flex flex-col min-h-0">
+								<div class="flex-1 flex flex-col min-h-0">
+									{#if craftingSubTab === "planner"}
 										<CraftingPlanner />
-									</div>
-								{:else}
-									<CraftingView />
-								{/if}
+									{:else}
+										<CraftingView />
+									{/if}
+								</div>
 							</div>
 
 						<!-- Inventory -->
 						{:else if activeTab === "inventory"}
-							<div class="glass-panel p-2 obsidian-accent">
+							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
 								<InventoryView />
 							</div>
 
 						<!-- Dashboard -->
 						{:else if activeTab === "log"}
-							<div class="glass-panel p-2 obsidian-accent">
+							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
 								<DashboardView />
 							</div>
 
 						<!-- Grinding -->
 						{:else if activeTab === "timer"}
-							<div class="glass-panel p-2 obsidian-accent">
+							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
 								<!-- Sub-tabs: underline style (sticky) -->
-								<div class="flex gap-4 mb-2 border-b border-outline-variant/10 sticky top-0 z-10 backdrop-blur-sm py-1 -mx-2 px-2">
+								<div class="flex gap-4 mb-2 border-b border-outline-variant/10 sticky top-0 z-10 backdrop-blur-sm py-1 -mx-2 px-2 flex-shrink-0">
 									{#each [
-										{ id: "tracker", label: "Tracker" },
-										{ id: "treasures", label: "Treasures" },
-										{ id: "hunting", label: "Hunting" },
+										{ id: "tracker", label: m.grinding_subtab_tracker() },
+										{ id: "treasures", label: m.grinding_subtab_treasures() },
+										{ id: "hunting", label: m.grinding_subtab_hunting() },
 									] as sub}
 										<button
 											onclick={() => grindingSubTab = sub.id as "tracker" | "treasures" | "hunting"}
@@ -534,36 +564,38 @@
 									{/each}
 								</div>
 
-								{#if grindingSubTab === "tracker"}
-									<GrindingTracker />
-								{:else if grindingSubTab === "treasures"}
-									<TreasureTracker />
-								{:else}
-									<HuntingTracker />
-								{/if}
+								<div class="flex-1 flex flex-col min-h-0">
+									{#if grindingSubTab === "tracker"}
+										<GrindingTracker />
+									{:else if grindingSubTab === "treasures"}
+										<TreasureTracker />
+									{:else}
+										<HuntingTracker />
+									{/if}
+								</div>
 							</div>
 
 						<!-- Bartering -->
 						{:else if activeTab === "bartering"}
-							<div class="glass-panel p-2 obsidian-accent">
+							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
 								<BarteringView />
 							</div>
 
 						<!-- Weekly Tasks -->
 						{:else if activeTab === "weekly"}
-							<div class="glass-panel p-2 obsidian-accent">
+							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
 								<WeeklyTasksView />
 							</div>
 
 						<!-- Settings -->
 						{:else if activeTab === "settings"}
-							<div class="glass-panel p-2 obsidian-accent">
+							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
 								<SettingsView />
 							</div>
 
 						<!-- About -->
 						{:else if activeTab === "about"}
-							<div class="glass-panel p-2 obsidian-accent">
+							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
 								<AboutView />
 							</div>
 						{/if}
@@ -580,6 +612,11 @@
 {/if}
 </div>
 {/key}
+
+{#if $viewModeStore === "full" && !loading}
+	<NotesPanel />
+{/if}
+
 <ToastContainer />
 
 <style>
@@ -591,5 +628,28 @@
 	@keyframes click-through-pulse {
 		0%, 100% { border-color: hsl(var(--accent) / 0.3); }
 		50% { border-color: hsl(var(--accent) / 0.8); }
+	}
+
+	.note-trigger {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 3px 9px;
+		font-family: var(--font-display);
+		font-size: 10px;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: #bdf4ff;
+		background: rgba(189, 244, 255, 0.06);
+		border: 1px solid rgba(189, 244, 255, 0.4);
+		border-radius: 3px;
+		cursor: pointer;
+		flex-shrink: 0;
+		transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+	}
+	.note-trigger:hover {
+		background: rgba(189, 244, 255, 0.12);
+		border-color: rgba(189, 244, 255, 0.65);
+		box-shadow: 0 0 6px rgba(189, 244, 255, 0.25);
 	}
 </style>

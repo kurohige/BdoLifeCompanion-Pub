@@ -3,7 +3,26 @@
  */
 
 import { writable, get } from "svelte/store";
-import { loadSettings, saveSettings, DEFAULT_SETTINGS, type AppSettings, type AppTheme, type FontFamily, type FontSize, type WindowState } from "$lib/services/persistence";
+import { loadSettings, saveSettings, DEFAULT_SETTINGS, type AppSettings, type AppTheme, type FontFamily, type FontSize, type Locale, type NotesDockSide, type ThemeOverrides, type WindowState } from "$lib/services/persistence";
+import { locale as osLocale } from "@tauri-apps/plugin-os";
+import { setCurrentLocale } from "$lib/i18n/locale.svelte";
+
+/**
+ * Resolve the user's preferred locale. Empty string in settings.locale means
+ * "never resolved yet" — query the OS via tauri-plugin-os and pick "es" if
+ * the system locale starts with es, else fall back to "en". The result gets
+ * persisted in the same initSettings pass so the empty branch only fires once
+ * per install.
+ */
+async function resolveSystemLocale(): Promise<Locale> {
+	try {
+		const sys = await osLocale();
+		if (sys && sys.toLowerCase().startsWith("es")) return "es";
+	} catch (error) {
+		console.warn("Failed to read system locale, defaulting to en:", error);
+	}
+	return "en";
+}
 
 // Life Skill Rank options (Beginner 1 - Guru 72)
 export const LIFE_SKILL_RANKS = [
@@ -76,10 +95,29 @@ export async function initSettings(): Promise<void> {
 		if (!settings.font_family) settings.font_family = "system";
 		if (!settings.font_size) settings.font_size = "default";
 		if (typeof settings.always_on_top !== "boolean") settings.always_on_top = true;
-		if (typeof settings.animations_enabled !== "boolean") settings.animations_enabled = true;
 		if (typeof settings.font_bold !== "boolean") settings.font_bold = false;
+		if (typeof settings.boss_sound_custom_name !== "string") settings.boss_sound_custom_name = "";
 		if (typeof settings.mini_show_clocks !== "boolean") settings.mini_show_clocks = true;
 		if (typeof settings.clock_format_24h !== "boolean") settings.clock_format_24h = true;
+		if (settings.notes_panel_dock_side !== "left" && settings.notes_panel_dock_side !== "right") {
+			settings.notes_panel_dock_side = "right";
+		}
+		// Older settings.json may predate theme_overrides — fill the slot so
+		// every UI consumer can read settings.theme_overrides[theme] without
+		// optional-chaining everywhere.
+		if (!settings.theme_overrides || typeof settings.theme_overrides !== "object") {
+			settings.theme_overrides = { obsidian: {}, light: {} };
+		}
+		if (!settings.theme_overrides.obsidian) settings.theme_overrides.obsidian = {};
+		if (!settings.theme_overrides.light) settings.theme_overrides.light = {};
+		// First-run locale detection: empty string from Rust means never set.
+		// Resolve from OS, persist immediately, and apply to the reactive
+		// locale signal before any component renders a translated string.
+		if (settings.locale !== "en" && settings.locale !== "es") {
+			settings.locale = await resolveSystemLocale();
+			await saveSettings(settings);
+		}
+		setCurrentLocale(settings.locale);
 		settingsStore.set(settings);
 	} catch (error) {
 		console.error("Failed to initialize settings:", error);
@@ -213,6 +251,14 @@ export function setBossAlertMinutes(value: number): void {
 }
 
 /**
+ * Set the basename of the user's imported custom boss alert sound.
+ * Empty string falls back to the built-in synth beep.
+ */
+export function setBossSoundCustomName(value: string): void {
+	updateSetting("boss_sound_custom_name", value);
+}
+
+/**
  * Save window state (size, position, view mode)
  */
 export function saveWindowState(state: WindowState): void {
@@ -245,11 +291,6 @@ export function setAlwaysOnTop(value: boolean): void {
 	updateSetting("always_on_top", value);
 }
 
-/** Toggle the animated hex background. Off = pure CPU/battery savings. */
-export function setAnimationsEnabled(value: boolean): void {
-	updateSetting("animations_enabled", value);
-}
-
 /** Toggle the local + server time cluster in the mini mode bar. */
 export function setMiniShowClocks(value: boolean): void {
 	updateSetting("mini_show_clocks", value);
@@ -258,6 +299,21 @@ export function setMiniShowClocks(value: boolean): void {
 /** Choose 24-hour (true) or 12-hour AM/PM (false) display for clock readouts. */
 export function setClockFormat24h(value: boolean): void {
 	updateSetting("clock_format_24h", value);
+}
+
+/** Which edge of the window the notes panel docks to. Persists across launches. */
+export function setNotesPanelDockSide(value: NotesDockSide): void {
+	updateSetting("notes_panel_dock_side", value);
+}
+
+/**
+ * Switch the active UI language. Updates the reactive locale signal so every
+ * template that calls m.foo() re-renders immediately — no page reload needed.
+ * Settings are persisted via the standard debounced save.
+ */
+export function setLocale(value: Locale): void {
+	updateSetting("locale", value);
+	setCurrentLocale(value);
 }
 
 /**
@@ -321,4 +377,46 @@ export function toggleFavorite(recipeId: string): void {
  */
 export function isFavorite(recipeId: string): boolean {
 	return get(settingsStore).favorites.includes(recipeId);
+}
+
+// ============ Theme color overrides ============
+
+/**
+ * Set (or clear, when value is undefined) a single color slot on the given
+ * theme. Persisting goes through the standard debounced save; the caller is
+ * responsible for re-applying CSS vars via `applyTheme` for live preview.
+ */
+export function setThemeOverride<K extends keyof ThemeOverrides>(
+	theme: AppTheme,
+	key: K,
+	value: ThemeOverrides[K] | undefined,
+): void {
+	settingsStore.update((s) => {
+		const next = { ...(s.theme_overrides?.[theme] ?? {}) };
+		if (value === undefined || value === null) {
+			delete next[key];
+		} else {
+			next[key] = value;
+		}
+		return {
+			...s,
+			theme_overrides: {
+				...(s.theme_overrides ?? { obsidian: {}, light: {} }),
+				[theme]: next,
+			},
+		};
+	});
+	debouncedSave();
+}
+
+/** Wipe every override for the given theme back to its baked-in defaults. */
+export function resetThemeOverrides(theme: AppTheme): void {
+	settingsStore.update((s) => ({
+		...s,
+		theme_overrides: {
+			...(s.theme_overrides ?? { obsidian: {}, light: {} }),
+			[theme]: {},
+		},
+	}));
+	debouncedSave();
 }

@@ -8,10 +8,12 @@
 	} from "$lib/stores";
 	import { formatSilverShort } from "$lib/constants/chart-theme";
 	import { TIER_COLORS, type BarterTier } from "$lib/models/bartering";
+	import { m } from "$lib/paraglide/messages";
 
+	// label is a thunk so it re-translates when locale changes
 	const TIERS = ([7, 6, 5, 4, 3, 2, 1] as const).map((tier) => ({
 		tier,
-		label: `Tier ${tier}`,
+		label: () => m.bartering_inv_tier_label({ tier }),
 		...TIER_COLORS[tier],
 	}));
 
@@ -77,7 +79,7 @@
 	<div class="glass-card p-3 flex items-center justify-between">
 		<div class="flex items-center gap-3">
 			<div>
-				<label for="crow-coins-input" class="text-[10px] text-muted-foreground">Crow Coins</label>
+				<label for="crow-coins-input" class="text-[10px] text-muted-foreground">{m.bartering_inv_crow_coins()}</label>
 				<input
 					id="crow-coins-input"
 					type="number"
@@ -89,7 +91,7 @@
 			</div>
 		</div>
 		<div class="text-right">
-			<p class="text-[10px] text-muted-foreground">Total Inventory Value</p>
+			<p class="text-[10px] text-muted-foreground">{m.bartering_inv_total_value()}</p>
 			<p class="text-sm font-mono font-bold text-accent">{formatSilverShort(inventoryValue.total)}</p>
 		</div>
 	</div>
@@ -108,8 +110,8 @@
 				>
 					<div class="flex items-center gap-2">
 						<span class="text-[10px] {collapsed[tier] ? 'rotate-0' : 'rotate-90'} transition-transform inline-block">&#9654;</span>
-						<span class="text-xs font-headline font-bold {color}">{label}</span>
-						<span class="text-[10px] text-muted-foreground">{tierCount} items</span>
+						<span class="text-xs font-headline font-bold {color}">{label()}</span>
+						<span class="text-[10px] text-muted-foreground">{m.bartering_inv_items_count({ count: tierCount })}</span>
 					</div>
 					<div class="flex gap-3 text-[10px]">
 						{#if tierValue > 0}
@@ -151,7 +153,7 @@
 		{/each}
 	{:else}
 		<div class="text-center py-6">
-			<p class="text-[11px] text-muted-foreground">Loading barter items...</p>
+			<p class="text-[11px] text-muted-foreground">{m.bartering_inv_loading()}</p>
 		</div>
 	{/if}
 </div>

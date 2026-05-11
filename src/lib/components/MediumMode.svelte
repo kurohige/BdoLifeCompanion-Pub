@@ -23,6 +23,7 @@
 	import { BOSSES } from "$lib/constants/boss-data";
 	import { RESET_TIMERS, type ResetTimerId } from "$lib/constants/reset-data";
 	import { getRegionUtcOffset } from "$lib/utils/dst";
+	import { m } from "$lib/paraglide/messages";
 
 	const appWindow = getCurrentWindow();
 
@@ -92,16 +93,16 @@
 		const now = new Date($tickStore);
 		const r = ($settingsStore.server_region ?? "NA") as Region;
 		return [
-			{ label: "Daily", ms: getNextDaily(now).getTime()-now.getTime() },
-			{ label: "Weekly", ms: getNextWeekly(now).getTime()-now.getTime() },
-			{ label: "Node War", ms: getNextWar(r,now,NODE_WAR_HOUR[r],false).getTime()-now.getTime() },
+			{ label: m.medium_reset_daily(), ms: getNextDaily(now).getTime()-now.getTime() },
+			{ label: m.medium_reset_weekly(), ms: getNextWeekly(now).getTime()-now.getTime() },
+			{ label: m.medium_reset_node_war(), ms: getNextWar(r,now,NODE_WAR_HOUR[r],false).getTime()-now.getTime() },
 		];
 	});
 	function fmtReset(ms: number): string {
-		if(ms<=0) return "Now";
-		const h=Math.floor(ms/3600000); const m=Math.floor((ms%3600000)/60000);
+		if(ms<=0) return m.medium_reset_now();
+		const h=Math.floor(ms/3600000); const min=Math.floor((ms%3600000)/60000);
 		if(h>=24){const d=Math.floor(h/24); return `${d}d ${h%24}h`;}
-		return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}h`;
+		return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}h`;
 	}
 </script>
 
@@ -114,7 +115,7 @@
 
 		<!-- CARD 1: GRINDING TIMER -->
 		<div class="glass-panel flex-1 border-l-2 border-[#ffee10] flex flex-col items-center p-2 gap-1">
-			<div class="med-title text-center w-full">TIMER</div>
+			<div class="med-title text-center w-full">{m.medium_card_timer()}</div>
 			<div class="relative flex items-center justify-center">
 				<svg class="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
 					<circle cx="24" cy="24" r="20" fill="transparent" stroke="#2a2a2a" stroke-width="2" />
@@ -124,7 +125,7 @@
 				</svg>
 				<div class="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-[#ffee10]"
 					style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">
-					{$grindingTimerStore.isFinished ? "DONE" : $grindingTimerDisplay}
+					{$grindingTimerStore.isFinished ? m.medium_timer_done() : $grindingTimerDisplay}
 				</div>
 			</div>
 			{#if $selectedSpotStore}
@@ -134,14 +135,14 @@
 				<button onclick={handleTimerToggle}
 					class="flex items-center gap-1 px-2 py-0.5 bg-[#2a2a2a] rounded-sm text-[#e5e2e1] hover:text-[#ffee10] transition-all mt-auto">
 					<span class="text-[10px]">{$grindingTimerStore.isRunning ? "⏸" : "▶"}</span>
-					<span class="text-[8px] font-bold uppercase">{$grindingTimerStore.isRunning ? "Pause" : "Play"}</span>
+					<span class="text-[8px] font-bold uppercase">{$grindingTimerStore.isRunning ? m.medium_timer_pause() : m.medium_timer_play()}</span>
 				</button>
 			{/if}
 		</div>
 
 		<!-- CARD 2: BOSS INFO -->
 		<div class="glass-panel flex-[1.3] border-l-2 border-[#ffee10] flex flex-col items-center p-2 gap-1">
-			<div class="med-title text-center w-full">NEXT BOSS</div>
+			<div class="med-title text-center w-full">{m.medium_card_next_boss()}</div>
 			<div class="w-10 h-10 rounded-full border-2 border-[#ffee10] overflow-hidden bg-[#2a2a2a] shrink-0">
 				{#if primaryBoss}
 					<img src={primaryBoss!.image} alt={primaryBoss!.name}
@@ -164,7 +165,7 @@
 			{/if}
 			<!-- Last spawn -->
 			{#if $previousBossSpawn}
-				<div class="flex items-center gap-1.5 w-full opacity-60" title="Most recent spawn">
+				<div class="flex items-center gap-1.5 w-full opacity-60" title={m.medium_recent_spawn_title()}>
 					<span class="text-[8px] text-[#e5e2e1] truncate" style="font-family:'Manrope',sans-serif">
 						{$previousBossNames}
 					</span>
@@ -175,7 +176,7 @@
 
 		<!-- CARD 3: RESETS -->
 		<div class="glass-panel flex-1 border-l-2 border-[#ffee10] flex flex-col p-2 gap-1.5">
-			<div class="med-title text-center w-full">RESETS</div>
+			<div class="med-title text-center w-full">{m.medium_card_resets()}</div>
 			<div class="flex flex-col gap-2 flex-1 justify-center">
 				{#each resetTimers as timer}
 					<div class="flex justify-between items-center leading-none">
@@ -188,16 +189,16 @@
 
 		<!-- RIGHT CONTROL COLUMN (all 4 buttons) -->
 		<div class="w-[20px] shrink-0 flex flex-col items-center justify-center gap-1.5">
-			<button onclick={expandToFull} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffee10] transition-colors" title="Full mode">
+			<button onclick={expandToFull} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffee10] transition-colors" title={m.mini_full_mode_title()}>
 				<span class="text-[11px]">⊞</span>
 			</button>
-			<button onclick={switchToMini} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffee10] transition-colors" title="Mini mode">
+			<button onclick={switchToMini} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffee10] transition-colors" title={m.chrome_titlebar_mini_mode_alt()}>
 				<span class="text-[11px]">⊟</span>
 			</button>
-			<button onclick={minimize} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#e5e2e1] transition-colors" title="Minimize">
+			<button onclick={minimize} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#e5e2e1] transition-colors" title={m.chrome_titlebar_minimize_title()}>
 				<span class="text-[11px]">━</span>
 			</button>
-			<button onclick={close} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffb4ab] transition-colors" title="Close">
+			<button onclick={close} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffb4ab] transition-colors" title={m.chrome_titlebar_close_title()}>
 				<span class="text-[11px]">✕</span>
 			</button>
 		</div>

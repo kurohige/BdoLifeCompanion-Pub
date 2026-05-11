@@ -5,6 +5,8 @@
 	import RouteMapPreview from "./RouteMapPreview.svelte";
 	import TierBadge from "./ui/TierBadge.svelte";
 	import type { RouteLog, IslandNode } from "$lib/models/bartering";
+	import { m } from "$lib/paraglide/messages";
+	import { getCurrentLocale } from "$lib/i18n/locale.svelte";
 
 	type Filter = "all" | "today" | "week" | "month";
 
@@ -56,11 +58,11 @@
 
 	function logTime(log: RouteLog): string {
 		const d = new Date(log.startedAt);
-		return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+		return d.toLocaleTimeString(getCurrentLocale(), { hour: "2-digit", minute: "2-digit", hour12: false });
 	}
 	function logDateLabel(log: RouteLog): string {
 		const d = new Date(log.startedAt);
-		return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+		return d.toLocaleDateString(getCurrentLocale(), { month: "short", day: "numeric" });
 	}
 	function silverPerHour(log: RouteLog): number {
 		if (log.durationSeconds <= 0) return 0;
@@ -68,10 +70,15 @@
 	}
 
 	function onDelete(log: RouteLog) {
-		if (confirm(`Delete log "${log.label || logDateLabel(log)}"? This cannot be undone.`)) {
+		const label = log.label || logDateLabel(log);
+		if (confirm(m.bartering_logs_delete_confirm({ label }))) {
 			deleteRouteLog(log.id);
 			if (openId === log.id) openId = null;
 		}
+	}
+
+	function autoTitle(log: RouteLog): string {
+		return log.label || m.bartering_logs_run_suffix({ date: logDateLabel(log) });
 	}
 </script>
 
@@ -79,21 +86,21 @@
 	<!-- Detail view -->
 	<div class="detail-view">
 		<div class="detail-head">
-			<button type="button" class="back-btn" onclick={() => (openId = null)}>← LOGS</button>
-			<span class="detail-title">{openLog.label || `${logDateLabel(openLog)} run`}</span>
+			<button type="button" class="back-btn" onclick={() => (openId = null)}>{m.bartering_logs_back()}</button>
+			<span class="detail-title">{autoTitle(openLog)}</span>
 			<span class="detail-when font-mono">{logDateLabel(openLog)} · {logTime(openLog)}</span>
 			<button
 				type="button"
 				class="delete-btn"
 				onclick={() => onDelete(openLog!)}
-				aria-label="Delete this log"
+				aria-label={m.bartering_logs_delete_aria()}
 			>🗑</button>
 		</div>
 
 		{#if openLog.legacy}
 			<div class="legacy-banner">
-				<span class="legacy-label">LEGACY SESSION</span>
-				<span class="legacy-note">Migrated from pre-Routes tracker — no per-trade data</span>
+				<span class="legacy-label">{m.bartering_logs_legacy_label()}</span>
+				<span class="legacy-note">{m.bartering_logs_legacy_note()}</span>
 			</div>
 		{:else}
 			<div class="detail-map">
@@ -108,25 +115,25 @@
 
 		<div class="stat-ribbon">
 			<div class="stat-cell">
-				<span class="stat-label">EARNED</span>
+				<span class="stat-label">{m.bartering_logs_stat_earned()}</span>
 				<span class="stat-val font-mono" style:color="var(--tertiary)">
 					{formatSilverShort(openLog.totalSilver)}
 				</span>
 			</div>
 			<div class="stat-cell">
-				<span class="stat-label">DURATION</span>
+				<span class="stat-label">{m.bartering_logs_stat_duration()}</span>
 				<span class="stat-val font-mono" style:color="var(--secondary)">
 					{openLog.legacy ? "—" : formatDuration(openLog.durationSeconds)}
 				</span>
 			</div>
 			<div class="stat-cell">
-				<span class="stat-label">SILVER/HR</span>
+				<span class="stat-label">{m.bartering_logs_stat_silver_hr()}</span>
 				<span class="stat-val font-mono" style:color="var(--primary-container)">
 					{formatSilverShort(silverPerHour(openLog))}
 				</span>
 			</div>
 			<div class="stat-cell">
-				<span class="stat-label">PARLEY</span>
+				<span class="stat-label">{m.bartering_logs_stat_parley()}</span>
 				<span class="stat-val font-mono">
 					{Math.round(openLog.parleySpent / 1000)}K
 				</span>
@@ -136,8 +143,8 @@
 		{#if openLog.trades.length > 0}
 			<div class="ledger glass-card">
 				<div class="ledger-head">
-					<span class="ledger-title">TRADE LEDGER · {openLog.trades.length}</span>
-					<span class="ledger-meta font-mono">{openLog.visitedNodeIds.length} stops · {openLog.totalQty} items</span>
+					<span class="ledger-title">{m.bartering_routes_ledger_title({ count: openLog.trades.length })}</span>
+					<span class="ledger-meta font-mono">{m.bartering_logs_meta_stops_items({ stops: openLog.visitedNodeIds.length, items: openLog.totalQty })}</span>
 				</div>
 				<div class="ledger-rows">
 					{#each openLog.trades as trade, i (trade.id || `t-${i}`)}
@@ -165,17 +172,17 @@
 	<div class="logs-view">
 		<div class="stat-ribbon">
 			<div class="stat-cell">
-				<span class="stat-label">LOGS</span>
+				<span class="stat-label">{m.bartering_logs_stat_logs()}</span>
 				<span class="stat-val font-mono" style:color="var(--primary-container)">{stats.count}</span>
 			</div>
 			<div class="stat-cell">
-				<span class="stat-label">TOTAL</span>
+				<span class="stat-label">{m.bartering_logs_stat_total()}</span>
 				<span class="stat-val font-mono" style:color="var(--tertiary)">
 					{formatSilverShort(stats.totalSilver)}
 				</span>
 			</div>
 			<div class="stat-cell">
-				<span class="stat-label">ON WATER</span>
+				<span class="stat-label">{m.bartering_logs_stat_on_water()}</span>
 				<span class="stat-val font-mono" style:color="var(--secondary)">
 					{formatDuration(stats.totalDuration)}
 				</span>
@@ -183,7 +190,12 @@
 		</div>
 
 		<div class="filter-row">
-			{#each [["all", "ALL"], ["today", "TODAY"], ["week", "WEEK"], ["month", "MONTH"]] as [k, label] (k)}
+			{#each [
+				["all", m.bartering_logs_filter_all()],
+				["today", m.bartering_logs_filter_today()],
+				["week", m.bartering_logs_filter_week()],
+				["month", m.bartering_logs_filter_month()],
+			] as [k, label] (k)}
 				<button
 					type="button"
 					class="chip"
@@ -195,13 +207,13 @@
 
 		<div class="log-list">
 			{#if filteredLogs.length === 0}
-				<div class="empty">No sessions in this range.</div>
+				<div class="empty">{m.bartering_logs_empty()}</div>
 			{:else}
 				{#each filteredLogs as log (log.id)}
 					<button type="button" class="log-row" onclick={() => (openId = log.id)}>
 						<div class="log-map">
 							{#if log.legacy}
-								<div class="legacy-mini">LEGACY</div>
+								<div class="legacy-mini">{m.bartering_logs_legacy_mini()}</div>
 							{:else}
 								<RouteMapPreview
 									visitedNodeIds={log.visitedNodeIds}
@@ -212,7 +224,7 @@
 						</div>
 						<div class="log-meta">
 							<div class="log-row1">
-								<span class="log-label">{log.label || `${logDateLabel(log)} run`}</span>
+								<span class="log-label">{autoTitle(log)}</span>
 								<span class="log-when font-mono">{logDateLabel(log)} · {logTime(log)}</span>
 							</div>
 							<div class="log-row2">
@@ -231,7 +243,7 @@
 										{/if}
 									{/each}
 									<span class="dots-meta">
-										{log.visitedNodeIds.length} stops · {log.totalQty} items
+										{m.bartering_logs_meta_stops_items({ stops: log.visitedNodeIds.length, items: log.totalQty })}
 									</span>
 								</div>
 							{/if}

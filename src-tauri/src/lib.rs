@@ -154,6 +154,30 @@ impl Default for WindowState {
     }
 }
 
+/// Per-theme color/glow overrides. Mirrors the TS `ThemeOverrides` interface
+/// in `persistence.ts`. All fields optional so an empty `{}` round-trips as
+/// "use theme defaults". Colors are stored as `#rrggbb` hex strings — the
+/// frontend handles HSL/RGB fan-out at apply time.
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct ThemeOverrides {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gold: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub glow_intensity: Option<f64>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct ThemeOverridesByTheme {
+    #[serde(default)]
+    pub obsidian: ThemeOverrides,
+    #[serde(default)]
+    pub light: ThemeOverrides,
+}
+
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct AppSettings {
     #[serde(default = "default_transparency")]
@@ -184,6 +208,10 @@ pub struct AppSettings {
     pub timer_sound_enabled: bool,
     #[serde(default = "default_boss_alert_minutes")]
     pub boss_alert_minutes: i32,
+    /// Basename of the user-imported boss alert sound (e.g. `boss_alert_sound.mp3`)
+    /// living in the app data dir. Empty string = use the built-in synth beep.
+    #[serde(default)]
+    pub boss_sound_custom_name: String,
     #[serde(default = "default_font_family")]
     pub font_family: String,
     #[serde(default)]
@@ -201,11 +229,16 @@ pub struct AppSettings {
     #[serde(default)]
     pub hidden_bosses: Vec<String>,
     #[serde(default = "default_true")]
-    pub animations_enabled: bool,
-    #[serde(default = "default_true")]
     pub mini_show_clocks: bool,
     #[serde(default = "default_true")]
     pub clock_format_24h: bool,
+    #[serde(default = "default_locale")]
+    pub locale: String,
+    /// Which edge of the window the notes panel docks to. Persists across launches.
+    #[serde(default = "default_notes_dock_side")]
+    pub notes_panel_dock_side: String,
+    #[serde(default)]
+    pub theme_overrides: ThemeOverridesByTheme,
 }
 
 fn default_true() -> bool {
@@ -234,6 +267,17 @@ fn default_font_size() -> String {
 
 fn default_theme() -> String {
     "obsidian".to_string()
+}
+
+/// Empty string marks "never set yet" — TS-side `initSettings` detects this on
+/// first launch and applies the system locale (or falls back to "en"). Once
+/// resolved it gets saved back, so the empty branch only fires once per install.
+fn default_locale() -> String {
+    String::new()
+}
+
+fn default_notes_dock_side() -> String {
+    "right".to_string()
 }
 
 /// Build an AppSettings via serde so `#[serde(default = "...")]` annotations
@@ -740,7 +784,11 @@ pub struct TradeEntry {
     pub silver_per_unit: i64,
     #[serde(rename = "giveText", default, skip_serializing_if = "Option::is_none")]
     pub give_text: Option<String>,
-    #[serde(rename = "receiveItemId", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "receiveItemId",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub receive_item_id: Option<String>,
 }
 
@@ -863,7 +911,11 @@ pub struct CustomNodeData {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct BarterMapLayoutData {
-    #[serde(rename = "schemaVersion", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "schemaVersion",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub schema_version: Option<u32>,
     #[serde(rename = "positionOverrides", default)]
     pub position_overrides: std::collections::HashMap<String, PositionOverride>,
@@ -1058,6 +1110,190 @@ fn save_weekly_tasks(data: WeeklyTaskProgressData) -> Result<(), String> {
     Ok(())
 }
 
+// ============== Custom Boss Alert Sound Commands ==============
+
+/// Whitelisted audio extensions for the custom boss alert sound.
+const BOSS_SOUND_EXTENSIONS: &[&str] = &["mp3", "wav", "ogg", "m4a", "aac", "flac"];
+
+/// Hard cap on the imported sound file size (10 MB). A boss alert is
+/// supposed to be a short notification, not a song.
+const BOSS_SOUND_MAX_BYTES: u64 = 10 * 1024 * 1024;
+
+/// Copy a user-selected audio file into the app data dir as
+/// `boss_alert_sound.<ext>`. Removes any previously imported sound files
+/// first so the data dir stays clean. Returns the destination filename so
+/// the front-end can persist it in settings.
+#[tauri::command]
+fn set_boss_alert_sound(source_path: String) -> Result<String, String> {
+    let source = Path::new(&source_path);
+    if !source.is_file() {
+        return Err("Source file does not exist".to_string());
+    }
+
+    let ext = source
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_lowercase())
+        .ok_or_else(|| "Source file has no extension".to_string())?;
+
+    if !BOSS_SOUND_EXTENSIONS.contains(&ext.as_str()) {
+        return Err(format!(
+            "Unsupported audio extension '.{}'. Supported: {}",
+            ext,
+            BOSS_SOUND_EXTENSIONS.join(", ")
+        ));
+    }
+
+    let metadata =
+        fs::metadata(source).map_err(|e| format!("Failed to read source file: {}", e))?;
+    if metadata.len() > BOSS_SOUND_MAX_BYTES {
+        return Err(format!(
+            "File too large ({:.1} MB). Maximum is {} MB.",
+            metadata.len() as f64 / (1024.0 * 1024.0),
+            BOSS_SOUND_MAX_BYTES / (1024 * 1024)
+        ));
+    }
+
+    let dir = ensure_app_data_dir()?;
+    remove_existing_boss_sound_files(&dir);
+
+    let dest_name = format!("boss_alert_sound.{}", ext);
+    let dest = dir.join(&dest_name);
+    fs::copy(source, &dest).map_err(|e| format!("Failed to copy boss alert sound: {}", e))?;
+    Ok(dest_name)
+}
+
+/// Remove any previously imported `boss_alert_sound.<ext>` files. Returns
+/// silently if none are present.
+#[tauri::command]
+fn clear_boss_alert_sound() -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    remove_existing_boss_sound_files(&dir);
+    Ok(())
+}
+
+/// Read the bytes of a previously imported boss alert sound by filename.
+/// The front-end caches the resulting Blob URL so this is called at most
+/// once per session per sound.
+#[tauri::command]
+fn load_boss_alert_sound(name: String) -> Result<Vec<u8>, String> {
+    // Reject path-traversal — the filename must be a leaf in the data dir.
+    if name.contains('/') || name.contains('\\') || name.contains("..") || name.is_empty() {
+        return Err("Invalid sound filename".to_string());
+    }
+    if !name.starts_with("boss_alert_sound.") {
+        return Err("Unexpected sound filename".to_string());
+    }
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join(&name);
+    fs::read(&path).map_err(|e| format!("Failed to read boss alert sound: {}", e))
+}
+
+fn remove_existing_boss_sound_files(dir: &Path) {
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if name.starts_with("boss_alert_sound.") {
+                if let Err(e) = fs::remove_file(entry.path()) {
+                    eprintln!("Failed to remove old boss sound {}: {}", name, e);
+                }
+            }
+        }
+    }
+}
+
+// ============== Notes (Codex Library) Commands ==============
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct NoteCategory {
+    pub key: String,
+    pub name: String,
+    pub color: String,
+    pub order: i32,
+    pub created: i64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct TodoItem {
+    pub t: String,
+    pub d: bool,
+}
+
+/// Tagged enum on `type` matches the TS discriminated union one-to-one.
+/// `rename_all = "lowercase"` so the wire form is "text" / "todo" / "reminder".
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum Note {
+    Text {
+        id: String,
+        category_key: String,
+        pinned: bool,
+        title: String,
+        tag: Option<String>,
+        created: i64,
+        updated: i64,
+        body: String,
+    },
+    Todo {
+        id: String,
+        category_key: String,
+        pinned: bool,
+        title: String,
+        tag: Option<String>,
+        created: i64,
+        updated: i64,
+        items: Vec<TodoItem>,
+    },
+    Reminder {
+        id: String,
+        category_key: String,
+        pinned: bool,
+        title: String,
+        tag: Option<String>,
+        created: i64,
+        updated: i64,
+        when: Option<i64>,
+        body: String,
+        fired: bool,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct NotesData {
+    pub schema_version: u32,
+    pub categories: Vec<NoteCategory>,
+    pub notes: Vec<Note>,
+}
+
+fn default_notes_data() -> NotesData {
+    NotesData {
+        schema_version: 1,
+        categories: Vec::new(),
+        notes: Vec::new(),
+    }
+}
+
+#[tauri::command]
+fn load_notes() -> Result<NotesData, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("notes.json");
+    load_json_with_recovery(&path, "notes", default_notes_data)
+}
+
+#[tauri::command]
+fn save_notes(data: NotesData) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("notes.json");
+
+    let content = serde_json::to_string_pretty(&data)
+        .map_err(|e| format!("Failed to serialize notes: {}", e))?;
+
+    fs::write(&path, content).map_err(|e| format!("Failed to write notes: {}", e))?;
+
+    Ok(())
+}
+
 // ============== Clear All Data Command ==============
 
 #[tauri::command]
@@ -1080,6 +1316,7 @@ fn clear_all_data() -> Result<(), String> {
         "sailor_roster.json",
         "weekly_tasks.json",
         "announcements_cache.json",
+        "notes.json",
     ];
     for file in &data_files {
         let path = dir.join(file);
@@ -1087,6 +1324,7 @@ fn clear_all_data() -> Result<(), String> {
             fs::remove_file(&path).map_err(|e| format!("Failed to delete {}: {}", file, e))?;
         }
     }
+    remove_existing_boss_sound_files(&dir);
     Ok(())
 }
 
@@ -1234,6 +1472,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_os::init())
         .plugin({
             use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyL);
@@ -1285,7 +1524,12 @@ pub fn run() {
             save_sailor_roster,
             load_weekly_tasks,
             save_weekly_tasks,
-            clear_all_data
+            clear_all_data,
+            set_boss_alert_sound,
+            clear_boss_alert_sound,
+            load_boss_alert_sound,
+            load_notes,
+            save_notes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

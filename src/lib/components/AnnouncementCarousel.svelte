@@ -11,6 +11,7 @@
 	import { CAROUSEL_INTERVAL_MS, CAROUSEL_FLIP_DURATION_MS, DEFAULT_MESSAGE } from "$lib/constants/announcements.js";
 	import { openUrl } from "@tauri-apps/plugin-opener";
 	import type { AnnouncementMessage } from "$lib/models/announcements.js";
+	import { m } from "$lib/paraglide/messages";
 
 	interface Props {
 		compact?: boolean;
@@ -141,7 +142,7 @@
 		onmouseenter={handleMouseEnter}
 		onmouseleave={handleMouseLeave}
 		role="region"
-		aria-label="Announcements"
+		aria-label={m.announcements_aria()}
 	>
 		<div class="carousel-scene">
 			<div class="carousel-cube {isFlipping ? 'is-flipping' : ''} {isResetting ? 'no-transition' : ''}">
@@ -166,8 +167,8 @@
 								<button
 									onclick={handleDismiss}
 									class="ticker-dismiss"
-									title="Dismiss this announcement"
-									aria-label="Dismiss announcement"
+									title={m.announcement_dismiss_title()}
+									aria-label={m.announcement_dismiss_aria()}
 								>
 									✕
 								</button>
@@ -207,7 +208,7 @@
 		onmouseenter={handleMouseEnter}
 		onmouseleave={handleMouseLeave}
 		role="region"
-		aria-label="Announcements"
+		aria-label={m.announcements_aria()}
 	>
 		<div class="carousel-scene">
 			<div class="carousel-cube {isFlipping ? 'is-flipping' : ''} {isResetting ? 'no-transition' : ''}">

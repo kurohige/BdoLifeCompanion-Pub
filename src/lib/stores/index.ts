@@ -51,19 +51,52 @@ export {
 	setBossSoundEnabled,
 	setTimerSoundEnabled,
 	setBossAlertMinutes,
+	setBossSoundCustomName,
 	setFontBold,
 	setFontSize,
 	setBarterLevel,
 	setValuePack,
 	setAlwaysOnTop,
-	setAnimationsEnabled,
+	setMarketRegion,
+	setMiniShowClocks,
+	setClockFormat24h,
+	setLocale,
+	setNotesPanelDockSide,
 	toggleBossHidden,
 	setHiddenBosses,
 } from "./settings.js";
 
 export { appVersionStore, initAppVersion } from "./app-version.js";
 
-export type { AppTheme, FontFamily, FontSize, WindowState } from "$lib/services/persistence";
+export type { AppTheme, FontFamily, FontSize, Locale, NotesDockSide, WindowState } from "$lib/services/persistence";
+
+export {
+	notesStore,
+	noteCategoriesStore,
+	notesLoadingStore,
+	notesPanelOpenStore,
+	notesActiveCategoryStore,
+	notesCaptureCategoryStore,
+	notesSearchStore,
+	loadNotesData,
+	flushNotes,
+	addCategory,
+	renameCategory,
+	recolorCategory,
+	deleteCategory,
+	addNote,
+	updateNote,
+	deleteNote,
+	togglePinNote,
+	toggleTodoItem,
+	setTodoItemText,
+	addTodoItem,
+	removeTodoItem,
+	setNoteTitle,
+	setReminderFireCallback,
+	startReminderTick,
+	stopReminderTick,
+} from "./notes.js";
 
 export {
 	craftingLogStore,

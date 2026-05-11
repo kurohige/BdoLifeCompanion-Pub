@@ -14,6 +14,30 @@ export interface InventoryItem {
 export type AppTheme = "obsidian" | "light";
 export type FontFamily = "system" | "monospace" | "serif";
 export type FontSize = "xs" | "small" | "default" | "large" | "xl" | "xxl";
+export type Locale = "en" | "es";
+export type NotesDockSide = "left" | "right";
+
+/**
+ * Per-theme color/glow overrides. All fields optional — an unset field means
+ * "use the theme default" (the value baked into app.css). Colors are stored as
+ * `#rrggbb` hex strings so the native <input type="color"> picker can read
+ * them back without conversion; HSL/RGB fan-out happens at apply time in
+ * `applyTheme()`.
+ *
+ * `glow_intensity` is a multiplier for the `--neon-glow` CSS var (0 = no
+ * glow, 1 = stock obsidian, 2 = doubled). Light theme defaults to 0.
+ */
+export interface ThemeOverrides {
+	primary?: string;
+	accent?: string;
+	gold?: string;
+	glow_intensity?: number;
+}
+
+export interface ThemeOverridesByTheme {
+	obsidian: ThemeOverrides;
+	light: ThemeOverrides;
+}
 
 export interface WindowState {
 	width: number;
@@ -38,6 +62,7 @@ export interface AppSettings {
 	boss_sound_enabled: boolean;
 	timer_sound_enabled: boolean;
 	boss_alert_minutes: number;
+	boss_sound_custom_name: string;
 	font_family: FontFamily;
 	font_bold: boolean;
 	font_size: FontSize;
@@ -46,9 +71,11 @@ export interface AppSettings {
 	total_barter_count: number;
 	always_on_top: boolean;
 	hidden_bosses: string[];
-	animations_enabled: boolean;
 	mini_show_clocks: boolean;
 	clock_format_24h: boolean;
+	locale: Locale;
+	notes_panel_dock_side: NotesDockSide;
+	theme_overrides: ThemeOverridesByTheme;
 }
 
 // ============== Inventory ==============
@@ -109,6 +136,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	boss_sound_enabled: true,
 	timer_sound_enabled: true,
 	boss_alert_minutes: 5,
+	boss_sound_custom_name: "",
 	font_family: "system",
 	font_bold: false,
 	font_size: "default",
@@ -117,9 +145,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	total_barter_count: 0,
 	always_on_top: true,
 	hidden_bosses: [],
-	animations_enabled: true,
 	mini_show_clocks: true,
 	clock_format_24h: true,
+	locale: "en",
+	notes_panel_dock_side: "right",
+	theme_overrides: { obsidian: {}, light: {} },
 };
 
 /**

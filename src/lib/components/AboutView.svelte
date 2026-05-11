@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { openUrl } from "@tauri-apps/plugin-opener";
 	import { appVersionStore } from "$lib/stores";
+	import { m } from "$lib/paraglide/messages";
 
 	async function openGitHub() {
 		try { await openUrl("https://github.com/kurohige/BdoLifeCompanion-Pub"); } catch { /* */ }
@@ -22,39 +23,39 @@
 			<p class="text-[11px] font-mono text-muted-foreground mt-1">v{$appVersionStore} — <span class="text-foreground font-semibold">by jhidalgo_dev</span></p>
 		</div>
 		<p class="text-[10px] text-muted-foreground leading-relaxed max-w-[300px] mx-auto">
-			A manual companion tool for Black Desert Online. Track crafting, grinding, bartering, boss timers, and more.
+			{m.about_app_description()}
 		</p>
 	</div>
 
 	<!-- Safety Statement -->
 	<div class="glass-card rounded p-3 space-y-1.5">
-		<h3 class="text-[10px] font-headline font-bold text-primary uppercase tracking-wider">Safety</h3>
+		<h3 class="text-[10px] font-headline font-bold text-primary uppercase tracking-wider">{m.about_safety_header()}</h3>
 		<div class="text-[10px] text-muted-foreground space-y-1">
-			<p class="flex items-center gap-1.5"><span class="text-accent">&#10003;</span> No game memory reading or injection</p>
-			<p class="flex items-center gap-1.5"><span class="text-accent">&#10003;</span> No automation, macros, or keystrokes</p>
-			<p class="flex items-center gap-1.5"><span class="text-accent">&#10003;</span> No screen capture or OCR</p>
-			<p class="flex items-center gap-1.5"><span class="text-accent">&#10003;</span> No personal data collection</p>
-			<p class="flex items-center gap-1.5"><span class="text-accent">&#10003;</span> All data stored locally on your machine</p>
+			<p class="flex items-center gap-1.5"><span class="text-accent">&#10003;</span> {m.about_safety_no_memory()}</p>
+			<p class="flex items-center gap-1.5"><span class="text-accent">&#10003;</span> {m.about_safety_no_automation()}</p>
+			<p class="flex items-center gap-1.5"><span class="text-accent">&#10003;</span> {m.about_safety_no_capture()}</p>
+			<p class="flex items-center gap-1.5"><span class="text-accent">&#10003;</span> {m.about_safety_no_data_collect()}</p>
+			<p class="flex items-center gap-1.5"><span class="text-accent">&#10003;</span> {m.about_safety_local()}</p>
 		</div>
 	</div>
 
 	<!-- Special Thanks -->
 	<div class="glass-card rounded p-3">
-		<p class="text-[11px] text-foreground">Special thanks to: BDOCODEX and Lifeskill Chat discord</p>
+		<p class="text-[11px] text-foreground">{m.about_thanks()}</p>
 	</div>
 
 	<!-- Links -->
 	<div class="glass-card rounded p-3 space-y-2">
-		<h3 class="text-[10px] font-headline font-bold text-primary uppercase tracking-wider">Links</h3>
+		<h3 class="text-[10px] font-headline font-bold text-primary uppercase tracking-wider">{m.about_links_header()}</h3>
 		<div class="space-y-1.5">
 			<button onclick={openGitHub} class="w-full text-left px-2 py-1.5 rounded text-[11px] text-foreground hover:bg-white/5 transition-colors flex items-center gap-2">
 				<span class="text-muted-foreground">&#128187;</span>
-				<span>Source Code</span>
+				<span>{m.about_link_source()}</span>
 				<span class="text-[9px] text-muted-foreground ml-auto">GitHub</span>
 			</button>
 			<button onclick={openIssues} class="w-full text-left px-2 py-1.5 rounded text-[11px] text-foreground hover:bg-white/5 transition-colors flex items-center gap-2">
 				<span class="text-muted-foreground">&#128030;</span>
-				<span>Report a Bug</span>
+				<span>{m.about_link_report_bug()}</span>
 				<span class="text-[9px] text-muted-foreground ml-auto">Issues</span>
 			</button>
 		</div>

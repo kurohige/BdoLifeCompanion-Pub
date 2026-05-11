@@ -8,7 +8,7 @@ A lightweight desktop overlay for **Black Desert Online** that helps you track c
 
 ## Download
 
-**Latest version: v2.6.0**
+**Latest version: v2.7.0**
 
 - [GitHub Releases](https://github.com/kurohige/BdoLifeCompanion-Pub/releases) — Portable `.zip`, no installer needed
 
@@ -105,6 +105,12 @@ All modes support always-on-top (toggleable) and adjustable transparency. The wi
 ### Themes
 
 Two built-in themes: **Obsidian Dark** (default — sharp corners, Space Grotesk, gold accents, neon hex particle background) and **Light** (warm off-white, readable).
+
+### Languages
+
+The UI is available in **English** and **Spanish** (Settings → Display → "Idioma / Language"). On first launch the app picks one based on your system locale; after that it remembers your choice. Switching is instant — no reload, no flash. Date and number formatting also follow the chosen language.
+
+> Recipe names, item names, boss names, and grinding spot names remain in English (they're tied to the underlying game data). UI chrome — every label, button, tab, tooltip, toast, confirmation — is what gets translated.
 
 ---
 

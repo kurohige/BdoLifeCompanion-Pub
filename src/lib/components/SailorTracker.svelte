@@ -7,11 +7,13 @@
 	} from "$lib/stores";
 	import { SAILOR_SPEED_TABLE } from "$lib/models/bartering";
 	import type { SailorStatus } from "$lib/models/bartering";
+	import { m } from "$lib/paraglide/messages";
 
-	const STATUS_OPTIONS: { value: SailorStatus; label: string }[] = [
-		{ value: "below_average", label: "Below Avg" },
-		{ value: "average", label: "Average" },
-		{ value: "above_average", label: "Above Avg" },
+	// label is a thunk so it re-translates when locale changes
+	const STATUS_OPTIONS: { value: SailorStatus; label: () => string }[] = [
+		{ value: "below_average", label: () => m.bartering_sailors_status_below() },
+		{ value: "average", label: () => m.bartering_sailors_status_avg() },
+		{ value: "above_average", label: () => m.bartering_sailors_status_above() },
 	];
 
 	const STATUS_COLORS: Record<SailorStatus, string> = {
@@ -99,12 +101,12 @@
 <div class="space-y-3">
 	<!-- Header + Add Button -->
 	<div class="flex items-center justify-between">
-		<h3 class="text-xs font-headline font-bold text-primary uppercase tracking-wider">Sailor Roster</h3>
+		<h3 class="text-xs font-headline font-bold text-primary uppercase tracking-wider">{m.bartering_sailors_roster()}</h3>
 		<button
 			onclick={() => showAddForm = !showAddForm}
 			class="px-2 py-0.5 text-[10px] font-bold rounded obsidian-cta"
 		>
-			{showAddForm ? "Cancel" : "+ Add Sailor"}
+			{showAddForm ? m.bartering_sailors_cancel() : m.bartering_sailors_add()}
 		</button>
 	</div>
 
@@ -113,16 +115,16 @@
 		<div class="glass-card p-3 space-y-2">
 			<div class="flex gap-2">
 				<div class="flex-1">
-					<span class="text-[10px] text-muted-foreground">Name</span>
+					<span class="text-[10px] text-muted-foreground">{m.bartering_sailors_name()}</span>
 					<input
 						type="text"
 						bind:value={newName}
-						placeholder="Sailor name"
+						placeholder={m.bartering_sailors_name_placeholder()}
 						class="glass-input text-[11px] px-2 py-1 w-full"
 					/>
 				</div>
 				<div class="w-16">
-					<span class="text-[10px] text-muted-foreground">Level</span>
+					<span class="text-[10px] text-muted-foreground">{m.bartering_sailors_level()}</span>
 					<input
 						type="number"
 						bind:value={newLevel}
@@ -131,7 +133,7 @@
 					/>
 				</div>
 				<div class="w-16">
-					<span class="text-[10px] text-muted-foreground">Speed</span>
+					<span class="text-[10px] text-muted-foreground">{m.bartering_sailors_speed()}</span>
 					<input
 						type="number"
 						bind:value={newSpeed}
@@ -141,10 +143,10 @@
 					/>
 				</div>
 				<div class="w-24">
-					<span class="text-[10px] text-muted-foreground">Status</span>
+					<span class="text-[10px] text-muted-foreground">{m.bartering_sailors_status()}</span>
 					<select bind:value={newStatus} class="glass-input text-[11px] px-1 py-1 w-full">
 						{#each STATUS_OPTIONS as opt}
-							<option value={opt.value}>{opt.label}</option>
+							<option value={opt.value}>{opt.label()}</option>
 						{/each}
 					</select>
 				</div>
@@ -155,7 +157,7 @@
 					disabled={!newName.trim() || !newSpeed}
 					class="px-3 py-1 text-[11px] font-bold rounded obsidian-cta disabled:opacity-40 disabled:cursor-not-allowed"
 				>
-					Add
+					{m.bartering_sailors_btn_add()}
 				</button>
 			</div>
 		</div>
@@ -165,19 +167,19 @@
 	{#if $sailorRosterStore.length === 0}
 		<div class="text-center py-6">
 			<p class="text-[32px] mb-1 opacity-30">&#9881;</p>
-			<p class="text-[11px] text-muted-foreground">No sailors in roster yet</p>
-			<p class="text-[10px] text-muted-foreground/60 mt-1">Add your first sailor to track their stats</p>
+			<p class="text-[11px] text-muted-foreground">{m.bartering_sailors_empty_title()}</p>
+			<p class="text-[10px] text-muted-foreground/60 mt-1">{m.bartering_sailors_empty_subtitle()}</p>
 		</div>
 	{:else}
 		<div class="glass-card overflow-hidden">
 			<!-- Table Header -->
 			<div class="grid grid-cols-[1fr_50px_55px_70px_60px_55px_30px] gap-1 px-3 py-1.5 border-b border-outline-variant/10 text-[9px] text-muted-foreground uppercase tracking-wider">
-				<span>Name</span>
-				<span class="text-center">Level</span>
-				<span class="text-center">Speed</span>
-				<span class="text-center">Status</span>
-				<span class="text-center">Likely@10</span>
-				<span class="text-center">Max@10</span>
+				<span>{m.bartering_sailors_name()}</span>
+				<span class="text-center">{m.bartering_sailors_level()}</span>
+				<span class="text-center">{m.bartering_sailors_speed()}</span>
+				<span class="text-center">{m.bartering_sailors_status()}</span>
+				<span class="text-center">{m.bartering_sailors_col_likely()}</span>
+				<span class="text-center">{m.bartering_sailors_col_max()}</span>
 				<span></span>
 			</div>
 
@@ -199,7 +201,7 @@
 							type="button"
 							class="text-[11px] text-foreground cursor-pointer hover:text-primary text-left bg-transparent border-0 p-0"
 							onclick={() => editingId = sailor.id}
-							title="Click to edit name"
+							title={m.bartering_sailors_edit_name()}
 						>{sailor.name}</button>
 					{/if}
 
@@ -228,7 +230,7 @@
 						class="glass-input text-[9px] px-0.5 py-0.5 w-full {STATUS_COLORS[sailor.status]}"
 					>
 						{#each STATUS_OPTIONS as opt}
-							<option value={opt.value}>{opt.label}</option>
+							<option value={opt.value}>{opt.label()}</option>
 						{/each}
 					</select>
 
@@ -242,7 +244,7 @@
 					<button
 						onclick={() => removeSailor(sailor.id)}
 						class="text-[10px] text-destructive/50 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-center"
-						title="Remove sailor"
+						title={m.bartering_sailors_remove()}
 					>&#10005;</button>
 				</div>
 			{/each}
@@ -250,31 +252,31 @@
 
 		<!-- Summary -->
 		<div class="flex gap-4 text-[10px] text-muted-foreground px-1">
-			<span>Sailors: <span class="text-foreground font-mono">{$sailorRosterStore.length}</span></span>
-			<span>Avg Speed: <span class="text-accent font-mono">{avgSpeed.toFixed(2)}</span></span>
-			<span>Best: <span class="text-foreground font-mono">{bestSpeed.toFixed(1)}</span></span>
+			<span>{m.bartering_sailors_summary_count()} <span class="text-foreground font-mono">{$sailorRosterStore.length}</span></span>
+			<span>{m.bartering_sailors_summary_avg()} <span class="text-accent font-mono">{avgSpeed.toFixed(2)}</span></span>
+			<span>{m.bartering_sailors_summary_best()} <span class="text-foreground font-mono">{bestSpeed.toFixed(1)}</span></span>
 		</div>
 	{/if}
 
 	<!-- Speed Reference Table -->
 	<div class="glass-card p-3">
-		<h3 class="text-[10px] font-headline font-bold text-muted-foreground uppercase tracking-wider mb-2">Speed Reference (per level)</h3>
+		<h3 class="text-[10px] font-headline font-bold text-muted-foreground uppercase tracking-wider mb-2">{m.bartering_sailors_ref_title()}</h3>
 		<div class="overflow-x-auto">
 			<table class="w-full text-[9px]">
 				<thead>
 					<tr class="border-b border-outline-variant/10">
-						<th class="text-left text-muted-foreground py-0.5">Level</th>
-						<th class="text-center text-muted-foreground py-0.5">Min</th>
-						<th class="text-center text-muted-foreground py-0.5">Median</th>
-						<th class="text-center text-muted-foreground py-0.5">Max</th>
-						<th class="text-center text-muted-foreground py-0.5">Roll (med)</th>
-						<th class="text-center text-muted-foreground py-0.5">Roll (max)</th>
+						<th class="text-left text-muted-foreground py-0.5">{m.bartering_sailors_level()}</th>
+						<th class="text-center text-muted-foreground py-0.5">{m.bartering_sailors_ref_min()}</th>
+						<th class="text-center text-muted-foreground py-0.5">{m.bartering_sailors_ref_median()}</th>
+						<th class="text-center text-muted-foreground py-0.5">{m.bartering_sailors_ref_max()}</th>
+						<th class="text-center text-muted-foreground py-0.5">{m.bartering_sailors_ref_roll_med()}</th>
+						<th class="text-center text-muted-foreground py-0.5">{m.bartering_sailors_ref_roll_max()}</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each SAILOR_SPEED_TABLE as row}
 						<tr class="border-b border-outline-variant/5">
-							<td class="text-muted-foreground py-0.5">Lv {row.level}</td>
+							<td class="text-muted-foreground py-0.5">{m.bartering_sailors_ref_lv({ n: row.level })}</td>
 							<td class="text-center font-mono text-foreground py-0.5">{row.min}</td>
 							<td class="text-center font-mono text-accent py-0.5">{row.median}</td>
 							<td class="text-center font-mono text-foreground py-0.5">{row.max}</td>

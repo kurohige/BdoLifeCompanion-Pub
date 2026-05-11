@@ -30,9 +30,17 @@
   --cyan: 186 100% 50%;
   --app-opacity: 0.95;
   --neon-glow: 1;
-  --scrollbar-hover: #c77dff;
-  --selection-bg: #c77dff;
-  --focus-ring: #00e3fd;
+  /* Glow color tokens — hex for direct use in shadows/borders, RGB triplet
+     for rgb(... / alpha) composition. Customizable via Settings → Theme. */
+  --glow-primary: #c77dff;
+  --glow-primary-rgb: 199 125 255;
+  --glow-accent: #00e3fd;
+  --glow-accent-rgb: 0 227 253;
+  --gold-glow: #ffee10;
+  --gold-glow-rgb: 255 238 16;
+  --scrollbar-hover: var(--glow-primary);
+  --selection-bg: var(--glow-primary);
+  --focus-ring: var(--glow-accent);
   /* Surface hierarchy */
   --surface-lowest: #0e0e0e;
   --surface-low: #1c1b1b;
@@ -42,10 +50,9 @@
   --outline-hud: #998d9d;
   --outline-variant: #4d4352;
   --on-surface: #e5e2e1;
-  --secondary-container: #00e3fd;
-  --primary-container: #c77dff;
+  --secondary-container: var(--glow-accent);
+  --primary-container: var(--glow-primary);
   --tertiary: #dac839;
-  --gold-glow: #ffee10;
   /* Barter tier colors (T1-T7 + Special) — used by Routes/Logs map nodes,
      TierBadge, and ledger row borders. Matches obsidian.css from design handoff. */
   --t1: #998d9d;
@@ -117,9 +124,16 @@ input[type="number"] {
   --cyan: 195 70% 38%;
   --app-opacity: 1;
   --neon-glow: 0;
-  --scrollbar-hover: hsl(260 60% 50%);
-  --selection-bg: hsl(260 60% 50%);
-  --focus-ring: hsl(260 60% 50%);
+  /* Light-theme glow defaults — darker so they read on the warm background. */
+  --glow-primary: #6b46a0;
+  --glow-primary-rgb: 107 70 160;
+  --glow-accent: #2ba076;
+  --glow-accent-rgb: 43 160 118;
+  --gold-glow: #e6c700;
+  --gold-glow-rgb: 230 199 0;
+  --scrollbar-hover: var(--glow-primary);
+  --selection-bg: var(--glow-primary);
+  --focus-ring: var(--glow-primary);
   /* Surface hierarchy (warm off-white) */
   --surface-lowest: #ebedf0;
   --surface-low: #e3e5e9;
@@ -129,8 +143,8 @@ input[type="number"] {
   --outline-hud: #6b7280;
   --outline-variant: #b0b7c2;
   --on-surface: #1a1e25;
-  --secondary-container: hsl(195 70% 38%);
-  --primary-container: hsl(260 60% 50%);
+  --secondary-container: var(--glow-accent);
+  --primary-container: var(--glow-primary);
   --tertiary: hsl(45 70% 40%);
   /* Barter tier colors — darker variants for legibility on the warm light bg */
   --t1: #6b6573;
@@ -228,13 +242,13 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
    Neon Text & Glow Effects (theme-aware)
    ============================================ */
 .neon-text-purple {
-  color: #c77dff;
-  text-shadow: 0 0 calc(8px * var(--neon-glow)) #c77dff;
+  color: var(--glow-primary);
+  text-shadow: 0 0 calc(8px * var(--neon-glow)) var(--glow-primary);
 }
 
 .neon-text-cyan {
-  color: #00e3fd;
-  text-shadow: 0 0 calc(8px * var(--neon-glow)) #00e3fd;
+  color: var(--glow-accent);
+  text-shadow: 0 0 calc(8px * var(--neon-glow)) var(--glow-accent);
 }
 
 .neon-text-green {
@@ -244,8 +258,8 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
 
 /* Neon Glow Effects — disabled in light theme */
 .neon-glow-purple {
-  box-shadow: 0 0 calc(8px * var(--neon-glow)) #c77dff,
-              inset 0 0 calc(4px * var(--neon-glow)) rgba(199, 125, 255, 0.1);
+  box-shadow: 0 0 calc(8px * var(--neon-glow)) var(--glow-primary),
+              inset 0 0 calc(4px * var(--neon-glow)) rgb(var(--glow-primary-rgb) / 0.1);
 }
 
 /* Light theme: no glows */
@@ -291,7 +305,7 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   background: rgba(19, 19, 19, 0.4);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 2px solid hsl(var(--primary));
+  border-bottom: 2px solid var(--glow-primary);
 }
 
 .glass-bossbar {
@@ -310,8 +324,8 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
 }
 
 .glass-input:focus {
-  border-color: #00e3fd;
-  box-shadow: 0 0 0 1px rgba(0, 227, 253, 0.2);
+  border-color: var(--glow-accent);
+  box-shadow: 0 0 0 1px rgb(var(--glow-accent-rgb) / 0.2);
 }
 
 .glass-dropdown {
@@ -465,16 +479,16 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   height: 16px;
   border-radius: 50%;
   background: var(--gold-glow);
-  box-shadow: 0 0 6px rgba(255, 238, 16, 0.4);
+  box-shadow: 0 0 6px rgb(var(--gold-glow-rgb) / 0.4);
   cursor: pointer;
   transition: box-shadow 0.2s;
 }
 .settings-slider::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 12px rgba(255, 238, 16, 0.6);
+  box-shadow: 0 0 12px rgb(var(--gold-glow-rgb) / 0.6);
 }
 .theme-light .settings-slider::-webkit-slider-thumb {
-  background: #e6c700;
-  box-shadow: 0 0 4px rgba(230, 199, 0, 0.3);
+  background: var(--gold-glow);
+  box-shadow: 0 0 4px rgb(var(--gold-glow-rgb) / 0.3);
 }
 
 /* ============================================
@@ -493,9 +507,9 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
    Active Tab Styling
    ============================================ */
 [data-state="active"][role="tab"] {
-  background: linear-gradient(180deg, rgba(199, 125, 255, 0.25) 0%, rgba(199, 125, 255, 0.08) 100%);
-  border-bottom: 2px solid #c77dff;
-  color: #c77dff;
+  background: linear-gradient(180deg, rgb(var(--glow-primary-rgb) / 0.25) 0%, rgb(var(--glow-primary-rgb) / 0.08) 100%);
+  border-bottom: 2px solid var(--glow-primary);
+  color: var(--glow-primary);
   font-weight: 700;
 }
 
@@ -560,7 +574,7 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
 /* Active state — persistent gold glow */
 .nav-glow-active {
   color: var(--gold-glow);
-  box-shadow: 0 0 8px rgba(255, 238, 16, 0.4);
+  box-shadow: 0 0 8px rgb(var(--gold-glow-rgb) / 0.4);
 }
 .nav-glow-active::before {
   background: var(--gold-glow);
@@ -571,17 +585,17 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
 
 /* Neon cyan pulse for special nav items (e.g. About) when inactive */
 .nav-neon-pulse::before {
-  background: #00e3fd;
+  background: var(--glow-accent);
   opacity: 0.6;
   transform: scale(1.05);
   animation: neon-blink 2s ease-in-out infinite;
 }
 .nav-neon-pulse {
-  box-shadow: 0 0 6px rgba(0, 227, 253, 0.3);
+  box-shadow: 0 0 6px rgb(var(--glow-accent-rgb) / 0.3);
 }
 @keyframes neon-blink {
-  0%, 100% { opacity: 0.3; box-shadow: 0 0 4px rgba(0, 227, 253, 0.2); }
-  50% { opacity: 0.7; box-shadow: 0 0 12px rgba(0, 227, 253, 0.5); }
+  0%, 100% { opacity: 0.3; box-shadow: 0 0 4px rgb(var(--glow-accent-rgb) / 0.2); }
+  50% { opacity: 0.7; box-shadow: 0 0 12px rgb(var(--glow-accent-rgb) / 0.5); }
 }
 
 /* Crafting icon glow buttons — gold bleed behind icon */
@@ -602,7 +616,7 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   position: absolute;
   inset: 0;
   border-radius: 50% !important;
-  background: radial-gradient(circle, rgba(255, 238, 16, 0.5) 0%, rgba(255, 238, 16, 0) 70%);
+  background: radial-gradient(circle, rgb(var(--gold-glow-rgb) / 0.5) 0%, rgb(var(--gold-glow-rgb) / 0) 70%);
   transition: transform 0.4s, opacity 0.4s;
   transform: scale(0.6);
   z-index: 0;
@@ -613,20 +627,20 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   opacity: 1;
 }
 .craft-glow-btn:hover {
-  box-shadow: 0 0 8px rgba(255, 238, 16, 0.3);
+  box-shadow: 0 0 8px rgb(var(--gold-glow-rgb) / 0.3);
   transform: scale(1.05);
 }
 .craft-glow-active {
-  box-shadow: 0 0 12px rgba(255, 238, 16, 0.4);
+  box-shadow: 0 0 12px rgb(var(--gold-glow-rgb) / 0.4);
 }
 .craft-glow-active::before {
   transform: scale(1.2);
   opacity: 1;
-  background: radial-gradient(circle, rgba(255, 238, 16, 0.6) 0%, rgba(255, 238, 16, 0) 70%);
+  background: radial-gradient(circle, rgb(var(--gold-glow-rgb) / 0.6) 0%, rgb(var(--gold-glow-rgb) / 0) 70%);
 }
 
 .obsidian-accent {
-  border-left: 2px solid #00e3fd;
+  border-left: 2px solid var(--glow-accent);
 }
 
 
@@ -637,7 +651,7 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  text-shadow: 0 0 6px rgba(255, 238, 16, 0.4);
+  text-shadow: 0 0 6px rgb(var(--gold-glow-rgb) / 0.4);
 }
 
 .obsidian-pill {
@@ -649,29 +663,30 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
 }
 .obsidian-pill:hover {
   color: var(--gold-glow);
-  text-shadow: 0 0 4px rgba(255, 238, 16, 0.3);
+  text-shadow: 0 0 4px rgb(var(--gold-glow-rgb) / 0.3);
 }
 
 .obsidian-cta {
-  background: #c77dff;
+  background: var(--glow-primary);
   color: #000;
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  box-shadow: 0 0 15px rgba(199, 125, 255, 0.2);
+  box-shadow: 0 0 15px rgb(var(--glow-primary-rgb) / 0.2);
   transition: filter 0.15s, transform 0.1s;
 }
 .obsidian-cta:hover {
-  background: #e1b6ff;
-  box-shadow: 0 0 25px rgba(199, 125, 255, 0.3);
+  background: var(--glow-primary);
+  filter: brightness(1.15);
+  box-shadow: 0 0 25px rgb(var(--glow-primary-rgb) / 0.3);
 }
 .obsidian-cta:active { transform: scale(0.97); }
 
 .obsidian-timer {
   font-family: 'Space Grotesk', monospace;
   font-weight: 700;
-  color: #00e3fd;
+  color: var(--glow-accent);
   font-variant-numeric: tabular-nums;
 }
 
@@ -693,36 +708,30 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   background: hsla(220 10% 80% / 0.5);
   color: var(--outline-hud);
 }
-.theme-light .nav-glow-btn::before {
-  background: #e6c700;
-}
+/* Light theme keeps the gold-glow var (now warmer) but darkens the foreground
+   color/text for legibility. Most rules collapse to the shared gold-glow vars
+   defined in :root / .theme-light — the `color:` lines stay overridden to keep
+   the darker tone since #b89e00 is darker than the gold-glow itself. */
 .theme-light .nav-glow-btn:hover {
   color: #b89e00;
-  box-shadow: 0 0 5px rgba(230, 199, 0, 0.4);
+  box-shadow: 0 0 5px rgb(var(--gold-glow-rgb) / 0.4);
   text-shadow: none;
 }
 .theme-light .nav-glow-btn:hover::before {
-  box-shadow: 0 0 12px rgba(230, 199, 0, 0.4);
+  box-shadow: 0 0 12px rgb(var(--gold-glow-rgb) / 0.4);
 }
 .theme-light .nav-glow-active {
   color: #b89e00;
-  box-shadow: 0 0 6px rgba(230, 199, 0, 0.3);
+  box-shadow: 0 0 6px rgb(var(--gold-glow-rgb) / 0.3);
 }
 .theme-light .nav-glow-active::before {
-  background: #e6c700;
-  box-shadow: 0 0 10px rgba(230, 199, 0, 0.3);
-}
-.theme-light .craft-glow-btn::before {
-  background: radial-gradient(circle, rgba(230, 199, 0, 0.5) 0%, rgba(230, 199, 0, 0) 70%);
+  box-shadow: 0 0 10px rgb(var(--gold-glow-rgb) / 0.3);
 }
 .theme-light .craft-glow-btn:hover {
-  box-shadow: 0 0 8px rgba(230, 199, 0, 0.3);
+  box-shadow: 0 0 8px rgb(var(--gold-glow-rgb) / 0.3);
 }
 .theme-light .craft-glow-active {
-  box-shadow: 0 0 10px rgba(230, 199, 0, 0.3);
-}
-.theme-light .craft-glow-active::before {
-  background: radial-gradient(circle, rgba(230, 199, 0, 0.5) 0%, rgba(230, 199, 0, 0) 70%);
+  box-shadow: 0 0 10px rgb(var(--gold-glow-rgb) / 0.3);
 }
 .theme-light .obsidian-accent { border-left-color: hsl(var(--primary)); }
 .theme-light .obsidian-pill-active {

@@ -3,23 +3,25 @@
 	import type { DashboardTab, TimeRange } from "$lib/stores";
 	import { showToast } from "$lib/stores/toast";
 	import { exportLog, type LogType, type ExportFormat } from "$lib/utils/export-logs";
+	import { m } from "$lib/paraglide/messages";
 
 	let activeTab = $state<DashboardTab>("all");
 	let timeRange = $state<TimeRange>("all");
 	let showExportMenu = $state(false);
 
-	const TIME_RANGES: { value: TimeRange; label: string }[] = [
-		{ value: "today", label: "Today" },
-		{ value: "7d", label: "7d" },
-		{ value: "30d", label: "30d" },
-		{ value: "all", label: "All Time" },
+	// Labels are thunks so they re-translate on locale change
+	const TIME_RANGES: { value: TimeRange; label: () => string }[] = [
+		{ value: "today", label: () => m.dashboard_range_today() },
+		{ value: "7d", label: () => m.dashboard_range_7d() },
+		{ value: "30d", label: () => m.dashboard_range_30d() },
+		{ value: "all", label: () => m.dashboard_range_all() },
 	];
 
-	const TABS: { value: DashboardTab; label: string }[] = [
-		{ value: "all", label: "All Activities" },
-		{ value: "grinding", label: "⚔️ Grinding" },
-		{ value: "hunting", label: "🏹 Hunting" },
-		{ value: "crafting", label: "🍳 Crafting" },
+	const TABS: { value: DashboardTab; label: () => string }[] = [
+		{ value: "all", label: () => m.dashboard_tab_all() },
+		{ value: "grinding", label: () => m.dashboard_tab_grinding() },
+		{ value: "hunting", label: () => m.dashboard_tab_hunting() },
+		{ value: "crafting", label: () => m.dashboard_tab_crafting() },
 	];
 
 	async function handleExport(logType: LogType, format: ExportFormat) {
@@ -27,12 +29,12 @@
 		try {
 			const result = await exportLog(logType, format);
 			if (result.success) {
-				showToast(`Exported ${result.count} ${logType} sessions as ${format.toUpperCase()}`, "success");
+				showToast(m.dashboard_toast_exported({ count: result.count, type: logType, format: format.toUpperCase() }), "success");
 			} else if (result.count === 0) {
-				showToast(`No ${logType} sessions to export`, "info");
+				showToast(m.dashboard_toast_no_sessions({ type: logType }), "info");
 			}
 		} catch (e) {
-			showToast(`Export failed: ${e}`, "error");
+			showToast(m.dashboard_toast_failed({ error: String(e) }), "error");
 		}
 	}
 </script>
@@ -50,7 +52,7 @@
 							? 'obsidian-pill-active'
 							: 'obsidian-pill'}"
 				>
-					{tab_item.label}
+					{tab_item.label()}
 				</button>
 			{/each}
 
@@ -59,9 +61,9 @@
 				<button
 					onclick={() => showExportMenu = !showExportMenu}
 					class="px-2 py-0.5 text-[10px] font-headline font-bold uppercase tracking-wider text-[#00e3fd] [text-shadow:0_0_8px_rgba(0,227,253,0.5)] hover:text-[#bdf4ff] transition-colors"
-					title="Export logs"
+					title={m.dashboard_export_btn_title()}
 				>
-					📥 Export
+					📥 {m.dashboard_export_btn()}
 				</button>
 
 				{#if showExportMenu}
@@ -70,14 +72,14 @@
 						class="absolute right-0 top-full mt-1 glass-dropdown p-2 rounded-sm z-20 min-w-[140px]"
 						onmouseleave={() => showExportMenu = false}
 					>
-						<p class="obsidian-header mb-1">Export Logs</p>
+						<p class="obsidian-header mb-1">{m.dashboard_export_logs_header()}</p>
 						{#each [
-							{ type: "grinding" as LogType, label: "⚔️ Grinding" },
-							{ type: "crafting" as LogType, label: "🍳 Crafting" },
-							{ type: "hunting" as LogType, label: "🏹 Hunting" },
+							{ type: "grinding" as LogType, label: () => m.dashboard_export_grinding() },
+							{ type: "crafting" as LogType, label: () => m.dashboard_export_crafting() },
+							{ type: "hunting" as LogType, label: () => m.dashboard_export_hunting() },
 						] as item}
 							<div class="flex items-center justify-between gap-2 py-1">
-								<span class="text-[10px] text-on-surface">{item.label}</span>
+								<span class="text-[10px] text-on-surface">{item.label()}</span>
 								<div class="flex gap-1">
 									<button
 										onclick={() => handleExport(item.type, "csv")}
@@ -97,7 +99,7 @@
 
 		<!-- Time Range Pills -->
 		<div class="flex items-center gap-1">
-			<span class="text-[9px] text-outline-hud uppercase tracking-wider mr-1 font-label">Range:</span>
+			<span class="text-[9px] text-outline-hud uppercase tracking-wider mr-1 font-label">{m.dashboard_range_label()}</span>
 			{#each TIME_RANGES as range}
 				<button
 					onclick={() => timeRange = range.value}
@@ -106,7 +108,7 @@
 							? 'obsidian-pill-active text-[10px]'
 							: 'obsidian-pill text-[10px]'}"
 				>
-					{range.label}
+					{range.label()}
 				</button>
 			{/each}
 		</div>

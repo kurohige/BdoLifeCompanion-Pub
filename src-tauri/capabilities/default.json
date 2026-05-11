@@ -20,6 +20,7 @@
     "fs:allow-write-text-file",
     "global-shortcut:default",
     "core:webview:allow-set-webview-zoom",
-    "core:window:allow-set-always-on-top"
+    "core:window:allow-set-always-on-top",
+    "os:allow-locale"
   ]
 }

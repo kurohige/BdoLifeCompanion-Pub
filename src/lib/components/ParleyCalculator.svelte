@@ -5,6 +5,8 @@
 	} from "$lib/stores";
 	import { BARTER_LEVELS } from "$lib/models/bartering";
 	import type { ParleyBaseCosts } from "$lib/models/bartering";
+	import { m } from "$lib/paraglide/messages";
+	import { formatNumber } from "$lib/utils/format";
 
 	// NPC route definitions
 	const REGULAR_ROUTES: { id: string; name: string; costKey: string }[] = [
@@ -107,15 +109,17 @@
 		costs && parleyAfterRoutes > 0 ? Math.floor(parleyAfterRoutes / costs.regular) : 0
 	);
 
-	const COST_TABLE: { label: string; key: string }[] = [
-		{ label: "Regular Island", key: "regular" },
-		{ label: "Crow Coin (T4)", key: "crowCoin" },
-		{ label: "Kashuma", key: "kashuma" },
-		{ label: "Halmad", key: "halmad" },
-		{ label: "Derko", key: "derko" },
-		{ label: "Hakoven", key: "hakoven" },
-		{ label: "Margoria", key: "margoriaLow" },
-		{ label: "Margoria (far)", key: "margoriaHigh" },
+	// Thunks resolve at render so labels re-translate on locale change.
+	// NPC names (Kashuma/Halmad/Derko/Hakoven) stay as proper nouns in both locales.
+	const COST_TABLE: { label: () => string; key: string }[] = [
+		{ label: () => m.bartering_parley_cost_regular(), key: "regular" },
+		{ label: () => m.bartering_parley_cost_crow_coin(), key: "crowCoin" },
+		{ label: () => "Kashuma", key: "kashuma" },
+		{ label: () => "Halmad", key: "halmad" },
+		{ label: () => "Derko", key: "derko" },
+		{ label: () => "Hakoven", key: "hakoven" },
+		{ label: () => m.bartering_parley_cost_margoria_low(), key: "margoriaLow" },
+		{ label: () => m.bartering_parley_cost_margoria_high(), key: "margoriaHigh" },
 	];
 </script>
 
@@ -123,15 +127,15 @@
 	<!-- Settings -->
 	<div class="glass-card p-3 space-y-2">
 		<div class="flex items-center justify-between">
-			<h3 class="text-xs font-headline font-bold text-primary uppercase tracking-wider">Parley Calculator</h3>
-			<label class="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer" title="Active Value Pack (-10% parley cost)">
+			<h3 class="text-xs font-headline font-bold text-primary uppercase tracking-wider">{m.bartering_parley_calc_title()}</h3>
+			<label class="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer" title={m.bartering_parley_value_pack_title()}>
 				<input type="checkbox" bind:checked={hasValuePack} class="w-3 h-3 accent-primary" />
-				Value Pack
+				{m.bartering_parley_value_pack_label()}
 			</label>
 		</div>
 
 		<div class="flex gap-2 items-center">
-			<span class="text-[10px] text-muted-foreground w-14 shrink-0">Level</span>
+			<span class="text-[10px] text-muted-foreground w-14 shrink-0">{m.bartering_parley_level()}</span>
 			<select bind:value={barterLevel} class="glass-input text-[11px] px-2 py-1 flex-1">
 				{#each BARTER_LEVELS as level}
 					<option value={level}>{level}</option>
@@ -140,7 +144,7 @@
 		</div>
 
 		<div class="flex gap-2 items-center">
-			<span class="text-[10px] text-muted-foreground w-14 shrink-0">Budget</span>
+			<span class="text-[10px] text-muted-foreground w-14 shrink-0">{m.bartering_parley_budget()}</span>
 			<input
 				type="number"
 				bind:value={parleyBudget}
@@ -152,48 +156,48 @@
 
 		<!-- Reduction summary -->
 		<div class="flex gap-4 text-[10px] pt-1 border-t border-outline-variant/10">
-			<span class="text-muted-foreground">Mastery: <span class="text-accent font-mono">{(masteryReduction * 100).toFixed(2)}%</span></span>
+			<span class="text-muted-foreground">{m.bartering_parley_mastery()} <span class="text-accent font-mono">{(masteryReduction * 100).toFixed(2)}%</span></span>
 			{#if hasValuePack}
-				<span class="text-muted-foreground">+ Value Pack: <span class="text-accent font-mono">10%</span></span>
+				<span class="text-muted-foreground">{m.bartering_parley_plus_value_pack()} <span class="text-accent font-mono">10%</span></span>
 			{/if}
-			<span class="text-muted-foreground">Total: <span class="text-primary font-mono font-bold">{totalReductionPct.toFixed(2)}%</span></span>
+			<span class="text-muted-foreground">{m.bartering_parley_total()} <span class="text-primary font-mono font-bold">{totalReductionPct.toFixed(2)}%</span></span>
 		</div>
 	</div>
 
 	<!-- Cost Per Barter Table -->
 	{#if costs}
 		<div class="glass-card p-3">
-			<h3 class="text-[10px] font-headline font-bold text-muted-foreground uppercase tracking-wider mb-2">Cost Per Barter</h3>
+			<h3 class="text-[10px] font-headline font-bold text-muted-foreground uppercase tracking-wider mb-2">{m.bartering_parley_cost_per_barter()}</h3>
 			<div class="grid grid-cols-2 gap-x-4 gap-y-1">
-				{#each COST_TABLE as { label, key }}
+				{#each COST_TABLE as { label, key } (key)}
 					<div class="flex items-center justify-between">
-						<span class="text-[10px] text-muted-foreground">{label}</span>
-						<span class="text-[11px] font-mono text-foreground">{((costs as Record<string, number>)[key]).toLocaleString()}</span>
+						<span class="text-[10px] text-muted-foreground">{label()}</span>
+						<span class="text-[11px] font-mono text-foreground">{formatNumber((costs as Record<string, number>)[key])}</span>
 					</div>
 				{/each}
 			</div>
 			<div class="flex gap-4 mt-2 pt-2 border-t border-outline-variant/10 text-[10px]">
-				<span class="text-muted-foreground">Regular barters: <span class="text-accent font-mono font-bold">{regularBartersAvailable}</span></span>
-				<span class="text-muted-foreground">Crow coin barters: <span class="text-accent font-mono font-bold">{crowCoinBartersAvailable}</span></span>
+				<span class="text-muted-foreground">{m.bartering_parley_regular_barters()} <span class="text-accent font-mono font-bold">{regularBartersAvailable}</span></span>
+				<span class="text-muted-foreground">{m.bartering_parley_crow_barters()} <span class="text-accent font-mono font-bold">{crowCoinBartersAvailable}</span></span>
 			</div>
 		</div>
 	{/if}
 
 	<!-- Route Planner -->
 	<div class="glass-card p-3 space-y-2">
-		<h3 class="text-[10px] font-headline font-bold text-muted-foreground uppercase tracking-wider">Route Planner</h3>
-		<p class="text-[9px] text-muted-foreground/60">Select NPCs you plan to visit — see remaining parley</p>
+		<h3 class="text-[10px] font-headline font-bold text-muted-foreground uppercase tracking-wider">{m.bartering_parley_route_planner()}</h3>
+		<p class="text-[9px] text-muted-foreground/60">{m.bartering_parley_route_planner_subtitle()}</p>
 
 		<!-- Regular Routes -->
 		<div>
-			<span class="text-[9px] text-muted-foreground uppercase tracking-wider">Regular Routes</span>
+			<span class="text-[9px] text-muted-foreground uppercase tracking-wider">{m.bartering_parley_section_regular()}</span>
 			<div class="grid grid-cols-2 gap-1 mt-1">
 				{#each REGULAR_ROUTES as route}
 					{@const cost = costs ? (costs as Record<string, number>)[route.costKey] : 0}
 					<label class="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-white/[0.02] px-1.5 py-1 rounded">
 						<input type="checkbox" bind:checked={selectedRegular[route.id]} class="w-3 h-3 accent-primary" />
 						<span class="flex-1 {selectedRegular[route.id] ? 'text-foreground' : 'text-muted-foreground'}">{route.name}</span>
-						<span class="font-mono text-[9px] text-muted-foreground/60">{cost.toLocaleString()}</span>
+						<span class="font-mono text-[9px] text-muted-foreground/60">{formatNumber(cost)}</span>
 					</label>
 				{/each}
 			</div>
@@ -201,14 +205,14 @@
 
 		<!-- Margoria Routes -->
 		<div>
-			<span class="text-[9px] text-muted-foreground uppercase tracking-wider">Margoria Routes</span>
+			<span class="text-[9px] text-muted-foreground uppercase tracking-wider">{m.bartering_parley_section_margoria()}</span>
 			<div class="grid grid-cols-2 gap-1 mt-1">
 				{#each MARGORIA_ROUTES as route}
 					{@const cost = costs ? (costs as Record<string, number>)[route.costKey] : 0}
 					<label class="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-white/[0.02] px-1.5 py-1 rounded">
 						<input type="checkbox" bind:checked={selectedMargoria[route.id]} class="w-3 h-3 accent-primary" />
 						<span class="flex-1 {selectedMargoria[route.id] ? 'text-foreground' : 'text-muted-foreground'}">{route.name}</span>
-						<span class="font-mono text-[9px] text-muted-foreground/60">{cost.toLocaleString()}</span>
+						<span class="font-mono text-[9px] text-muted-foreground/60">{formatNumber(cost)}</span>
 					</label>
 				{/each}
 			</div>
@@ -216,14 +220,14 @@
 
 		<!-- Crow Coin Routes -->
 		<div>
-			<span class="text-[9px] text-muted-foreground uppercase tracking-wider">Crow Coin Routes</span>
+			<span class="text-[9px] text-muted-foreground uppercase tracking-wider">{m.bartering_parley_section_crow()}</span>
 			<div class="grid grid-cols-2 gap-1 mt-1">
 				{#each CROW_ROUTES as route}
 					{@const cost = costs ? (costs as Record<string, number>)[route.costKey] : 0}
 					<label class="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-white/[0.02] px-1.5 py-1 rounded">
 						<input type="checkbox" bind:checked={selectedCrow[route.id]} class="w-3 h-3 accent-primary" />
 						<span class="flex-1 {selectedCrow[route.id] ? 'text-foreground' : 'text-muted-foreground'}">{route.name}</span>
-						<span class="font-mono text-[9px] text-muted-foreground/60">{cost.toLocaleString()}</span>
+						<span class="font-mono text-[9px] text-muted-foreground/60">{formatNumber(cost)}</span>
 					</label>
 				{/each}
 			</div>
@@ -231,14 +235,14 @@
 
 		<!-- Land Coin Routes -->
 		<div>
-			<span class="text-[9px] text-muted-foreground uppercase tracking-wider">Land Coin Routes</span>
+			<span class="text-[9px] text-muted-foreground uppercase tracking-wider">{m.bartering_parley_section_land()}</span>
 			<div class="grid grid-cols-2 gap-1 mt-1">
 				{#each LAND_ROUTES as route}
 					{@const cost = costs ? (costs as Record<string, number>)[route.costKey] : 0}
 					<label class="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-white/[0.02] px-1.5 py-1 rounded">
 						<input type="checkbox" bind:checked={selectedLand[route.id]} class="w-3 h-3 accent-primary" />
 						<span class="flex-1 {selectedLand[route.id] ? 'text-foreground' : 'text-muted-foreground'}">{route.name}</span>
-						<span class="font-mono text-[9px] text-muted-foreground/60">{cost.toLocaleString()}</span>
+						<span class="font-mono text-[9px] text-muted-foreground/60">{formatNumber(cost)}</span>
 					</label>
 				{/each}
 			</div>
@@ -247,16 +251,16 @@
 		<!-- Route Summary -->
 		<div class="pt-2 border-t border-outline-variant/10 space-y-1">
 			<div class="flex items-center justify-between text-[10px]">
-				<span class="text-muted-foreground">Route Cost</span>
-				<span class="font-mono font-bold {totalRouteCost > 0 ? 'text-yellow-400' : 'text-muted-foreground'}">{totalRouteCost.toLocaleString()}</span>
+				<span class="text-muted-foreground">{m.bartering_parley_route_cost()}</span>
+				<span class="font-mono font-bold {totalRouteCost > 0 ? 'text-yellow-400' : 'text-muted-foreground'}">{formatNumber(totalRouteCost)}</span>
 			</div>
 			<div class="flex items-center justify-between text-[10px]">
-				<span class="text-muted-foreground">Remaining Parley</span>
-				<span class="font-mono font-bold {parleyAfterRoutes >= 0 ? 'text-accent' : 'text-destructive'}">{parleyAfterRoutes.toLocaleString()}</span>
+				<span class="text-muted-foreground">{m.bartering_parley_remaining()}</span>
+				<span class="font-mono font-bold {parleyAfterRoutes >= 0 ? 'text-accent' : 'text-destructive'}">{formatNumber(parleyAfterRoutes)}</span>
 			</div>
 			{#if parleyAfterRoutes > 0}
 				<div class="flex items-center justify-between text-[10px]">
-					<span class="text-muted-foreground">Regular Barters Left</span>
+					<span class="text-muted-foreground">{m.bartering_parley_regular_left()}</span>
 					<span class="font-mono font-bold text-foreground">{bartersAfterRoutes}</span>
 				</div>
 			{/if}
@@ -270,7 +274,7 @@
 						style="width: {usagePct}%"
 					></div>
 				</div>
-				<div class="text-[9px] text-muted-foreground/60 text-right">{usagePct}% of budget allocated to routes</div>
+				<div class="text-[9px] text-muted-foreground/60 text-right">{m.bartering_parley_budget_pct({ pct: usagePct })}</div>
 			{/if}
 		</div>
 	</div>

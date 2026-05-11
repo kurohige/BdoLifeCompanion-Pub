@@ -24,6 +24,13 @@
 		type PlannerView,
 	} from "$lib/stores";
 	import { inventoryStore, setInventoryQuantity } from "$lib/stores/inventory";
+	import { m } from "$lib/paraglide/messages";
+
+	function categoryName(cat: string): string {
+		if (cat === "cooking") return m.crafting_category_cooking();
+		if (cat === "alchemy") return m.crafting_category_alchemy();
+		return m.crafting_category_draughts();
+	}
 
 	// ── Local UI State (truly per-render — not worth persisting across tabs) ──
 	let showRecipeDropdown = $state(false);
@@ -136,12 +143,16 @@
 
 		for (let i = 0; i < groups.length; i++) {
 			const cat = groups[i].steps[0].category;
-			const emoji =
-				cat === "cooking" ? "🍳" : cat === "alchemy" ? "⚗️" : "🧪";
-			groups[i].label =
-				i === groups.length - 1 && groups.length > 1
-					? `Step ${i + 1} — Final`
-					: `Step ${i + 1} — ${emoji} ${cat.charAt(0).toUpperCase() + cat.slice(1)}`;
+			const n = i + 1;
+			if (i === groups.length - 1 && groups.length > 1) {
+				groups[i].label = m.crafting_planner_step_final({ n });
+			} else if (cat === "cooking") {
+				groups[i].label = m.crafting_planner_step_cooking({ n });
+			} else if (cat === "alchemy") {
+				groups[i].label = m.crafting_planner_step_alchemy({ n });
+			} else {
+				groups[i].label = m.crafting_planner_step_draughts({ n });
+			}
 		}
 
 		return groups;
@@ -247,7 +258,7 @@
 				onchange={(e) => setActivePlan(e.currentTarget.value || null)}
 				class="flex-1 bg-input text-foreground border border-border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
 			>
-				<option value="">-- Select Plan --</option>
+				<option value="">{m.crafting_planner_select_plan()}</option>
 				{#each $plannerPlansStore as plan (plan.id)}
 					<option value={plan.id}>
 						{plan.goalQuantity}× {plan.goalRecipeName}
@@ -262,14 +273,14 @@
 				onclick={handleCancelNew}
 				class="px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-muted transition-colors"
 			>
-				Cancel
+				{m.crafting_planner_cancel()}
 			</button>
 		{:else}
 			<button
 				onclick={handleNewPlan}
 				class="px-2 py-1 text-xs bg-accent text-accent-foreground font-bold rounded hover:opacity-80 transition-opacity whitespace-nowrap"
 			>
-				+ New Plan
+				{m.crafting_planner_new_plan()}
 			</button>
 		{/if}
 
@@ -277,7 +288,7 @@
 			<button
 				onclick={handleDelete}
 				class="px-2 py-1 text-xs bg-destructive/20 text-destructive rounded hover:bg-destructive/30 transition-colors"
-				title="Delete this plan"
+				title={m.crafting_planner_delete()}
 			>
 				✕
 			</button>
@@ -288,7 +299,7 @@
 	{#if creatingPlan}
 		<div class="relative">
 			<label for="goal-search" class="text-[10px] font-bold neon-text-cyan">
-				Search all recipes
+				{m.crafting_planner_search_label()}
 			</label>
 			<input
 				id="goal-search"
@@ -297,7 +308,7 @@
 				onfocus={() => (showRecipeDropdown = true)}
 				onblur={() => setTimeout(() => (showRecipeDropdown = false), 200)}
 				onkeydown={handleGoalSearchKeyDown}
-				placeholder="Type recipe name (min 2 chars)..."
+				placeholder={m.crafting_planner_search_placeholder()}
 				role="combobox"
 				aria-expanded={showRecipeDropdown && filteredGoalRecipes.length > 0}
 				aria-autocomplete="list"
@@ -339,7 +350,7 @@
 							</div>
 							<span class="flex-1 text-xs truncate">{recipe.name}</span>
 							<span class="text-[10px] text-muted-foreground">
-								{categoryEmoji(category)} {category}
+								{categoryEmoji(category)} {categoryName(category)}
 							</span>
 						</button>
 					{/each}
@@ -347,7 +358,7 @@
 			{/if}
 
 			{#if $plannerRecipeSearchStore.trim().length >= 2 && filteredGoalRecipes.length === 0}
-				<p class="text-[10px] text-muted-foreground mt-1">No recipes found</p>
+				<p class="text-[10px] text-muted-foreground mt-1">{m.crafting_planner_no_results()}</p>
 			{/if}
 		</div>
 	{/if}
@@ -381,13 +392,13 @@
 				</p>
 				<p class="text-[10px] text-muted-foreground">
 					{categoryEmoji(plan.goalCategory)}
-					{plan.goalCategory}
+					{categoryName(plan.goalCategory)}
 				</p>
 			</div>
 
 			<!-- Quantity Input -->
 			<div class="flex items-center gap-1">
-				<span class="text-[10px] text-muted-foreground">Qty:</span>
+				<span class="text-[10px] text-muted-foreground">{m.crafting_planner_qty()}</span>
 				<input
 					type="text"
 					inputmode="numeric"
@@ -408,19 +419,19 @@
 					? 'border-accent text-accent bg-accent/10'
 					: 'border-border text-muted-foreground bg-secondary'}"
 				title={$inventoryAwareStore
-					? "Showing amounts needed after inventory deduction"
-					: "Showing total amounts from scratch"}
+					? m.crafting_planner_inv_aware_on()
+					: m.crafting_planner_inv_aware_off()}
 			>
-				{$inventoryAwareStore ? "Still Needed" : "Total"}
+				{$inventoryAwareStore ? m.crafting_planner_still_needed() : m.crafting_planner_total()}
 			</button>
 		</div>
 
 		<!-- View Toggle Bar -->
 		<div class="flex gap-1">
 			{#each [
-				{ id: "tree", label: "🌳 Tree" },
-				{ id: "shopping", label: "📋 Shopping" },
-				{ id: "steps", label: "📝 Steps" },
+				{ id: "tree", label: () => m.crafting_planner_view_tree() },
+				{ id: "shopping", label: () => m.crafting_planner_view_shopping() },
+				{ id: "steps", label: () => m.crafting_planner_view_steps() },
 			] as view (view.id)}
 				<button
 					onclick={() => plannerViewStore.set(view.id as PlannerView)}
@@ -429,7 +440,7 @@
 						? 'bg-primary text-primary-foreground font-bold'
 						: 'bg-secondary text-secondary-foreground hover:bg-muted'}"
 				>
-					{view.label}
+					{view.label()}
 				</button>
 			{/each}
 		</div>
@@ -440,20 +451,20 @@
 				<!-- Expand/Collapse Controls -->
 				<div class="flex items-center justify-between">
 					<p class="text-[10px] font-bold neon-text-cyan">
-						Dependency Tree for {plan.goalQuantity}× {plan.goalRecipeName}
+						{m.crafting_planner_tree_header({ qty: plan.goalQuantity, name: plan.goalRecipeName })}
 					</p>
 					<div class="flex gap-2">
 						<button
 							onclick={expandAll}
 							class="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-							title="Expand all"
+							title={m.crafting_planner_expand_all()}
 						>
 							▼ All
 						</button>
 						<button
 							onclick={collapseAll}
 							class="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-							title="Collapse all"
+							title={m.crafting_planner_collapse_all()}
 						>
 							▶ All
 						</button>
@@ -462,10 +473,10 @@
 
 				<!-- Column Headers -->
 				<div class="flex items-center text-[9px] text-muted-foreground px-1">
-					<span class="flex-1">Recipe / Material</span>
-					<span class="w-12 text-right">Need</span>
-					<span class="w-12 text-center">Have</span>
-					<span class="w-12 text-right">Deficit</span>
+					<span class="flex-1">{m.crafting_planner_col_recipe()}</span>
+					<span class="w-12 text-right">{m.crafting_planner_col_need()}</span>
+					<span class="w-12 text-center">{m.crafting_planner_col_have()}</span>
+					<span class="w-12 text-right">{m.crafting_planner_col_deficit()}</span>
 				</div>
 
 				<!-- Tree Rows -->
@@ -557,7 +568,7 @@
 				</div>
 			{:else}
 				<div class="text-center py-4 text-muted-foreground">
-					<p class="text-xs">Could not resolve recipe: {plan.goalRecipeName}</p>
+					<p class="text-xs">{m.crafting_planner_could_not_resolve({ name: plan.goalRecipeName })}</p>
 				</div>
 			{/if}
 
@@ -565,19 +576,19 @@
 		{:else if $plannerViewStore === "shopping"}
 			<div class="flex items-center justify-between">
 				<p class="text-[10px] font-bold neon-text-cyan">
-					Shopping List for {plan.goalQuantity}× {plan.goalRecipeName}
+					{m.crafting_planner_shopping_header({ qty: plan.goalQuantity, name: plan.goalRecipeName })}
 				</p>
 				<p class="text-[10px] text-muted-foreground">
-					{shoppingStats.fulfilled}/{shoppingStats.total} ready
+					{m.crafting_planner_ready({ fulfilled: shoppingStats.fulfilled, total: shoppingStats.total })}
 				</p>
 			</div>
 
 			<!-- Column Headers -->
 			<div class="flex items-center text-[9px] text-muted-foreground px-1">
-				<span class="flex-1">Material</span>
-				<span class="w-12 text-right">Need</span>
-				<span class="w-14 text-center">Have</span>
-				<span class="w-12 text-right">Deficit</span>
+				<span class="flex-1">{m.crafting_planner_col_material()}</span>
+				<span class="w-12 text-right">{m.crafting_planner_col_need()}</span>
+				<span class="w-14 text-center">{m.crafting_planner_col_have()}</span>
+				<span class="w-12 text-right">{m.crafting_planner_col_deficit()}</span>
 			</div>
 
 			<!-- Shopping Items -->
@@ -650,7 +661,7 @@
 
 				{#if $shoppingListStore.length === 0}
 					<p class="text-center text-xs text-muted-foreground py-4">
-						No materials needed
+						{m.crafting_planner_no_materials()}
 					</p>
 				{/if}
 			</div>
@@ -659,10 +670,10 @@
 		{:else if $plannerViewStore === "steps"}
 			<div class="flex items-center justify-between">
 				<p class="text-[10px] font-bold neon-text-cyan">
-					Crafting Steps for {plan.goalQuantity}× {plan.goalRecipeName}
+					{m.crafting_planner_steps_header({ qty: plan.goalQuantity, name: plan.goalRecipeName })}
 				</p>
 				<p class="text-[10px] text-muted-foreground">
-					{progress.done}/{progress.total} done
+					{m.crafting_planner_done({ done: progress.done, total: progress.total })}
 				</p>
 			</div>
 
@@ -726,7 +737,7 @@
 											? 'line-through'
 											: ''}"
 									>
-										Craft {step.quantity}× {step.recipeName}
+										{m.crafting_planner_craft_step({ qty: step.quantity, name: step.recipeName })}
 									</span>
 								</div>
 
@@ -736,7 +747,7 @@
 										{@const invQty = $inventoryStore.get(ing.itemId.toLowerCase()) ?? $inventoryStore.get(ing.itemId.toLowerCase().replace(/_/g, " ")) ?? $inventoryStore.get(ing.itemId.toLowerCase().replace(/ /g, "_")) ?? 0}
 										<div class="flex items-center gap-1 text-[10px] text-muted-foreground">
 											<span class="truncate">{ing.name} ×{ing.amount}</span>
-											<span class="text-[9px] ml-auto shrink-0">have:</span>
+											<span class="text-[9px] ml-auto shrink-0">{m.crafting_planner_have_inline()}</span>
 											<input
 												type="text"
 												inputmode="numeric"
@@ -759,7 +770,7 @@
 							<button
 								onclick={() => handleJumpToCraft(step)}
 								class="text-xs text-primary hover:text-primary/80 flex-shrink-0 mt-0.5 transition-colors"
-								title="Jump to this recipe in Crafting view"
+								title={m.crafting_planner_jump()}
 							>
 								→
 							</button>
@@ -769,7 +780,7 @@
 
 				{#if $craftingStepsStore.length === 0}
 					<p class="text-center text-xs text-muted-foreground py-4">
-						No crafting steps needed
+						{m.crafting_planner_no_steps()}
 					</p>
 				{/if}
 			</div>
@@ -778,16 +789,15 @@
 	<!-- ═══ No Plan / Empty State ═══ -->
 	{:else if !creatingPlan}
 		<div class="text-center py-8 text-muted-foreground space-y-2">
-			<p class="text-sm">No crafting plans yet</p>
+			<p class="text-sm">{m.crafting_planner_empty_title()}</p>
 			<p class="text-xs">
-				Create a plan to see the full dependency tree, shopping list, and
-				step-by-step crafting order.
+				{m.crafting_planner_empty_subtitle()}
 			</p>
 			<button
 				onclick={handleNewPlan}
 				class="px-4 py-1.5 text-xs bg-accent text-accent-foreground font-bold rounded hover:opacity-80 transition-opacity"
 			>
-				+ Create Your First Plan
+				{m.crafting_planner_create_first()}
 			</button>
 		</div>
 	{/if}

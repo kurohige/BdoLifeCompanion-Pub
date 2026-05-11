@@ -2,6 +2,7 @@ import { writable, get } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
 import { generateId } from "$lib/utils/id";
 import { showToast } from "$lib/stores/toast";
+import { m } from "$lib/paraglide/messages";
 import {
 	barterInventoryStore,
 	barterItemsStore,
@@ -34,7 +35,7 @@ function createDebouncedSave(label: string, saveFn: () => Promise<void>, delay =
 		timeout = setTimeout(() => {
 			saveFn().catch((e) => {
 				console.error(`Failed to save ${label}:`, e);
-				showToast(`Failed to save ${label}`, "error");
+				showToast(m.toast_save_failed({ label }), "error");
 			});
 		}, delay);
 	};
@@ -461,7 +462,7 @@ export async function migrateLegacyLog(): Promise<void> {
 		});
 		routeLogsStore.update((logs) => [...converted, ...logs]);
 		await saveRouteLogs();
-		showToast(`Migrated ${converted.length} legacy session${converted.length === 1 ? "" : "s"}`, "success");
+		showToast(m.toast_legacy_migrated({ count: converted.length }), "success");
 	} catch (error) {
 		console.error("Legacy log migration failed:", error);
 	}
@@ -470,7 +471,7 @@ export async function migrateLegacyLog(): Promise<void> {
 export async function finalizeRoute(label?: string): Promise<RouteLog | null> {
 	const session = get(currentRouteStore);
 	if (!session || session.trades.length === 0) {
-		showToast("No trades to log", "error");
+		showToast(m.toast_no_trades_to_log(), "error");
 		return null;
 	}
 	const now = Date.now();
@@ -522,7 +523,7 @@ export async function finalizeRoute(label?: string): Promise<RouteLog | null> {
 	routeLogsStore.update((logs) => [log, ...logs]);
 	await saveRouteLogs();
 	clearRoute();
-	showToast("Route logged", "success");
+	showToast(m.toast_route_logged(), "success");
 	return log;
 }
 

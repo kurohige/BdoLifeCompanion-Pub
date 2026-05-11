@@ -2,6 +2,7 @@
 	import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 	import { exit } from "@tauri-apps/plugin-process";
 	import { setViewMode, appVersionStore } from "$lib/stores";
+	import { m } from "$lib/paraglide/messages";
 
 	const appWindow = getCurrentWindow();
 
@@ -44,9 +45,9 @@
 		<button
 			onclick={handleMiniMode}
 			class="titlebar-logo"
-			title="Switch to mini mode"
+			title={m.chrome_titlebar_mini_mode_title()}
 		>
-			<img src="/logo.png" alt="Mini mode" class="w-4 h-4 object-contain" />
+			<img src="/logo.png" alt={m.chrome_titlebar_mini_mode_alt()} class="w-4 h-4 object-contain" />
 		</button>
 		<span class="text-[11px] font-bold tracking-[0.15em] font-headline pointer-events-none text-foreground">
 			BDO LIFE COMPANION
@@ -58,16 +59,16 @@
 
 	<!-- Window Controls -->
 	<div class="flex items-center gap-0.5 pointer-events-auto">
-		<button onclick={handleMediumMode} class="titlebar-btn" title="Medium mode">
+		<button onclick={handleMediumMode} class="titlebar-btn" title={m.chrome_titlebar_medium_mode_title()}>
 			<span class="text-[11px]">[+]</span>
 		</button>
-		<button onclick={handleMiniMode} class="titlebar-btn" title="Mini mode">
+		<button onclick={handleMiniMode} class="titlebar-btn" title={m.chrome_titlebar_mini_mode_alt()}>
 			<span class="text-[11px]">&#8862;</span>
 		</button>
-		<button onclick={minimize} class="titlebar-btn" title="Minimize">
+		<button onclick={minimize} class="titlebar-btn" title={m.chrome_titlebar_minimize_title()}>
 			<span class="text-[11px]">&#9472;</span>
 		</button>
-		<button onclick={close} class="titlebar-btn titlebar-btn-close" title="Close">
+		<button onclick={close} class="titlebar-btn titlebar-btn-close" title={m.chrome_titlebar_close_title()}>
 			<span class="text-[11px]">&#10005;</span>
 		</button>
 	</div>

@@ -32,6 +32,8 @@
 		stopGrindingTimer,
 		resetGrindingTimer,
 	} from "$lib/stores";
+	import { m } from "$lib/paraglide/messages";
+	import { formatNumber } from "$lib/utils/format";
 
 	let showDropdown = $state(false);
 	let mastery = $state("");
@@ -44,7 +46,7 @@
 		try {
 			await fetchHuntingMarketPrices();
 		} catch {
-			fetchPriceError = "Failed to fetch prices";
+			fetchPriceError = m.grinding_fetch_prices_error();
 			setTimeout(() => { fetchPriceError = ""; }, 3000);
 		}
 	}
@@ -136,7 +138,7 @@
 	const timerFontClass = $derived($grindingTimerDisplay.length > 5 ? "text-base" : "text-xl");
 
 	function formatSilver(value: number): string {
-		return value.toLocaleString();
+		return formatNumber(value);
 	}
 </script>
 
@@ -144,7 +146,7 @@
 	<!-- Top: Title (left) + Zone Search (right) -->
 	<div class="flex items-start gap-4">
 		<div class="flex-shrink-0">
-			<h2 class="text-lg font-bold neon-text-green">Hunting Tracker</h2>
+			<h2 class="text-lg font-bold neon-text-green">{m.hunting_tracker_title()}</h2>
 		</div>
 
 		<div class="flex-1 min-w-0 space-y-1">
@@ -152,7 +154,7 @@
 				<input
 					type="text"
 					bind:value={$huntingSearchStore}
-					placeholder="Type name of hunting zone"
+					placeholder={m.hunting_zone_search_placeholder()}
 					onfocus={handleSearchFocus}
 					onblur={handleSearchBlur}
 					class="w-full glass-input text-foreground rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
@@ -179,7 +181,7 @@
 					<button
 						onclick={clearHuntingSpot}
 						class="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
-						title="Change spot"
+						title={m.grinding_change_spot()}
 					>
 						✕
 					</button>
@@ -209,18 +211,18 @@
 					<button
 						onclick={handleTimerToggle}
 						class="font-mono {timerFontClass} font-bold {$grindingTimerStore.isRunning ? 'neon-text-green' : $grindingTimerStore.isPaused ? 'text-accent' : $grindingTimerStore.isFinished ? 'text-accent' : 'text-muted-foreground'} hover:opacity-80 transition-opacity"
-						title={$grindingTimerStore.isRunning ? "Pause" : "Start"}
+						title={$grindingTimerStore.isRunning ? m.grinding_timer_pause() : m.grinding_timer_start()}
 					>
 						{$grindingTimerDisplay}
 					</button>
 				</div>
 			</div>
 
-			<p class="text-[9px] text-muted-foreground uppercase tracking-wider font-bold">Session Timer</p>
+			<p class="text-[9px] text-muted-foreground uppercase tracking-wider font-bold">{m.grinding_timer_session()}</p>
 
 			<div class="flex gap-3">
 				<div class="flex flex-col items-center">
-					<span class="text-[10px] text-muted-foreground">Minutes</span>
+					<span class="text-[10px] text-muted-foreground">{m.grinding_timer_minutes()}</span>
 					<input
 						type="text" inputmode="numeric" pattern="[0-9]*"
 						value={$grindingTimerStore.minutes}
@@ -234,7 +236,7 @@
 					/>
 				</div>
 				<div class="flex flex-col items-center">
-					<span class="text-[10px] text-muted-foreground">Seconds</span>
+					<span class="text-[10px] text-muted-foreground">{m.grinding_timer_seconds()}</span>
 					<input
 						type="text" inputmode="numeric" pattern="[0-9]*"
 						value={$grindingTimerStore.seconds}
@@ -264,7 +266,7 @@
 				<button
 					onclick={handleTimerToggle}
 					class="w-6 h-6 flex items-center justify-center rounded bg-secondary border border-border hover:border-accent transition-colors {$grindingTimerStore.isRunning ? 'text-accent' : 'text-foreground'}"
-					title={$grindingTimerStore.isRunning ? "Pause" : timerActive ? "Resume" : "Start"}
+					title={$grindingTimerStore.isRunning ? m.grinding_timer_pause() : timerActive ? m.grinding_timer_resume() : m.grinding_timer_start()}
 				>
 					{#if $grindingTimerStore.isRunning}
 						<svg viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
@@ -276,7 +278,7 @@
 					onclick={handleStopTimer}
 					disabled={!timerActive && !$grindingTimerStore.isFinished}
 					class="w-6 h-6 flex items-center justify-center rounded bg-secondary border border-border hover:border-destructive transition-colors disabled:opacity-30"
-					title="Stop & discard"
+					title={m.grinding_timer_stop()}
 				>
 					<svg viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor"><rect x="5" y="5" width="14" height="14"/></svg>
 				</button>
@@ -284,7 +286,7 @@
 					onclick={() => resetGrindingTimer()}
 					disabled={$grindingTimerStore.isRunning}
 					class="w-6 h-6 flex items-center justify-center rounded bg-secondary border border-border hover:border-accent transition-colors disabled:opacity-30"
-					title="Reset timer"
+					title={m.grinding_timer_reset()}
 				>
 					<svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
 				</button>
@@ -297,18 +299,18 @@
 				<div class="flex items-center justify-between mb-1">
 					<div class="flex items-center gap-2">
 						<p class="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
-							Items ({$huntingSelectedSpotStore.loot.length}) — Total: <span class="text-accent">{$huntingTotalLootCount}</span>
+							{m.grinding_items_header({ count: $huntingSelectedSpotStore.loot.length })} <span class="text-accent">{$huntingTotalLootCount}</span>
 						</p>
 						<button
 							onclick={handleFetchPrices}
 							disabled={$huntingMarketPricesLoadingStore}
 							class="px-1.5 py-0.5 text-[9px] bg-secondary border border-border rounded hover:border-accent hover:text-accent transition-colors disabled:opacity-50 disabled:cursor-wait"
-							title="Fetch marketplace prices"
+							title={m.grinding_fetch_prices_title()}
 						>
 							{#if $huntingMarketPricesLoadingStore}
 								<span class="inline-block animate-spin">⟳</span>
 							{:else}
-								💰 Prices
+								💰 {m.grinding_prices_btn()}
 							{/if}
 						</button>
 						{#if fetchPriceError}
@@ -316,11 +318,11 @@
 						{/if}
 					</div>
 					<div class="flex gap-2 text-[8px] text-muted-foreground/60 uppercase">
-						<span class="w-[42px] text-center">Qty</span>
-						<span class="w-[58px] text-center">Value</span>
+						<span class="w-[42px] text-center">{m.grinding_col_qty()}</span>
+						<span class="w-[58px] text-center">{m.grinding_col_value()}</span>
 					</div>
 				</div>
-				<div class="flex-1 overflow-auto space-y-0.5 max-h-[280px]">
+				<div class="flex-1 min-h-0 overflow-auto space-y-0.5">
 					{#each $huntingSelectedSpotItems as item (item.id)}
 						{@const count = $huntingLootCountsStore.get(item.id) ?? 0}
 						{@const value = $huntingLootValuesStore.get(item.id) ?? 0}
@@ -336,8 +338,8 @@
 							/>
 							<input
 								type="text" inputmode="numeric"
-								value={value ? value.toLocaleString() : ""}
-								placeholder="silver"
+								value={value ? formatNumber(value) : ""}
+								placeholder={m.grinding_silver_placeholder()}
 								oninput={(e) => handleLootValueChange(item.id, e.currentTarget.value)}
 								class="w-[70px] bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[11px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-accent/50 no-spinner"
 							/>
@@ -348,8 +350,8 @@
 				<div class="flex-1 flex items-center justify-center text-center text-muted-foreground">
 					<div>
 						<p class="text-2xl mb-1">🏹</p>
-						<p class="text-sm">Select a hunting zone</p>
-						<p class="text-[10px] mt-1">Search from {$huntingDataStore?.total_spots ?? 0} zones above</p>
+						<p class="text-sm">{m.hunting_select_zone()}</p>
+						<p class="text-[10px] mt-1">{m.grinding_search_zones_above({ count: $huntingDataStore?.total_spots ?? 0 })}</p>
 					</div>
 				</div>
 			{/if}
@@ -361,7 +363,7 @@
 		<div class="flex items-end gap-2 glass-card rounded p-2">
 			<div class="flex gap-2 flex-wrap">
 				<div>
-					<label for="hunt-mastery" class="text-[9px] text-muted-foreground">Mastery</label>
+					<label for="hunt-mastery" class="text-[9px] text-muted-foreground">{m.hunting_mastery_label()}</label>
 					<input
 						id="hunt-mastery"
 						type="text" inputmode="numeric" pattern="[0-9]*"
@@ -371,7 +373,7 @@
 					/>
 				</div>
 				<div>
-					<label for="hunt-matchlock" class="text-[9px] text-muted-foreground">Matchlock</label>
+					<label for="hunt-matchlock" class="text-[9px] text-muted-foreground">{m.hunting_matchlock_label()}</label>
 					<select
 						id="hunt-matchlock"
 						bind:value={matchlockTier}
@@ -384,7 +386,7 @@
 					</select>
 				</div>
 				<div>
-					<label for="hunt-knife" class="text-[9px] text-muted-foreground">Knife</label>
+					<label for="hunt-knife" class="text-[9px] text-muted-foreground">{m.hunting_knife_label()}</label>
 					<select
 						id="hunt-knife"
 						bind:value={butcheringKnife}
@@ -398,7 +400,7 @@
 				</div>
 				{#if $huntingTotalLootValue > 0}
 					<div>
-						<span class="text-[9px] text-muted-foreground">Total Silver</span>
+						<span class="text-[9px] text-muted-foreground">{m.grinding_total_silver()}</span>
 						<p class="text-xs font-bold font-mono text-accent">{formatSilver($huntingTotalLootValue)}</p>
 					</div>
 				{/if}
@@ -409,7 +411,7 @@
 				disabled={!hasElapsed && $huntingTotalLootCount === 0}
 				class="px-4 py-1.5 text-[11px] bg-accent text-accent-foreground font-bold rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
 			>
-				Log Session
+				{m.grinding_log_session()}
 			</button>
 		</div>
 	{/if}

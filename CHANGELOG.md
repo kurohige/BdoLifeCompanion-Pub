@@ -2,6 +2,35 @@
 
 ---
 
+## Unreleased
+
+---
+
+## v2.7.0 — 2026-05-11
+
+### New Features
+
+- **Customize your theme colors.** Settings → Display has a new **Customize Colors** block where you can recolor the **Primary** (buttons, active tabs, CTAs), **Accent** (focus rings, neon highlights), and **Gold Glow** (nav/active-state ring, gold accents) to whatever you like. Each color has a native color picker, six quick preset swatches (purple/cyan/gold/neon-green/orange-red/pink), and a one-click reset (`×`) that only appears when you've changed it. Plus a **Glow Intensity** slider (0–200%) to dim or boost every neon glow at once. Obsidian Dark and Light keep their own independent customizations — switching theme swaps which set you're editing. Click **Reset All** in the section header to wipe everything for the active theme.
+- **Play/Stop preview for your boss alert sound.** The **Preview** button in Settings → Bosses → Custom Alert Sound is now a stateful toggle — click ▶ to start playing the sound, click ■ to stop it whenever you want. Especially useful for auditioning long imported clips without waiting for them to finish.
+- **Notes side tab — Codex Library.** A new dockable overlay panel for player-managed notes, todos, and reminders, accessible from a new `📝 Note` button at the top-right of the main content area. Color-coded category shelves (Bosses, Bartering, Crafting, Reminders, Dailies, General to start — fully renameable and customizable up to 30 categories), three note types (plain text, multi-item todo, time-based reminder), pin/tag/search support, sections grouped by pinned/today/earlier, and a slash command bar at the bottom (`/todo X`, `/remind X`, `/note X`, plain text → text note, trailing `#tag` captured). Reminders fire as a toast plus your boss alert sound when their time arrives. Press `Ctrl+K` to focus the input from anywhere in the panel; ESC or click outside to close. Dock side (left/right) persists across launches.
+- **Custom boss alert sound.** You can now pick your own audio file for the boss spawn alert instead of the built-in beep. Settings → Bosses → Alerts has a new **Custom Alert Sound** section with **Choose file…**, **Preview**, and **Reset** buttons. Supported formats: mp3, wav, ogg, m4a, aac, flac. Files up to 10 MB. The file is copied next to the app's data so the alert keeps working even if you move or delete the original.
+- **Spanish UI translation.** The entire app interface can now be displayed in Spanish — every label, button, tab, tooltip, toast, and confirmation prompt. Toggle in **Settings → Display** ("Idioma / Language" — English / Español). On first launch, the app auto-detects your system language and picks the right one; after that it remembers your preference.
+- **Live language switching.** Switching between English and Spanish flips the entire interface in place — no reload, no flash. Date and number formatting also follow the chosen language (Spanish uses `.` for thousands and `,` for decimals).
+- **Vocabulary kept consistent**: BDO-specific terms like *Parley*, Carrack variants (Advance/Balance/Volante/Valor), Caravel, Galleass, Value Pack, and NPC names stay in English (they're proper nouns in-game). Common UI text uses idiomatic Spanish: Crafteo, Farmeo, Trueque, Maestría, etc.
+- **Note**: Recipe names, item names, boss names, and grinding spot names are still in English — those are tied to the underlying game data and translating them would break inventory tracking. UI chrome (everything around the data) is what gets the Spanish treatment.
+
+### Removed
+
+- **Animated hex background in full mode.** The decorative particle animation in the main window has been removed along with its Settings → Display toggle. It was a fun experiment but didn't pull its weight — most users never noticed it, and it used real CPU/battery for what was essentially wallpaper.
+
+### Fixed
+
+- **Notes panel — delete prompt sometimes wiped the note before you could answer.** The native browser confirm dialog wasn't reliably blocking inside the overlay panel, so clicking the `×` on a note or category would occasionally delete it before showing the confirm. Switched to an OS-level dialog that properly waits for your answer.
+- **Bartering map and other tab content didn't grow with the window.** When you enlarged the app window, the bartering map stayed at a small fixed height and the recipe ingredients list (and several other lists) stopped scaling. Now every tab fills the available space, and lists like the Crafting ingredients, Inventory items, Grinding/Hunting loot, and Treasure cards grow with the window.
+- **Bartering map labels sometimes hid behind nearby dots.** Island name labels are positioned just below the dot, and depending on the order nodes were drawn, neighboring dots could overlap them. The map now layers nodes by importance (open node on top, then last-visited, then visited, then unvisited) and brings any hovered node to the front so its label is always readable.
+
+---
+
 ## v2.6.0 — 2026-05-02
 
 ### New Features

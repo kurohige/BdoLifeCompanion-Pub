@@ -9,6 +9,8 @@
 	} from "$lib/stores";
 	import TierBadge from "$lib/components/ui/TierBadge.svelte";
 	import type { IslandNode, BarterTier, BarterItemDef } from "$lib/models/bartering";
+	import { m } from "$lib/paraglide/messages";
+	import { formatNumber } from "$lib/utils/format";
 
 	interface Props {
 		node: IslandNode;
@@ -111,7 +113,7 @@
 <div
 	class="popover glass-card"
 	role="dialog"
-	aria-label="Add barter trade at {node.name}"
+	aria-label={m.bartering_popover_dialog_label({ name: node.name })}
 	style:--tier-color="var(--t{node.tier})"
 >
 	<div class="header">
@@ -120,7 +122,7 @@
 			<span class="island-name">{node.name.toUpperCase()}</span>
 			<span class="region">{node.region.toUpperCase()}</span>
 		</div>
-		<button type="button" class="close" onclick={onClose} aria-label="Close">×</button>
+		<button type="button" class="close" onclick={onClose} aria-label={m.bartering_popover_close()}>×</button>
 	</div>
 
 	<div class="field">
@@ -129,7 +131,7 @@
 				bind:this={inputEl}
 				type="text"
 				class="text-input"
-				placeholder="Receive item..."
+				placeholder={m.bartering_popover_receive_placeholder()}
 				bind:value={receiveQuery}
 				oninput={() => {
 					resolvedItem = null;
@@ -139,7 +141,7 @@
 				autocomplete="off"
 			/>
 			{#if resolvedItem}
-				<button type="button" class="clear-btn" onclick={clearItem} aria-label="Clear">×</button>
+				<button type="button" class="clear-btn" onclick={clearItem} aria-label={m.bartering_popover_clear()}>×</button>
 			{/if}
 		</div>
 
@@ -185,7 +187,7 @@
 	<input
 		type="text"
 		class="text-input"
-		placeholder='Give (optional)'
+		placeholder={m.bartering_popover_give_placeholder()}
 		bind:value={giveText}
 		autocomplete="off"
 	/>
@@ -208,13 +210,13 @@
 
 	{#if silverPerUnit > 0}
 		<div class="silver-preview font-mono">
-			{(silverPerUnit * qty).toLocaleString()} silver
-			<span class="silver-rate">({silverPerUnit.toLocaleString()}/ea)</span>
+			{formatNumber(silverPerUnit * qty)} {m.bartering_popover_silver_label()}
+			<span class="silver-rate">{m.bartering_popover_silver_per_ea({ silver: formatNumber(silverPerUnit) })}</span>
 		</div>
 	{/if}
 
 	<button type="button" class="add-btn" disabled={!receiveQuery.trim() || qty < 1} onclick={commit}>
-		+ ADD BARTER
+		{m.bartering_popover_add_btn()}
 	</button>
 </div>
 

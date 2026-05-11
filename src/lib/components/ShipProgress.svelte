@@ -9,6 +9,8 @@
 	} from "$lib/stores";
 	import { formatSilverShort } from "$lib/constants/chart-theme";
 	import type { CarrackVariant, ShipUpgradePathDef, ShipVariantStats } from "$lib/models/bartering";
+	import { m } from "$lib/paraglide/messages";
+	import { formatNumber } from "$lib/utils/format";
 
 	let selectedVariant = $state<CarrackVariant>("advance");
 
@@ -80,15 +82,16 @@
 		{ value: "valor", label: "Valor", ship: "Galleass" },
 	];
 
-	const STAT_LABELS: { key: string; label: string; format?: (v: number) => string }[] = [
-		{ key: "weight", label: "Weight (LT)", format: (v) => v.toLocaleString() },
-		{ key: "speed", label: "Speed" },
-		{ key: "accel", label: "Acceleration" },
-		{ key: "turn", label: "Turn" },
-		{ key: "brake", label: "Brake" },
-		{ key: "hp", label: "HP", format: (v) => (v / 1000).toFixed(0) + "K" },
-		{ key: "inventory", label: "Inventory" },
-		{ key: "reloadSeconds", label: "Reload", format: (v) => v + "s" },
+	// label is a thunk so it re-translates when locale changes
+	const STAT_LABELS: { key: string; label: () => string; format?: (v: number) => string }[] = [
+		{ key: "weight", label: () => m.bartering_ships_stat_weight(), format: (v) => formatNumber(v) },
+		{ key: "speed", label: () => m.bartering_ships_stat_speed() },
+		{ key: "accel", label: () => m.bartering_ships_stat_accel() },
+		{ key: "turn", label: () => m.bartering_ships_stat_turn() },
+		{ key: "brake", label: () => m.bartering_ships_stat_brake() },
+		{ key: "hp", label: () => m.bartering_ships_stat_hp(), format: (v) => (v / 1000).toFixed(0) + "K" },
+		{ key: "inventory", label: () => m.bartering_ships_stat_inventory() },
+		{ key: "reloadSeconds", label: () => m.bartering_ships_stat_reload(), format: (v) => v + "s" },
 	];
 </script>
 
@@ -96,7 +99,7 @@
 	<!-- Variant Selector -->
 	<div class="glass-card p-3">
 		<div class="flex items-center gap-3 mb-2">
-			<span class="text-[10px] text-muted-foreground">Carrack Path</span>
+			<span class="text-[10px] text-muted-foreground">{m.bartering_ships_carrack_path()}</span>
 			<div class="flex gap-1 flex-1">
 				{#each VARIANT_OPTIONS as opt}
 					<button
@@ -123,7 +126,7 @@
 			<!-- Overall Progress Bar -->
 			<div class="mt-2">
 				<div class="flex items-center justify-between text-[10px] mb-1">
-					<span class="text-muted-foreground">Overall Progress</span>
+					<span class="text-muted-foreground">{m.bartering_ships_overall_progress()}</span>
 					<span class="font-mono font-bold {overallProgress >= 100 ? 'text-accent' : 'text-foreground'}">{overallProgress}%</span>
 				</div>
 				<div class="w-full h-2 bg-surface-lowest rounded-full overflow-hidden">
@@ -133,7 +136,7 @@
 					></div>
 				</div>
 				<div class="flex justify-between text-[9px] text-muted-foreground/60 mt-1">
-					<span>Crow Coins: {$barterInventoryStore.crowCoins.toLocaleString()}</span>
+					<span>{m.bartering_ships_crow_coins({ amount: formatNumber($barterInventoryStore.crowCoins) })}</span>
 				</div>
 			</div>
 		{/if}
@@ -165,7 +168,7 @@
 							{isCompleted
 								? 'bg-accent/20 border-accent/40 text-accent'
 								: 'border-outline-variant/30 hover:border-primary/40'}"
-						title={isCompleted ? "Mark incomplete" : "Mark complete"}
+						title={isCompleted ? m.bartering_ships_mark_incomplete() : m.bartering_ships_mark_complete()}
 					>
 						{#if isCompleted}&#10003;{/if}
 					</span>
@@ -196,7 +199,7 @@
 							<div class="flex items-center gap-2 py-1">
 								<!-- Source badge -->
 								<span class="text-[8px] font-mono px-1 rounded {mat.source === 'crowCoin' ? 'text-yellow-400 bg-yellow-500/10' : 'text-blue-400 bg-blue-500/10'}"
-									title={mat.source === "crowCoin" ? "Crow Coin Shop" : "Barter exchange"}
+									title={mat.source === "crowCoin" ? m.bartering_ships_source_crow_coin() : m.bartering_ships_source_barter()}
 								>
 									{mat.source === "crowCoin" ? "CC" : "BT"}
 								</span>
@@ -230,12 +233,12 @@
 	<!-- Carrack Stats Comparison -->
 	{#if $shipStatsStore}
 		<div class="glass-card p-3">
-			<h3 class="text-[10px] font-headline font-bold text-muted-foreground uppercase tracking-wider mb-2">Carrack Comparison (Blue +10)</h3>
+			<h3 class="text-[10px] font-headline font-bold text-muted-foreground uppercase tracking-wider mb-2">{m.bartering_ships_comparison_title()}</h3>
 			<div class="overflow-x-auto">
 				<table class="w-full text-[10px]">
 					<thead>
 						<tr class="border-b border-outline-variant/10">
-							<th class="text-left text-muted-foreground py-1 pr-2">Stat</th>
+							<th class="text-left text-muted-foreground py-1 pr-2">{m.bartering_ships_stat_col()}</th>
 							{#each $shipStatsStore.variants as v}
 								<th class="text-center py-1 px-1 {v.variant === selectedVariant ? 'text-primary font-bold' : 'text-muted-foreground'}">
 									{v.label.replace("Carrack ", "")}
@@ -248,7 +251,7 @@
 							{@const values = $shipStatsStore.variants.map((v) => (v.tiers["blue+10"] as unknown as Record<string, number>)[stat.key])}
 							{@const maxVal = Math.max(...values)}
 							<tr class="border-b border-outline-variant/5">
-								<td class="text-muted-foreground py-0.5 pr-2">{stat.label}</td>
+								<td class="text-muted-foreground py-0.5 pr-2">{stat.label()}</td>
 								{#each $shipStatsStore.variants as v, i}
 									{@const val = values[i]}
 									<td class="text-center font-mono py-0.5 px-1

@@ -2,6 +2,7 @@ import { writable, get } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
 import { generateId } from "$lib/utils/id";
 import { showToast } from "$lib/stores/toast";
+import { m } from "$lib/paraglide/messages";
 import type {
 	BarterItemsData,
 	BarterItemDef,
@@ -33,7 +34,7 @@ function createDebouncedSave(
 		timeout = setTimeout(() => {
 			saveFn().catch((e) => {
 				console.error(`Failed to save ${label}:`, e);
-				showToast(`Failed to save ${label}`, "error");
+				showToast(m.toast_save_failed({ label }), "error");
 			});
 		}, delay);
 	};

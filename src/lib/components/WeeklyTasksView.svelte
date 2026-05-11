@@ -11,6 +11,11 @@
 	} from "$lib/stores";
 	import type { WeeklyTaskDefinition, WeeklyTaskProgress } from "$lib/models/weekly-tasks";
 	import { getNextWeeklyReset } from "$lib/utils/reset";
+	import { m } from "$lib/paraglide/messages";
+
+	function localizeCategory(cat: string): string {
+		return cat === "boss" ? m.weekly_type_boss() : m.weekly_type_normal();
+	}
 
 	// Weekly reset countdown (Sunday 00:00 UTC)
 	let weeklyResetMs = $derived(getNextWeeklyReset(new Date($tickStore)).getTime() - $tickStore);
@@ -75,9 +80,9 @@
 <div class="space-y-3">
 	<!-- Header -->
 	<div class="flex items-center justify-between px-1">
-		<h2 class="text-xs font-headline font-bold text-primary uppercase tracking-wider">Weekly Tasks</h2>
+		<h2 class="text-xs font-headline font-bold text-primary uppercase tracking-wider">{m.weekly_title()}</h2>
 		<div class="flex items-center gap-2 text-[10px] text-muted-foreground">
-			<span>Weekly Reset:</span>
+			<span>{m.weekly_reset_label()}</span>
 			<span class="font-mono text-accent">{formatCountdown(weeklyResetMs)}</span>
 		</div>
 	</div>
@@ -105,7 +110,7 @@
 								{progress.completedThisWeek
 									? 'bg-accent/20 border-accent/50 text-accent'
 									: 'border-outline-variant/30 text-muted-foreground/40 hover:border-outline-variant/60'}"
-							title={progress.completedThisWeek ? "Mark as incomplete" : "Mark as done for this week"}
+							title={progress.completedThisWeek ? m.weekly_mark_incomplete() : m.weekly_mark_done()}
 						>
 							{progress.completedThisWeek ? "✓" : ""}
 						</button>
@@ -123,7 +128,7 @@
 								: (isBoss ? "bg-yellow-500/15" : "bg-white/5")}
 							<div
 								class="flex-1 transition-colors relative group {segClass}"
-								title="Stage {s.stage} ({s.category}) — AP {s.apRequired} / DP {s.dpRequired}"
+								title={m.weekly_segment_title({ stage: s.stage, category: localizeCategory(s.category), ap: s.apRequired, dp: s.dpRequired })}
 							>
 								{#if isBoss}
 									<div class="absolute inset-0 flex items-center justify-center text-[7px] font-bold
@@ -133,15 +138,15 @@
 						{/each}
 					</div>
 					<div class="flex items-center justify-between text-[9px] text-muted-foreground">
-						<span>Stage 1</span>
+						<span>{m.weekly_stage_label({ n: 1 })}</span>
 						<span class="font-mono text-accent">{pct}%</span>
-						<span>Stage {task.stages.length}</span>
+						<span>{m.weekly_stage_label({ n: task.stages.length })}</span>
 					</div>
 				</div>
 
 				<!-- Stage Selector -->
 				<div class="flex items-center gap-2">
-					<span class="text-[10px] text-muted-foreground w-20 shrink-0">Highest Cleared</span>
+					<span class="text-[10px] text-muted-foreground w-20 shrink-0">{m.weekly_highest_cleared()}</span>
 					<button
 						onclick={() => decrementStage(task)}
 						disabled={progress.highestStageCleared <= 0}
@@ -164,7 +169,7 @@
 						onclick={() => setHighestStage(task.id, task.stages.length)}
 						disabled={progress.highestStageCleared >= task.stages.length}
 						class="px-2 py-0.5 text-[9px] font-mono glass-input rounded hover:bg-white/5 disabled:opacity-30"
-					>MAX</button>
+					>{m.weekly_btn_max()}</button>
 				</div>
 
 				<!-- AP/DP Reference (collapsible) -->
@@ -174,17 +179,17 @@
 						class="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
 					>
 						<span class="text-[8px]">{showApDp[task.id] ? "▼" : "▶"}</span>
-						<span class="font-headline font-bold uppercase tracking-wider">AP/DP Requirements</span>
+						<span class="font-headline font-bold uppercase tracking-wider">{m.weekly_apdp_header()}</span>
 					</button>
 					{#if showApDp[task.id]}
 						<div class="mt-1.5 overflow-hidden rounded border border-outline-variant/20">
 							<table class="w-full text-[10px]">
 								<thead>
 									<tr class="bg-white/5">
-										<th class="px-2 py-1 text-left text-muted-foreground font-medium">Stage</th>
-										<th class="px-2 py-1 text-center text-muted-foreground font-medium">Type</th>
-										<th class="px-2 py-1 text-center text-muted-foreground font-medium">AP</th>
-										<th class="px-2 py-1 text-center text-muted-foreground font-medium">DP</th>
+										<th class="px-2 py-1 text-left text-muted-foreground font-medium">{m.weekly_table_stage()}</th>
+										<th class="px-2 py-1 text-center text-muted-foreground font-medium">{m.weekly_table_type()}</th>
+										<th class="px-2 py-1 text-center text-muted-foreground font-medium">{m.weekly_table_ap()}</th>
+										<th class="px-2 py-1 text-center text-muted-foreground font-medium">{m.weekly_table_dp()}</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -195,7 +200,7 @@
 											{cleared ? 'opacity-50' : ''}">
 											<td class="px-2 py-0.5 font-mono">{s.stage}</td>
 											<td class="px-2 py-0.5 text-center {s.category === 'boss' ? 'text-yellow-400 font-bold' : 'text-foreground/70'}">
-												{s.category === "boss" ? "Boss" : "Normal"}
+												{localizeCategory(s.category)}
 											</td>
 											<td class="px-2 py-0.5 text-center font-mono">{s.apRequired}</td>
 											<td class="px-2 py-0.5 text-center font-mono">{s.dpRequired}</td>
@@ -214,7 +219,7 @@
 						class="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
 					>
 						<span class="text-[8px]">{showFirstClear[task.id] ? "▼" : "▶"}</span>
-						<span class="font-headline font-bold uppercase tracking-wider">First Clear Rewards</span>
+						<span class="font-headline font-bold uppercase tracking-wider">{m.weekly_first_clear_header()}</span>
 						<span class="text-[9px] font-mono text-accent ml-1">
 							{progress.firstClearStages.length}/{task.stages.length}
 						</span>
@@ -231,7 +236,7 @@
 											: s.category === 'boss'
 												? 'border-yellow-500/30 text-yellow-400/60 hover:border-yellow-500/60'
 												: 'border-outline-variant/20 text-muted-foreground/50 hover:border-outline-variant/40'}"
-									title="Stage {s.stage} ({s.category}) — {claimed ? 'First clear claimed' : 'Not claimed yet'}"
+									title={m.weekly_first_clear_btn_title({ stage: s.stage, category: localizeCategory(s.category), state: claimed ? m.weekly_first_clear_claimed() : m.weekly_first_clear_unclaimed() })}
 								>
 									{s.stage}
 								</button>
@@ -244,7 +249,7 @@
 	{:else}
 		<div class="text-center py-8">
 			<p class="text-[32px] mb-1 opacity-30">📋</p>
-			<p class="text-[11px] text-muted-foreground">Loading weekly tasks...</p>
+			<p class="text-[11px] text-muted-foreground">{m.weekly_loading()}</p>
 		</div>
 	{/if}
 </div>

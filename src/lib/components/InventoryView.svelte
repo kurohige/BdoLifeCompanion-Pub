@@ -8,6 +8,7 @@
 		importInventoryFromCSV,
 		showToast,
 	} from "$lib/stores";
+	import { m } from "$lib/paraglide/messages";
 
 	let searchText = $state("");
 	let newItemId = $state("");
@@ -19,20 +20,20 @@
 	// Handle export
 	async function handleExport() {
 		const success = await exportInventoryToCSV();
-		showToast(success ? "Exported successfully!" : "Export cancelled", success ? "success" : "info");
+		showToast(success ? m.inventory_toast_exported() : m.inventory_toast_export_cancelled(), success ? "success" : "info");
 	}
 
 	// Handle import (replace)
 	async function handleImportReplace() {
-		if (!confirm("This will replace your entire inventory. Continue?")) return;
+		if (!confirm(m.inventory_replace_confirm())) return;
 		const success = await importInventoryFromCSV(false);
-		showToast(success ? "Imported successfully!" : "Import cancelled", success ? "success" : "info");
+		showToast(success ? m.inventory_toast_imported() : m.inventory_toast_import_cancelled(), success ? "success" : "info");
 	}
 
 	// Handle import (merge)
 	async function handleImportMerge() {
 		const success = await importInventoryFromCSV(true);
-		showToast(success ? "Merged successfully!" : "Import cancelled", success ? "success" : "info");
+		showToast(success ? m.inventory_toast_merged() : m.inventory_toast_import_cancelled(), success ? "success" : "info");
 	}
 
 	// Get all items from all catalogs for autocomplete
@@ -102,7 +103,7 @@
 	}
 
 	function handleClearAll() {
-		if (confirm("Are you sure you want to clear all inventory items?")) {
+		if (confirm(m.inventory_clear_confirm())) {
 			clearInventory();
 		}
 	}
@@ -134,43 +135,43 @@
 	}
 </script>
 
-<div class="space-y-4">
+<div class="flex flex-col h-full min-h-0 gap-4">
 	<!-- Header with controls -->
 	<div class="flex items-center justify-between gap-2">
-		<h2 class="text-base font-bold neon-text-cyan">Inventory</h2>
+		<h2 class="text-base font-bold neon-text-cyan">{m.inventory_title()}</h2>
 		<div class="flex gap-1 flex-wrap justify-end">
 			<button
 				onclick={() => (showAddForm = !showAddForm)}
 				class="px-2 py-1 text-[11px] font-bold bg-accent text-accent-foreground rounded hover:opacity-80 transition-opacity"
 			>
-				{showAddForm ? "Cancel" : "+ Add"}
+				{showAddForm ? m.inventory_btn_cancel() : m.inventory_btn_add()}
 			</button>
 			<button
 				onclick={handleExport}
 				class="px-2 py-1 text-[11px] bg-secondary text-secondary-foreground rounded hover:opacity-80 transition-opacity"
-				title="Export to CSV"
+				title={m.inventory_btn_export_title()}
 			>
-				Export
+				{m.inventory_btn_export()}
 			</button>
 			<button
 				onclick={handleImportMerge}
 				class="px-2 py-1 text-[11px] bg-secondary text-secondary-foreground rounded hover:opacity-80 transition-opacity"
-				title="Import and merge with existing inventory"
+				title={m.inventory_btn_import_merge_title()}
 			>
-				Import+
+				{m.inventory_btn_import_merge()}
 			</button>
 			<button
 				onclick={handleImportReplace}
 				class="px-2 py-1 text-[11px] bg-primary text-primary-foreground rounded hover:opacity-80 transition-opacity"
-				title="Import and replace entire inventory"
+				title={m.inventory_btn_import_replace_title()}
 			>
-				Import
+				{m.inventory_btn_import_replace()}
 			</button>
 			<button
 				onclick={handleClearAll}
 				class="px-2 py-1 text-[11px] bg-destructive text-destructive-foreground rounded hover:opacity-80 transition-opacity"
 			>
-				Clear
+				{m.inventory_btn_clear()}
 			</button>
 		</div>
 	</div>
@@ -178,12 +179,12 @@
 	<!-- Add Item Form -->
 	{#if showAddForm}
 		<div class="glass-card border-accent rounded-lg p-3 space-y-2">
-			<h3 class="text-[13px] font-bold neon-text-purple">Add New Item</h3>
+			<h3 class="text-[13px] font-bold neon-text-purple">{m.inventory_add_new_item()}</h3>
 			<div class="relative">
 				<input
 					type="text"
 					bind:value={newItemDisplay}
-					placeholder="Item name..."
+					placeholder={m.inventory_item_name_placeholder()}
 					onfocus={() => { showSuggestions = true; newItemId = ""; }}
 					oninput={() => { showSuggestions = true; newItemId = ""; }}
 					class="w-full bg-input text-foreground border border-border rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
@@ -205,7 +206,7 @@
 				{/if}
 			</div>
 			<div class="flex gap-2 items-center">
-				<label for="new-item-quantity" class="text-[11px] text-muted-foreground">Quantity:</label>
+				<label for="new-item-quantity" class="text-[11px] text-muted-foreground">{m.inventory_quantity_label()}</label>
 				<input
 					id="new-item-quantity"
 					type="number"
@@ -218,7 +219,7 @@
 					disabled={(!newItemId.trim() && !newItemDisplay.trim()) || newItemQuantity <= 0}
 					class="px-3 py-1.5 text-[11px] font-bold bg-accent text-accent-foreground rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
 				>
-					Add
+					{m.inventory_form_add()}
 				</button>
 			</div>
 		</div>
@@ -229,7 +230,7 @@
 		<input
 			type="text"
 			bind:value={searchText}
-			placeholder="Search inventory..."
+			placeholder={m.inventory_search_placeholder()}
 			class="w-full glass-input text-foreground rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
 		/>
 	</div>
@@ -237,24 +238,24 @@
 	<!-- Inventory Stats -->
 	<div class="flex gap-4 text-[11px]">
 		<span class="text-muted-foreground">
-			Total items: <span class="font-bold text-foreground">{$inventoryStore.size}</span>
+			{m.inventory_total_items()} <span class="font-bold text-foreground">{$inventoryStore.size}</span>
 		</span>
 		<span class="text-muted-foreground">
-			Showing: <span class="font-bold text-foreground">{filteredItems().length}</span>
+			{m.inventory_showing()} <span class="font-bold text-foreground">{filteredItems().length}</span>
 		</span>
 	</div>
 
 	<!-- Inventory List -->
-	<div class="space-y-2 max-h-[400px] overflow-auto">
+	<div class="space-y-2 flex-1 min-h-0 overflow-auto">
 		{#if filteredItems().length === 0}
 			<div class="text-center py-6 text-muted-foreground text-[11px]">
 				{#if $inventoryStore.size === 0}
-					<img src="/icons/inventory.png" alt="Inventory" class="w-8 h-8 mx-auto mb-1 opacity-60" />
-					<p>No items in inventory</p>
-					<p class="mt-1">Click "+ Add" to add your first item</p>
+					<img src="/icons/inventory.png" alt={m.inventory_alt_image()} class="w-8 h-8 mx-auto mb-1 opacity-60" />
+					<p>{m.inventory_empty_no_items()}</p>
+					<p class="mt-1">{m.inventory_empty_no_items_subtitle()}</p>
 				{:else}
 					<p class="text-2xl mb-1">🔍</p>
-					<p>No items match your search</p>
+					<p>{m.inventory_empty_no_match()}</p>
 				{/if}
 			</div>
 		{:else}
@@ -299,7 +300,7 @@
 					<button
 						onclick={() => handleDeleteItem(item.itemId)}
 						class="w-6 h-6 flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground rounded transition-colors text-[11px]"
-						title="Delete"
+						title={m.inventory_delete_title()}
 					>
 						✕
 					</button>
