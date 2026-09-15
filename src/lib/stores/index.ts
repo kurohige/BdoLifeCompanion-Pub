@@ -36,8 +36,6 @@ export {
 	initSettings,
 	updateSetting,
 	setTransparency,
-	setCookingMastery,
-	setAlchemyMastery,
 	setCookingTotalMastery,
 	setAlchemyTotalMastery,
 	addFavorite,
@@ -45,7 +43,6 @@ export {
 	toggleFavorite as toggleSettingsFavorite,
 	isFavorite,
 	setServerRegion,
-	setTheme,
 	saveWindowState,
 	flushSettings,
 	setBossSoundEnabled,
@@ -61,38 +58,21 @@ export {
 	setMiniShowClocks,
 	setClockFormat24h,
 	setLocale,
-	setNotesPanelDockSide,
 	toggleBossHidden,
 	setHiddenBosses,
 } from "./settings.js";
 
 export { appVersionStore, initAppVersion } from "./app-version.js";
 
-export type { AppTheme, FontFamily, FontSize, Locale, NotesDockSide, WindowState } from "$lib/services/persistence";
+export type { FontFamily, FontSize, Locale, WindowState } from "$lib/services/persistence";
 
 export {
 	notesStore,
 	noteCategoriesStore,
 	notesLoadingStore,
-	notesPanelOpenStore,
-	notesActiveCategoryStore,
-	notesCaptureCategoryStore,
-	notesSearchStore,
 	loadNotesData,
+	initNotesSync,
 	flushNotes,
-	addCategory,
-	renameCategory,
-	recolorCategory,
-	deleteCategory,
-	addNote,
-	updateNote,
-	deleteNote,
-	togglePinNote,
-	toggleTodoItem,
-	setTodoItemText,
-	addTodoItem,
-	removeTodoItem,
-	setNoteTitle,
 	setReminderFireCallback,
 	startReminderTick,
 	stopReminderTick,
@@ -110,27 +90,9 @@ export {
 } from "./crafting-log.js";
 
 export {
-	timerStore,
-	timerDisplay,
-	timerProgress,
-	isTimerActive,
-	setTimerMinutes,
-	setTimerSeconds,
-	setTimerPreset,
-	startTimer,
-	pauseTimer,
-	resumeTimer,
-	stopTimer,
-	resetTimer,
-	cleanupTimer,
-	type TimerState,
-} from "./timer.js";
-
-export {
 	viewModeStore,
 	activeTabStore,
 	clickThroughStore,
-	cycleViewMode,
 	setViewMode,
 	type ViewMode,
 	type ActiveTab,
@@ -163,10 +125,21 @@ export {
 	logGrindingSearchStore,
 	logHuntingSearchStore,
 	settingsTabStore,
+	lootHideUnmatchedStore,
+	lootSourceFilterStore,
+	lootScanLogFilterStore,
+	lootScanLogGroupedStore,
+	lootFocusInGameStore,
+	lootSubTabStore,
+	lootLogDetailIdStore,
+	lootLogsRangeStore,
+	type LootScanLogFilter,
 	type BarterSubTab,
 	type LogSubTab,
 	type LogCategoryFilter,
 	type SettingsTab,
+	type LootSubTab,
+	type LootLogsRange,
 } from "./ui-state.js";
 
 export {
@@ -195,23 +168,6 @@ export {
 	type RecipeIndexEntry,
 	type PlannerView,
 } from "./planner.js";
-
-export {
-	announcementsStore,
-	announcementsLoadingStore,
-	announcementsFetchErrorStore,
-	currentCardIndexStore,
-	updateAvailableStore,
-	activeMessagesStore,
-	initAnnouncements,
-	fetchAnnouncements,
-	startAnnouncementPolling,
-	stopAnnouncementPolling,
-	dismissMessage,
-	nextCard,
-	getDownloadUrl,
-	compareVersions,
-} from "./announcements.js";
 
 export {
 	toastStore,
@@ -340,6 +296,9 @@ export {
 	clearBarterLog,
 	shipUpgradesStore,
 	shipStatsStore,
+	shipMaterialRecipesStore,
+	shipIngredientsStore,
+	updateShipIngredient,
 	shipProgressStore,
 	shipProgressLoadingStore,
 	loadShipData,
@@ -381,6 +340,66 @@ export {
 	markFirstClear,
 	unmarkFirstClear,
 } from "./weekly-tasks.js";
+
+export {
+	lootSettingsStore,
+	setLootRegion,
+	setLootFreqHz,
+	setLootMinConfidence,
+	addSavedRegion,
+	removeSavedRegion,
+	resetLootSettings,
+	acknowledgeLootDisclaimer,
+	setLootStrictMode,
+	setLootColorMask,
+	setLootUpscaleFactor,
+	setLootTemporalFrames,
+	setLootInventoryMergeOnSave,
+} from "./loot-settings.js";
+
+export {
+	lootCatalogStore,
+	lootCatalogLoadingStore,
+	getQtyHint,
+	getLootExactIndex,
+	getCatalogEntry,
+	loadLootCatalog,
+} from "./loot-catalog.js";
+
+export {
+	captureSessionStore,
+	cleanupCaptureSession,
+	startCaptureSession,
+	pauseCaptureSession,
+	resumeCaptureSession,
+	finalizeCaptureSession,
+	mergeMatchedRowsToInventory,
+	resetCaptureSession,
+	setSessionLabel,
+	setSessionRegion,
+	applyOcrEvent,
+	renameRow,
+	setRowCount,
+	setRowNote,
+	addManualRow,
+	deleteRow,
+	linkRowToItem,
+	unlinkRow,
+	unlockRow,
+} from "./loot-session.js";
+
+export {
+	lootLogsStore,
+	lootLogsLoadingStore,
+	addLootLog,
+	deleteLootLog,
+	renameLootLog,
+	clearLootLogs,
+	getLootLog,
+	setLootLogMergedAt,
+} from "./loot-logs.js";
+
+export type { CatalogEntry, MatchResult } from "$lib/services/ocr-matcher";
 
 export {
 	PARLEY_MAX_DEFAULT,

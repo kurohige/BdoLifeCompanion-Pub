@@ -3,13 +3,10 @@
 	import {
 		settingsStore,
 		setTransparency,
-		setCookingMastery,
-		setAlchemyMastery,
 		setCookingTotalMastery,
 		setAlchemyTotalMastery,
 		setServerRegion,
 		setMarketRegion,
-		setTheme,
 		setBossSoundEnabled,
 		setTimerSoundEnabled,
 		setBossAlertMinutes,
@@ -21,12 +18,16 @@
 		setMiniShowClocks,
 		setClockFormat24h,
 		setLocale,
-		setThemeOverride,
-		resetThemeOverrides,
-		LIFE_SKILL_RANKS,
+		setStripSlot,
+		setCraftingLead,
+		setCraftingDensity,
+		setShowLastKill,
+		setShowUsedIn,
+		setUiScale,
 	} from "$lib/stores/settings";
 	import { m } from "$lib/paraglide/messages";
-	import type { Locale } from "$lib/services/persistence";
+	import { UI_SCALE_STEPS } from "$lib/services/persistence";
+	import type { Locale, StripSlot, CraftingLead, CraftingDensity } from "$lib/services/persistence";
 	import { BARTER_LEVELS } from "$lib/models/bartering";
 	import { clearInventory } from "$lib/stores/inventory";
 	import { clearCraftingLog } from "$lib/stores/crafting-log";
@@ -47,19 +48,63 @@
 	import { weeklyTasksProgressStore } from "$lib/stores/weekly-tasks";
 	import { invoke } from "@tauri-apps/api/core";
 	import { appVersionStore, settingsTabStore } from "$lib/stores";
+	import {
+		notesStore,
+		noteCategoriesStore,
+		addCategory,
+		renameCategory,
+		recolorCategory,
+		deleteCategory,
+	} from "$lib/stores/notes";
+	import { STICKY_COLORS, STICKY_COLOR_KEYS } from "$lib/utils/sticky-colors";
+	import { MAX_CATEGORIES, MAX_CATEGORY_NAME_LEN } from "$lib/models/notes";
+	import type { StickyColor } from "$lib/models/notes";
 	import BossSettingsPanel from "./BossSettingsPanel.svelte";
 	import ToggleSwitch from "./ui/ToggleSwitch.svelte";
-	import type { AppTheme, FontSize } from "$lib/services/persistence";
+	import { Button } from "$lib/components/ui";
+	import type { FontSize } from "$lib/services/persistence";
 
 	const appWindow = getCurrentWindow();
 
 	// Collapsible section state
 	let openSections = $state<Record<string, boolean>>({
 		display: true,
+		layout: true,
 		notifications: true,
 		game: true,
+		notes: false,
 		data: false,
 	});
+
+	// ── Note categories ──
+	// Rename, recolour and delete live here; the note editor only picks and
+	// creates. Deleting a category takes every note in it, so it confirms.
+	let confirmingCategory = $state<string | null>(null);
+
+	function noteCountFor(key: string): number {
+		return $notesStore.filter((n) => n.category_key === key).length;
+	}
+	function commitRename(key: string, current: string, el: HTMLInputElement) {
+		const next = el.value.trim();
+		// renameCategory ignores an empty name, so put the old one back rather
+		// than leaving the field showing a value that was never stored.
+		if (!next) {
+			el.value = current;
+			return;
+		}
+		if (next !== current) renameCategory(key, next);
+	}
+	function cycleColor(key: string, current: StickyColor) {
+		const i = STICKY_COLOR_KEYS.indexOf(current);
+		recolorCategory(key, STICKY_COLOR_KEYS[(i + 1) % STICKY_COLOR_KEYS.length]);
+	}
+	function doDeleteCategory(key: string) {
+		deleteCategory(key);
+		confirmingCategory = null;
+	}
+	function handleAddCategory() {
+		addCategory("");
+	}
 
 	function toggleSection(key: string) {
 		openSections[key] = !openSections[key];
@@ -86,13 +131,6 @@
 		applyTransparency(opacity);
 	}
 
-	// Theme options — names resolved via m.* at render time so they re-translate
-	// when the locale changes
-	const THEMES: { id: AppTheme; name: () => string }[] = [
-		{ id: "obsidian", name: () => m.settings_theme_obsidian() },
-		{ id: "light", name: () => m.settings_theme_light() },
-	];
-
 	const FONT_SIZES: { id: FontSize; name: string }[] = [
 		{ id: "xs", name: "XS" },
 		{ id: "small", name: "S" },
@@ -101,57 +139,6 @@
 		{ id: "xl", name: "XL" },
 		{ id: "xxl", name: "XXL" },
 	];
-
-	import { applyTheme } from "$lib/utils/theme";
-
-	function handleThemeChange(themeId: AppTheme) {
-		setTheme(themeId);
-		applyTheme(themeId, $settingsStore.theme_overrides?.[themeId]);
-	}
-
-	// Apply saved theme on mount and on any override change for live preview.
-	$effect(() => {
-		const t = $settingsStore.theme ?? "obsidian";
-		applyTheme(t, $settingsStore.theme_overrides?.[t]);
-	});
-
-	// Theme customization — derived defaults per theme. Picker values fall back
-	// to these when the corresponding override slot is unset. Kept in lockstep
-	// with the `:root` / `.theme-light` definitions in app.css so the swatches
-	// match what would actually render.
-	const THEME_DEFAULTS = {
-		obsidian: { primary: "#c77dff", accent: "#00e3fd", gold: "#ffee10" },
-		light:    { primary: "#6b46a0", accent: "#2ba076", gold: "#e6c700" },
-	} as const;
-
-	// Shared preset palette used by every color picker. Six tactically chosen
-	// hues that read well as both glow and solid fills.
-	const COLOR_PRESETS = [
-		"#c77dff", "#00e3fd", "#ffee10",
-		"#00ff9d", "#ff6b35", "#ff9eb4",
-	];
-
-	let activeTheme = $derived<AppTheme>($settingsStore.theme ?? "obsidian");
-	let overrides = $derived($settingsStore.theme_overrides?.[activeTheme] ?? {});
-
-	function colorFor(slot: "primary" | "accent" | "gold"): string {
-		return overrides[slot] ?? THEME_DEFAULTS[activeTheme][slot];
-	}
-
-	function glowIntensityFor(): number {
-		// Light theme baseline is 0 (no glow); Obsidian is 1. Override beats both.
-		const stored = overrides.glow_intensity;
-		if (typeof stored === "number" && !Number.isNaN(stored)) return stored;
-		return activeTheme === "light" ? 0 : 1;
-	}
-
-	function isCustomized(slot: "primary" | "accent" | "gold"): boolean {
-		return typeof overrides[slot] === "string";
-	}
-
-	function isGlowCustomized(): boolean {
-		return typeof overrides.glow_intensity === "number";
-	}
 
 	// Clear all data
 	async function handleClearAllData() {
@@ -184,7 +171,7 @@
 </script>
 
 <div class="space-y-1.5 max-h-[calc(100vh-150px)] overflow-auto pr-1">
-	<h2 class="text-sm font-bold neon-text-cyan mb-1">{m.settings_title()}</h2>
+	<h2 class="text-sm font-bold text-foreground mb-1">{m.settings_title()}</h2>
 
 	<!-- Top tabs: General / Bosses -->
 	<div class="flex gap-1 border-b border-outline-variant/30 mb-2">
@@ -194,14 +181,14 @@
 		] as tab}
 			<button
 				onclick={() => settingsTabStore.set(tab.id)}
-				class="px-3 py-1.5 text-[11px] font-bold transition-colors relative
+				class="px-3 py-1.5 text-[12.5px] font-bold transition-colors relative
 					{$settingsTabStore === tab.id
-						? 'text-[var(--gold-glow)]'
+						? 'text-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
 			>
 				{tab.label}
 				{#if $settingsTabStore === tab.id}
-					<div class="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-[var(--gold-glow)]"></div>
+					<div class="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-primary"></div>
 				{/if}
 			</button>
 		{/each}
@@ -211,12 +198,12 @@
 		<BossSettingsPanel />
 	{:else}
 	<!-- ===== DISPLAY SECTION ===== -->
-	<div class="glass-card rounded overflow-hidden">
+	<div class="paper-card rounded overflow-hidden">
 		<button
 			onclick={() => toggleSection('display')}
 			class="w-full flex items-center justify-between px-2 py-1.5 hover:bg-secondary/50 transition-colors"
 		>
-			<h3 class="text-xs font-bold neon-text-purple">{m.settings_section_display()}</h3>
+			<h3 class="text-xs font-bold text-foreground">{m.settings_section_display()}</h3>
 			<svg
 				viewBox="0 0 24 24"
 				class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 {openSections.display ? 'rotate-180' : ''}"
@@ -230,8 +217,8 @@
 				<!-- Opacity (how solid the window is — 100% = fully opaque) -->
 				<div class="space-y-1.5">
 					<div class="flex items-center justify-between">
-						<span class="text-[10px] text-muted-foreground">{m.settings_display_opacity()}</span>
-						<span class="text-[11px] font-mono font-bold text-foreground">{transparencyPercent}%</span>
+						<span class="text-[12px] text-muted-foreground">{m.settings_display_opacity()}</span>
+						<span class="text-[12.5px] font-mono font-bold text-foreground">{transparencyPercent}%</span>
 					</div>
 					<input
 						type="range"
@@ -245,135 +232,18 @@
 					/>
 				</div>
 
-				<!-- Theme -->
-				<div class="space-y-1.5">
-					<span class="text-[10px] text-muted-foreground">{m.settings_display_theme()}</span>
-					<div class="grid grid-cols-2 gap-1.5">
-						{#each THEMES as theme}
-							<button
-								onclick={() => handleThemeChange(theme.id)}
-								class="flex items-center gap-2 px-3 py-2 rounded border-2 transition-all
-									{($settingsStore.theme ?? 'obsidian') === theme.id
-										? 'border-[var(--gold-glow)] bg-[rgba(255,238,16,0.08)] shadow-[0_0_8px_rgba(255,238,16,0.15)]'
-										: 'border-outline-variant/30 hover:border-outline-variant/60'}"
-							>
-								{#if theme.id === "obsidian"}
-									<div class="w-6 h-5 bg-[#0e0e0e] border border-[#4d4352] flex items-center justify-center gap-0.5 rounded-sm">
-										<div class="w-1.5 h-1.5 bg-[#c77dff]"></div>
-										<div class="w-1.5 h-1.5 bg-[#00e3fd]"></div>
-									</div>
-								{:else}
-									<div class="w-6 h-5 bg-[#ebedf0] border border-[#b0b7c2] flex items-center justify-center rounded-sm">
-										<div class="w-2 h-2 rounded-full bg-[#6b46a0]"></div>
-									</div>
-								{/if}
-								<span class="text-[11px] text-foreground font-semibold">{theme.name()}</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-
-				<!-- Theme Customization -->
-				<div class="space-y-1.5 pt-1 border-t border-border/40">
-					<div class="flex items-center justify-between">
-						<span class="text-[10px] text-muted-foreground">{m.settings_theme_customize()}</span>
-						<button
-							onclick={() => resetThemeOverrides(activeTheme)}
-							title={m.settings_theme_reset_all_title()}
-							class="text-[9px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
-						>
-							{m.settings_theme_reset_all()}
-						</button>
-					</div>
-
-					{#each [
-						{ slot: "primary" as const, label: m.settings_theme_color_primary() },
-						{ slot: "accent" as const,  label: m.settings_theme_color_accent() },
-						{ slot: "gold" as const,    label: m.settings_theme_color_gold() },
-					] as row (row.slot)}
-						{@const current = colorFor(row.slot)}
-						{@const customized = isCustomized(row.slot)}
-						<div class="space-y-1">
-							<div class="flex items-center justify-between gap-2">
-								<span class="text-[10px] text-muted-foreground flex items-center gap-1.5">
-									<span class="w-3 h-3 rounded-sm border border-outline-variant/40" style="background: {current}"></span>
-									{row.label}
-								</span>
-								<div class="flex items-center gap-1.5">
-									<input
-										type="color"
-										value={current}
-										oninput={(e) => setThemeOverride(activeTheme, row.slot, (e.target as HTMLInputElement).value)}
-										class="w-6 h-5 bg-transparent border border-outline-variant/40 rounded cursor-pointer p-0"
-									/>
-									{#if customized}
-										<button
-											onclick={() => setThemeOverride(activeTheme, row.slot, undefined)}
-											title={m.settings_theme_reset_slot_title()}
-											class="text-[10px] text-muted-foreground hover:text-foreground w-4 h-4 flex items-center justify-center"
-										>×</button>
-									{:else}
-										<span class="w-4 h-4"></span>
-									{/if}
-								</div>
-							</div>
-							<div class="flex gap-1">
-								{#each COLOR_PRESETS as preset (preset)}
-									{@const active = current.toLowerCase() === preset.toLowerCase()}
-									<button
-										onclick={() => setThemeOverride(activeTheme, row.slot, preset)}
-										title={preset}
-										class="w-4 h-4 rounded-sm border transition-all
-											{active
-												? 'border-[var(--gold-glow)] shadow-[0_0_4px_rgb(var(--gold-glow-rgb)_/_0.5)]'
-												: 'border-outline-variant/30 hover:border-outline-variant/70'}"
-										style="background: {preset}"
-									></button>
-								{/each}
-							</div>
-						</div>
-					{/each}
-
-					<!-- Glow intensity -->
-					<div class="space-y-1">
-						<div class="flex items-center justify-between">
-							<span class="text-[10px] text-muted-foreground">{m.settings_theme_glow_intensity()}</span>
-							<div class="flex items-center gap-1.5">
-								<span class="text-[10px] font-mono font-bold text-foreground">{Math.round(glowIntensityFor() * 100)}%</span>
-								{#if isGlowCustomized()}
-									<button
-										onclick={() => setThemeOverride(activeTheme, "glow_intensity", undefined)}
-										title={m.settings_theme_reset_slot_title()}
-										class="text-[10px] text-muted-foreground hover:text-foreground w-4 h-4 flex items-center justify-center"
-									>×</button>
-								{:else}
-									<span class="w-4 h-4"></span>
-								{/if}
-							</div>
-						</div>
-						<input
-							type="range"
-							min="0"
-							max="200"
-							step="10"
-							value={Math.round(glowIntensityFor() * 100)}
-							oninput={(e) => setThemeOverride(activeTheme, "glow_intensity", parseInt((e.target as HTMLInputElement).value, 10) / 100)}
-							class="settings-slider"
-						/>
-					</div>
-				</div>
 
 				<!-- Font Size -->
 				<div class="space-y-1.5">
-					<span class="text-[10px] text-muted-foreground">{m.settings_display_font_size()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.settings_display_font_size()}</span>
 					<div class="grid grid-cols-6 gap-1.5">
 						{#each FONT_SIZES as size}
 							{@const isActive = ($settingsStore.font_size ?? 'default') === size.id}
 							<button
 								onclick={() => setFontSize(size.id)}
-								class="px-1.5 py-1.5 rounded border-2 text-[10px] font-bold transition-all
+								class="px-1.5 py-1.5 rounded border-2 text-[12px] font-bold transition-all
 									{isActive
-										? 'border-[var(--gold-glow)] bg-[var(--gold-glow)] text-black shadow-[0_0_8px_rgba(255,238,16,0.4)]'
+										? 'border-primary bg-primary text-primary-foreground'
 										: 'border-outline-variant/30 text-muted-foreground hover:border-outline-variant/60 hover:text-foreground'}"
 							>
 								{size.name}
@@ -384,7 +254,7 @@
 
 				<!-- Font Bold -->
 				<div class="flex items-center justify-between">
-					<span class="text-[10px] text-muted-foreground">{m.settings_display_bold_text()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.settings_display_bold_text()}</span>
 					<ToggleSwitch
 						checked={$settingsStore.font_bold}
 						onchange={setFontBold}
@@ -394,7 +264,7 @@
 
 				<!-- Always on Top -->
 				<div class="flex items-center justify-between">
-					<span class="text-[10px] text-muted-foreground">{m.settings_display_always_on_top()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.settings_display_always_on_top()}</span>
 					<ToggleSwitch
 						checked={$settingsStore.always_on_top}
 						onchange={setAlwaysOnTop}
@@ -405,8 +275,8 @@
 				<!-- Mini Mode Clocks -->
 				<div class="flex items-center justify-between">
 					<div class="min-w-0">
-						<span class="text-[10px] text-muted-foreground">{m.settings_display_mini_clocks()}</span>
-						<p class="text-[9px] text-muted-foreground/70">{m.settings_display_mini_clocks_subtitle()}</p>
+						<span class="text-[12px] text-muted-foreground">{m.settings_display_mini_clocks()}</span>
+						<p class="text-[12px] text-muted-foreground/70">{m.settings_display_mini_clocks_subtitle()}</p>
 					</div>
 					<ToggleSwitch
 						checked={$settingsStore.mini_show_clocks ?? true}
@@ -418,7 +288,7 @@
 				<!-- Clock Format -->
 				{#if ($settingsStore.mini_show_clocks ?? true)}
 					<div class="space-y-1.5">
-						<span class="text-[10px] text-muted-foreground">{m.settings_display_clock_format()}</span>
+						<span class="text-[12px] text-muted-foreground">{m.settings_display_clock_format()}</span>
 						<div class="grid grid-cols-2 gap-1.5">
 							{#each [
 								{ id: true, label: "24h", sample: "20:14" },
@@ -427,13 +297,13 @@
 								{@const isActive = ($settingsStore.clock_format_24h ?? true) === opt.id}
 								<button
 									onclick={() => setClockFormat24h(opt.id)}
-									class="px-2 py-1.5 rounded border-2 text-[11px] font-bold transition-all flex items-center justify-center gap-2
+									class="px-2 py-1.5 rounded border-2 text-[12.5px] font-bold transition-all flex items-center justify-center gap-2
 										{isActive
-											? 'border-[var(--gold-glow)] bg-[var(--gold-glow)] text-black shadow-[0_0_8px_rgba(255,238,16,0.4)]'
+											? 'border-primary bg-primary text-primary-foreground'
 											: 'border-outline-variant/30 text-muted-foreground hover:border-outline-variant/60 hover:text-foreground'}"
 								>
 									<span>{opt.label}</span>
-									<span class="text-[9px] font-mono opacity-70">{opt.sample}</span>
+									<span class="text-[12px] font-mono opacity-70">{opt.sample}</span>
 								</button>
 							{/each}
 						</div>
@@ -442,7 +312,7 @@
 
 				<!-- Language -->
 				<div class="space-y-1.5">
-					<span class="text-[10px] text-muted-foreground">{m.settings_language_label()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.settings_language_label()}</span>
 					<div class="grid grid-cols-2 gap-1.5">
 						{#each [
 							{ id: "en" as Locale, label: m.settings_language_english() },
@@ -451,9 +321,9 @@
 							{@const isActive = ($settingsStore.locale ?? "en") === opt.id}
 							<button
 								onclick={() => setLocale(opt.id)}
-								class="px-2 py-1.5 rounded border-2 text-[11px] font-bold transition-all
+								class="px-2 py-1.5 rounded border-2 text-[12.5px] font-bold transition-all
 									{isActive
-										? 'border-[var(--gold-glow)] bg-[var(--gold-glow)] text-black shadow-[0_0_8px_rgba(255,238,16,0.4)]'
+										? 'border-primary bg-primary text-primary-foreground'
 										: 'border-outline-variant/30 text-muted-foreground hover:border-outline-variant/60 hover:text-foreground'}"
 							>
 								{opt.label}
@@ -465,13 +335,148 @@
 		{/if}
 	</div>
 
+	<!-- ===== LAYOUT SECTION (Parchment 7.3 — handoff "Configurable layout") ===== -->
+	<div class="paper-card rounded overflow-hidden">
+		<button
+			onclick={() => toggleSection('layout')}
+			class="w-full flex items-center justify-between px-2 py-1.5 hover:bg-secondary/50 transition-colors"
+		>
+			<h3 class="text-xs font-bold text-foreground">{m.settings_section_layout()}</h3>
+			<svg
+				viewBox="0 0 24 24"
+				class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 {openSections.layout ? 'rotate-180' : ''}"
+				fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+			>
+				<polyline points="6 9 12 15 18 9" />
+			</svg>
+		</button>
+		{#if openSections.layout}
+			<div class="px-2 pb-2 space-y-2 border-t border-border/50 pt-1.5">
+				<!-- Status strip slot -->
+				<div class="space-y-1.5">
+					<span class="text-[12px] text-muted-foreground">{m.settings_layout_strip()}</span>
+					<div class="grid grid-cols-3 gap-1.5">
+						{#each [
+							{ id: "top" as StripSlot, label: m.settings_layout_strip_top() },
+							{ id: "bottom" as StripSlot, label: m.settings_layout_strip_bottom() },
+							{ id: "hidden" as StripSlot, label: m.settings_layout_strip_hidden() },
+						] as opt (opt.id)}
+							{@const isActive = $settingsStore.strip_slot === opt.id}
+							<button
+								onclick={() => setStripSlot(opt.id)}
+								class="px-2 py-1.5 rounded border-2 text-[12.5px] font-bold transition-all
+									{isActive
+										? 'border-primary bg-primary text-primary-foreground'
+										: 'border-outline-variant/30 text-muted-foreground hover:border-outline-variant/60 hover:text-foreground'}"
+							>
+								{opt.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Crafting lead module -->
+				<div class="space-y-1.5">
+					<span class="text-[12px] text-muted-foreground">{m.settings_layout_lead()}</span>
+					<div class="grid grid-cols-2 gap-1.5">
+						{#each [
+							{ id: "list" as CraftingLead, label: m.settings_layout_lead_list() },
+							{ id: "detail" as CraftingLead, label: m.settings_layout_lead_detail() },
+						] as opt (opt.id)}
+							{@const isActive = $settingsStore.crafting_lead === opt.id}
+							<button
+								onclick={() => setCraftingLead(opt.id)}
+								class="px-2 py-1.5 rounded border-2 text-[12.5px] font-bold transition-all
+									{isActive
+										? 'border-primary bg-primary text-primary-foreground'
+										: 'border-outline-variant/30 text-muted-foreground hover:border-outline-variant/60 hover:text-foreground'}"
+							>
+								{opt.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Crafting density -->
+				<div class="space-y-1.5">
+					<span class="text-[12px] text-muted-foreground">{m.settings_layout_density()}</span>
+					<div class="grid grid-cols-2 gap-1.5">
+						{#each [
+							{ id: "comfortable" as CraftingDensity, label: m.settings_layout_density_comfortable() },
+							{ id: "compact" as CraftingDensity, label: m.settings_layout_density_compact() },
+						] as opt (opt.id)}
+							{@const isActive = $settingsStore.crafting_density === opt.id}
+							<button
+								onclick={() => setCraftingDensity(opt.id)}
+								class="px-2 py-1.5 rounded border-2 text-[12.5px] font-bold transition-all
+									{isActive
+										? 'border-primary bg-primary text-primary-foreground'
+										: 'border-outline-variant/30 text-muted-foreground hover:border-outline-variant/60 hover:text-foreground'}"
+							>
+								{opt.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Last-kill line -->
+				<div class="flex items-center justify-between">
+					<div class="min-w-0">
+						<span class="text-[12px] text-muted-foreground">{m.settings_layout_last_kill()}</span>
+						<p class="text-[12px] text-muted-foreground/70">{m.settings_layout_last_kill_sub()}</p>
+					</div>
+					<ToggleSwitch
+						checked={$settingsStore.show_last_kill}
+						onchange={setShowLastKill}
+						title={m.settings_layout_last_kill()}
+					/>
+				</div>
+
+				<!-- Used-in panel -->
+				<div class="flex items-center justify-between">
+					<div class="min-w-0">
+						<span class="text-[12px] text-muted-foreground">{m.settings_layout_used_in()}</span>
+						<p class="text-[12px] text-muted-foreground/70">{m.settings_layout_used_in_sub()}</p>
+					</div>
+					<ToggleSwitch
+						checked={$settingsStore.show_used_in}
+						onchange={setShowUsedIn}
+						title={m.settings_layout_used_in()}
+					/>
+				</div>
+
+				<!-- UI scale -->
+				<div class="space-y-1.5">
+					<div class="min-w-0">
+						<span class="text-[12px] text-muted-foreground">{m.settings_layout_ui_scale()}</span>
+						<p class="text-[12px] text-muted-foreground/70">{m.settings_layout_ui_scale_sub()}</p>
+					</div>
+					<div class="grid grid-cols-4 gap-1.5">
+						{#each UI_SCALE_STEPS as step (step)}
+							{@const isActive = $settingsStore.ui_scale === step}
+							<button
+								onclick={() => setUiScale(step)}
+								class="px-1.5 py-1.5 rounded border-2 text-[12.5px] font-bold font-mono transition-all
+									{isActive
+										? 'border-primary bg-primary text-primary-foreground'
+										: 'border-outline-variant/30 text-muted-foreground hover:border-outline-variant/60 hover:text-foreground'}"
+							>
+								{step}%
+							</button>
+						{/each}
+					</div>
+				</div>
+			</div>
+		{/if}
+	</div>
+
 	<!-- ===== NOTIFICATIONS SECTION ===== -->
-	<div class="glass-card rounded overflow-hidden">
+	<div class="paper-card rounded overflow-hidden">
 		<button
 			onclick={() => toggleSection('notifications')}
 			class="w-full flex items-center justify-between px-2 py-1.5 hover:bg-secondary/50 transition-colors"
 		>
-			<h3 class="text-xs font-bold neon-text-purple">{m.settings_section_notifications()}</h3>
+			<h3 class="text-xs font-bold text-foreground">{m.settings_section_notifications()}</h3>
 			<svg
 				viewBox="0 0 24 24"
 				class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 {openSections.notifications ? 'rotate-180' : ''}"
@@ -485,7 +490,7 @@
 				<!-- Boss Spawn Alert -->
 				<div class="space-y-1">
 					<div class="flex items-center justify-between">
-						<span class="text-[10px] text-muted-foreground">{m.settings_notifications_boss_alert()}</span>
+						<span class="text-[12px] text-muted-foreground">{m.settings_notifications_boss_alert()}</span>
 						<button
 							onclick={() => setBossSoundEnabled(!$settingsStore.boss_sound_enabled)}
 							title={m.settings_notifications_boss_alert_title()}
@@ -496,7 +501,7 @@
 					</div>
 					{#if $settingsStore.boss_sound_enabled}
 						<div class="flex items-center gap-1.5">
-							<span class="text-[9px] text-muted-foreground/70">{m.settings_notifications_alert()}</span>
+							<span class="text-[12px] text-muted-foreground/70">{m.settings_notifications_alert()}</span>
 							<input
 								type="text"
 								inputmode="numeric"
@@ -506,16 +511,16 @@
 									const val = parseInt(e.currentTarget.value, 10);
 									if (!isNaN(val) && val >= 1 && val <= 30) setBossAlertMinutes(val);
 								}}
-								class="w-10 bg-input text-foreground border border-border rounded px-1 py-0.5 text-[10px] text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner"
+								class="w-10 bg-input text-foreground border border-border rounded px-1 py-0.5 text-[12px] text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner"
 							/>
-							<span class="text-[9px] text-muted-foreground/70">{m.settings_notifications_min_before()}</span>
+							<span class="text-[12px] text-muted-foreground/70">{m.settings_notifications_min_before()}</span>
 						</div>
 					{/if}
 				</div>
 
 				<!-- Timer Completion Sound -->
 				<div class="flex items-center justify-between">
-					<span class="text-[10px] text-muted-foreground">{m.settings_notifications_timer_sound()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.settings_notifications_timer_sound()}</span>
 					<button
 						onclick={() => setTimerSoundEnabled(!$settingsStore.timer_sound_enabled)}
 						title={m.settings_notifications_timer_sound_title()}
@@ -529,12 +534,12 @@
 	</div>
 
 	<!-- ===== GAME SECTION ===== -->
-	<div class="glass-card rounded overflow-hidden">
+	<div class="paper-card rounded overflow-hidden">
 		<button
 			onclick={() => toggleSection('game')}
 			class="w-full flex items-center justify-between px-2 py-1.5 hover:bg-secondary/50 transition-colors"
 		>
-			<h3 class="text-xs font-bold neon-text-purple">{m.settings_section_game()}</h3>
+			<h3 class="text-xs font-bold text-foreground">{m.settings_section_game()}</h3>
 			<svg
 				viewBox="0 0 24 24"
 				class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 {openSections.game ? 'rotate-180' : ''}"
@@ -547,7 +552,7 @@
 			<div class="px-2 pb-2 space-y-2 border-t border-border/50 pt-1.5">
 				<!-- Server Region -->
 				<div class="space-y-0.5">
-					<span class="text-[10px] text-muted-foreground">{m.settings_game_server_region()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.settings_game_server_region()}</span>
 					<select
 						value={$settingsStore.server_region}
 						onchange={(e) => setServerRegion((e.target as HTMLSelectElement).value)}
@@ -558,12 +563,12 @@
 						<option value="SEA">{m.settings_game_region_sea()}</option>
 						<option value="SA">{m.settings_game_region_sa()}</option>
 					</select>
-					<span class="text-[9px] text-muted-foreground/60">{m.settings_game_server_region_subtitle()}</span>
+					<span class="text-[12px] text-muted-foreground/60">{m.settings_game_server_region_subtitle()}</span>
 				</div>
 
 				<!-- Market Region -->
 				<div class="space-y-0.5">
-					<span class="text-[10px] text-muted-foreground">{m.settings_game_market_region()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.settings_game_market_region()}</span>
 					<select
 						value={$settingsStore.market_region}
 						onchange={(e) => setMarketRegion((e.target as HTMLSelectElement).value)}
@@ -573,27 +578,18 @@
 						<option value="EU">{m.settings_game_region_eu()}</option>
 						<option value="SEA">{m.settings_game_region_sea()}</option>
 					</select>
-					<span class="text-[9px] text-muted-foreground/60">{m.settings_game_market_region_subtitle()}</span>
+					<span class="text-[12px] text-muted-foreground/60">{m.settings_game_market_region_subtitle()}</span>
 				</div>
 
 				<!-- Life Skill Ranks -->
 				<div class="space-y-1">
-					<span class="text-[10px] text-muted-foreground">{m.settings_game_life_skills()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.settings_game_life_skills()}</span>
 					<div class="grid grid-cols-2 gap-2">
 						<!-- Cooking -->
 						<div class="space-y-0.5">
-							<label for="cooking-rank" class="text-[9px] text-muted-foreground/70">{m.settings_game_cooking_rank()}</label>
-							<select
-								id="cooking-rank"
-								value={$settingsStore.cooking_mastery}
-								onchange={(e) => setCookingMastery((e.target as HTMLSelectElement).value)}
-								class="w-full bg-input text-foreground border border-border rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-							>
-								{#each LIFE_SKILL_RANKS as rank}
-									<option value={rank}>{rank}</option>
-								{/each}
-							</select>
+							<label for="cooking-mastery" class="text-[12px] text-muted-foreground/70">{m.settings_game_cooking_mastery()}</label>
 							<input
+								id="cooking-mastery"
 								type="text"
 								inputmode="numeric"
 								pattern="[0-9]*"
@@ -609,18 +605,9 @@
 						</div>
 						<!-- Alchemy -->
 						<div class="space-y-0.5">
-							<label for="alchemy-rank" class="text-[9px] text-muted-foreground/70">{m.settings_game_alchemy_rank()}</label>
-							<select
-								id="alchemy-rank"
-								value={$settingsStore.alchemy_mastery}
-								onchange={(e) => setAlchemyMastery((e.target as HTMLSelectElement).value)}
-								class="w-full bg-input text-foreground border border-border rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-							>
-								{#each LIFE_SKILL_RANKS as rank}
-									<option value={rank}>{rank}</option>
-								{/each}
-							</select>
+							<label for="alchemy-mastery" class="text-[12px] text-muted-foreground/70">{m.settings_game_alchemy_mastery()}</label>
 							<input
+								id="alchemy-mastery"
 								type="text"
 								inputmode="numeric"
 								pattern="[0-9]*"
@@ -639,10 +626,10 @@
 
 				<!-- Bartering -->
 				<div class="space-y-1">
-					<span class="text-[10px] text-muted-foreground">{m.settings_game_bartering()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.settings_game_bartering()}</span>
 					<div class="grid grid-cols-2 gap-2">
 						<div class="space-y-0.5">
-							<label for="barter-rank" class="text-[9px] text-muted-foreground/70">{m.settings_game_barter_level()}</label>
+							<label for="barter-rank" class="text-[12px] text-muted-foreground/70">{m.settings_game_barter_level()}</label>
 							<select
 								id="barter-rank"
 								value={$settingsStore.barter_level || "Beginner 1"}
@@ -655,7 +642,7 @@
 							</select>
 						</div>
 						<div class="space-y-0.5 flex flex-col justify-end">
-							<label class="flex items-center gap-1.5 text-[9px] text-muted-foreground/70 cursor-pointer py-1">
+							<label class="flex items-center gap-1.5 text-[12px] text-muted-foreground/70 cursor-pointer py-1">
 								<input
 									type="checkbox"
 									checked={$settingsStore.has_value_pack}
@@ -671,13 +658,97 @@
 		{/if}
 	</div>
 
+	<!-- ===== NOTES SECTION ===== -->
+	<!-- Category rename/recolour/delete live here rather than in the note
+	     editor: deleteCategory destroys every note in the category, which is
+	     not something to sit one stray click from the dropdown you use to
+	     switch category while typing. -->
+	<div class="paper-card rounded overflow-hidden">
+		<button
+			onclick={() => toggleSection('notes')}
+			class="w-full flex items-center justify-between px-2 py-1.5 hover:bg-secondary/50 transition-colors"
+		>
+			<h3 class="text-xs font-bold text-foreground">{m.settings_section_notes()}</h3>
+			<svg
+				viewBox="0 0 24 24"
+				class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 {openSections.notes ? 'rotate-180' : ''}"
+				fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+			>
+				<polyline points="6 9 12 15 18 9" />
+			</svg>
+		</button>
+		{#if openSections.notes}
+			<div class="px-2 pb-2 space-y-2 border-t border-border/50 pt-1.5">
+				<div class="space-y-0.5">
+					<span class="text-[12px] text-muted-foreground">{m.settings_notes_categories()}</span>
+					<p class="text-[12px] text-muted-foreground/70 leading-snug">{m.settings_notes_categories_subtitle()}</p>
+				</div>
+
+				<div class="space-y-1">
+					{#each $noteCategoriesStore as cat (cat.key)}
+						{@const count = noteCountFor(cat.key)}
+						<div class="flex items-center gap-1.5">
+							<!-- Colour: cycles the six sticky tones -->
+							<button
+								onclick={() => cycleColor(cat.key, cat.color)}
+								title={m.settings_notes_recolor()}
+								aria-label={m.settings_notes_recolor()}
+								class="w-3 h-3 rounded-full flex-none border border-border"
+								style="background:{STICKY_COLORS[cat.color].fg}"
+							></button>
+							<input
+								type="text"
+								value={cat.name}
+								maxlength={MAX_CATEGORY_NAME_LEN}
+								onblur={(e) => commitRename(cat.key, cat.name, (e.target as HTMLInputElement))}
+								onkeydown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+								class="flex-1 min-w-0 bg-input text-foreground border border-border rounded px-1 py-0.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-primary"
+							/>
+							<span class="text-[12px] font-mono text-muted-foreground/70 flex-none w-8 text-right">{count}</span>
+							{#if confirmingCategory === cat.key}
+								<button
+									onclick={() => doDeleteCategory(cat.key)}
+									class="text-[12px] font-bold text-destructive px-1.5 py-0.5 rounded hover:bg-destructive hover:text-destructive-foreground transition-colors flex-none"
+								>{m.settings_notes_delete_yes()}</button>
+								<button
+									onclick={() => (confirmingCategory = null)}
+									class="text-[12px] text-muted-foreground px-1.5 py-0.5 rounded hover:bg-secondary flex-none"
+								>{m.note_remove_confirm_no()}</button>
+							{:else}
+								<button
+									onclick={() => (confirmingCategory = cat.key)}
+									disabled={$noteCategoriesStore.length <= 1}
+									title={$noteCategoriesStore.length <= 1 ? m.settings_notes_delete_last() : m.settings_notes_delete({ count })}
+									aria-label={m.settings_notes_delete({ count })}
+									class="w-5 h-5 flex items-center justify-center rounded text-[12px] text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed flex-none"
+								>✕</button>
+							{/if}
+						</div>
+					{/each}
+				</div>
+
+				{#if confirmingCategory}
+					<p class="text-[12px] text-destructive leading-snug">
+						{m.settings_notes_delete_warning({ count: noteCountFor(confirmingCategory) })}
+					</p>
+				{/if}
+
+				<button
+					onclick={handleAddCategory}
+					disabled={$noteCategoriesStore.length >= MAX_CATEGORIES}
+					class="text-[12px] font-bold text-primary hover:underline disabled:opacity-40 disabled:no-underline"
+				>{m.settings_notes_add_category()}</button>
+			</div>
+		{/if}
+	</div>
+
 	<!-- ===== DATA SECTION ===== -->
-	<div class="glass-card rounded overflow-hidden">
+	<div class="paper-card rounded overflow-hidden">
 		<button
 			onclick={() => toggleSection('data')}
 			class="w-full flex items-center justify-between px-2 py-1.5 hover:bg-secondary/50 transition-colors"
 		>
-			<h3 class="text-xs font-bold neon-text-purple">{m.settings_section_data()}</h3>
+			<h3 class="text-xs font-bold text-foreground">{m.settings_section_data()}</h3>
 			<svg
 				viewBox="0 0 24 24"
 				class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 {openSections.data ? 'rotate-180' : ''}"
@@ -690,13 +761,13 @@
 			<div class="px-2 pb-2 space-y-2 border-t border-border/50 pt-1.5">
 				<!-- Data Location -->
 				<div class="space-y-0.5">
-					<span class="text-[10px] text-muted-foreground">{m.settings_data_storage_location()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.settings_data_storage_location()}</span>
 					<input
 						type="text"
 						value={dataPath}
 						readonly
 						title={m.settings_data_storage_location_title()}
-						class="w-full bg-input text-foreground border border-border rounded px-1 py-0.5 text-[10px] font-mono focus:outline-none opacity-70"
+						class="w-full bg-input text-foreground border border-border rounded px-1 py-0.5 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-primary opacity-70"
 					/>
 				</div>
 
@@ -704,22 +775,19 @@
 				<div class="grid grid-cols-2 gap-1.5">
 					<div class="bg-secondary rounded p-1 text-center">
 						<p class="text-xs font-bold text-primary">{$settingsStore.favorites.length}</p>
-						<p class="text-[9px] text-muted-foreground">{m.settings_data_favorites()}</p>
+						<p class="text-[12px] text-muted-foreground">{m.settings_data_favorites()}</p>
 					</div>
 					<div class="bg-secondary rounded p-1 text-center">
 						<p class="text-xs font-bold text-primary">v{$appVersionStore}</p>
-						<p class="text-[9px] text-muted-foreground">{m.settings_data_version()}</p>
+						<p class="text-[12px] text-muted-foreground">{m.settings_data_version()}</p>
 					</div>
 				</div>
 
 				<!-- Danger Zone -->
 				<div class="pt-1 border-t border-border/50">
-					<button
-						onclick={handleClearAllData}
-						class="w-full py-1 text-[10px] bg-destructive text-destructive-foreground font-bold rounded hover:opacity-80 transition-opacity"
-					>
+					<Button variant="danger" size="sm" onclick={handleClearAllData} class="w-full">
 						{m.settings_data_clear_all()}
-					</button>
+					</Button>
 				</div>
 			</div>
 		{/if}

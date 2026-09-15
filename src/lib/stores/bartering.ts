@@ -12,6 +12,7 @@ import type {
 	BarterTier,
 	ShipUpgradesData,
 	ShipStatsData,
+	ShipMaterialRecipesData,
 	ShipProgress,
 	CarrackVariant,
 	Sailor,
@@ -182,7 +183,14 @@ export function clearBarterLog(): void {
 
 export const shipUpgradesStore = writable<ShipUpgradesData | null>(null);
 export const shipStatsStore = writable<ShipStatsData | null>(null);
+export const shipMaterialRecipesStore = writable<ShipMaterialRecipesData | null>(null);
 export const shipProgressStore = writable<ShipProgress[]>([]);
+/**
+ * Raw crafting-ingredient counts, keyed by recipe ingredient id.
+ * Shared across every path on purpose — one pile of Lyngbakr's Bone serves
+ * whichever Carrack you are building.
+ */
+export const shipIngredientsStore = writable<Record<string, number>>({});
 export const shipProgressLoadingStore = writable<boolean>(true);
 
 export async function loadShipData(): Promise<void> {
@@ -196,16 +204,29 @@ export async function loadShipData(): Promise<void> {
 	} catch (error) {
 		console.error("Failed to load ship data:", error);
 	}
+
+	// Recipes are an enhancement on top of the paths — loaded separately so a
+	// failure here degrades the recipe expanders instead of blanking the whole pane.
+	try {
+		const res = await fetch("/data/bartering/ship-material-recipes.json");
+		shipMaterialRecipesStore.set(await res.json());
+	} catch (error) {
+		console.error("Failed to load ship material recipes:", error);
+	}
 }
 
 export async function loadShipProgress(): Promise<void> {
 	shipProgressLoadingStore.set(true);
 	try {
-		const data = await invoke<{ paths: ShipProgress[] }>("load_ship_progress");
+		const data = await invoke<{ paths: ShipProgress[]; ingredients?: Record<string, number> }>(
+			"load_ship_progress",
+		);
 		shipProgressStore.set(data.paths ?? []);
+		shipIngredientsStore.set(data.ingredients ?? {});
 	} catch (error) {
 		console.error("Failed to load ship progress:", error);
 		shipProgressStore.set([]);
+		shipIngredientsStore.set({});
 	} finally {
 		shipProgressLoadingStore.set(false);
 	}
@@ -213,7 +234,10 @@ export async function loadShipProgress(): Promise<void> {
 
 const debouncedSaveShipProgress = createDebouncedSave("ship progress", async () => {
 	const paths = get(shipProgressStore);
-	await invoke("save_ship_progress", { data: { paths } });
+	const ingredients = get(shipIngredientsStore);
+	// Both fields must be sent every time: the Rust struct re-serializes what it
+	// was given, so omitting one would wipe it on disk.
+	await invoke("save_ship_progress", { data: { paths, ingredients } });
 });
 
 /** Immutable find-or-create + mutate helper for ship progress */
@@ -242,6 +266,17 @@ export function updateShipMaterial(variant: CarrackVariant, materialId: string, 
 			p.materials[materialId] = quantity;
 		}
 	});
+}
+
+/** Record how many of a raw crafting ingredient the player holds (all paths share it). */
+export function updateShipIngredient(ingredientId: string, quantity: number): void {
+	shipIngredientsStore.update((all) => {
+		const next = { ...all };
+		if (quantity <= 0) delete next[ingredientId];
+		else next[ingredientId] = quantity;
+		return next;
+	});
+	debouncedSaveShipProgress();
 }
 
 export function toggleShipStage(variant: CarrackVariant, stageId: string): void {

@@ -3,7 +3,7 @@
  */
 
 import { writable, get } from "svelte/store";
-import { loadSettings, saveSettings, DEFAULT_SETTINGS, type AppSettings, type AppTheme, type FontFamily, type FontSize, type Locale, type NotesDockSide, type ThemeOverrides, type WindowState } from "$lib/services/persistence";
+import { loadSettings, saveSettings, DEFAULT_SETTINGS, UI_SCALE_STEPS, type AppSettings, type FontFamily, type FontSize, type Locale, type WindowState, type StripSlot, type CraftingLead, type CraftingDensity } from "$lib/services/persistence";
 import { locale as osLocale } from "@tauri-apps/plugin-os";
 import { setCurrentLocale } from "$lib/i18n/locale.svelte";
 
@@ -87,9 +87,6 @@ export async function initSettings(): Promise<void> {
 		// field is MISSING — older settings.json files can contain empty strings
 		// that would otherwise break dropdowns. Boolean fields that come back as
 		// `undefined` (never saved before) also need defaulting here.
-		if (settings.theme !== "obsidian" && settings.theme !== "light") {
-			settings.theme = "obsidian";
-		}
 		if (!settings.server_region) settings.server_region = "NA";
 		if (!settings.market_region) settings.market_region = settings.server_region;
 		if (!settings.font_family) settings.font_family = "system";
@@ -99,17 +96,50 @@ export async function initSettings(): Promise<void> {
 		if (typeof settings.boss_sound_custom_name !== "string") settings.boss_sound_custom_name = "";
 		if (typeof settings.mini_show_clocks !== "boolean") settings.mini_show_clocks = true;
 		if (typeof settings.clock_format_24h !== "boolean") settings.clock_format_24h = true;
-		if (settings.notes_panel_dock_side !== "left" && settings.notes_panel_dock_side !== "right") {
-			settings.notes_panel_dock_side = "right";
+		if (typeof settings.scratchpad_open !== "boolean") settings.scratchpad_open = true;
+		if (
+			!settings.scratchpad_pos ||
+			typeof settings.scratchpad_pos.x !== "number" ||
+			typeof settings.scratchpad_pos.y !== "number"
+		) {
+			settings.scratchpad_pos = null;
 		}
-		// Older settings.json may predate theme_overrides — fill the slot so
-		// every UI consumer can read settings.theme_overrides[theme] without
-		// optional-chaining everywhere.
-		if (!settings.theme_overrides || typeof settings.theme_overrides !== "object") {
-			settings.theme_overrides = { obsidian: {}, light: {} };
+		if (typeof settings.scratchpad_detached !== "boolean") settings.scratchpad_detached = true;
+		// One-time v2.8.2 migration (Part B6, user-approved): detached-by-default
+		// reaches EXISTING installs once — their settings.json already holds
+		// explicit false values a defaults change can't touch. Anyone closing
+		// the pad afterwards keeps their choice; the marker never re-fires.
+		if (settings.scratchpad_default_migrated !== true) {
+			settings.scratchpad_open = true;
+			settings.scratchpad_detached = true;
+			settings.scratchpad_default_migrated = true;
+			await saveSettings(settings);
 		}
-		if (!settings.theme_overrides.obsidian) settings.theme_overrides.obsidian = {};
-		if (!settings.theme_overrides.light) settings.theme_overrides.light = {};
+		if (settings.strip_slot !== "bottom" && settings.strip_slot !== "hidden") settings.strip_slot = "top";
+		if (settings.crafting_lead !== "detail") settings.crafting_lead = "list";
+		if (settings.crafting_density !== "compact") settings.crafting_density = "comfortable";
+		if (typeof settings.show_last_kill !== "boolean") settings.show_last_kill = true;
+		if (typeof settings.show_used_in !== "boolean") settings.show_used_in = true;
+		if (!UI_SCALE_STEPS.includes(settings.ui_scale as (typeof UI_SCALE_STEPS)[number])) settings.ui_scale = 100;
+		if (
+			!settings.scratchpad_win ||
+			typeof settings.scratchpad_win.x !== "number" ||
+			typeof settings.scratchpad_win.y !== "number" ||
+			typeof settings.scratchpad_win.w !== "number" ||
+			typeof settings.scratchpad_win.h !== "number"
+		) {
+			settings.scratchpad_win = null;
+		}
+		if (
+			!settings.note_win ||
+			typeof settings.note_win.x !== "number" ||
+			typeof settings.note_win.y !== "number" ||
+			typeof settings.note_win.w !== "number" ||
+			typeof settings.note_win.h !== "number"
+		) {
+			settings.note_win = null;
+		}
+		if (typeof settings.note_editing_id !== "string") settings.note_editing_id = null;
 		// First-run locale detection: empty string from Rust means never set.
 		// Resolve from OS, persist immediately, and apply to the reactive
 		// locale signal before any component renders a translated string.
@@ -181,20 +211,6 @@ export function setTransparency(value: number): void {
 }
 
 /**
- * Set cooking mastery
- */
-export function setCookingMastery(value: string): void {
-	updateSetting("cooking_mastery", value);
-}
-
-/**
- * Set alchemy mastery
- */
-export function setAlchemyMastery(value: string): void {
-	updateSetting("alchemy_mastery", value);
-}
-
-/**
  * Set cooking total mastery level (0-3000)
  */
 export function setCookingTotalMastery(value: number): void {
@@ -220,13 +236,6 @@ export function setServerRegion(value: string): void {
  */
 export function setMarketRegion(value: string): void {
 	updateSetting("market_region", value);
-}
-
-/**
- * Set app theme
- */
-export function setTheme(value: AppTheme): void {
-	updateSetting("theme", value);
 }
 
 /**
@@ -301,9 +310,62 @@ export function setClockFormat24h(value: boolean): void {
 	updateSetting("clock_format_24h", value);
 }
 
-/** Which edge of the window the notes panel docks to. Persists across launches. */
-export function setNotesPanelDockSide(value: NotesDockSide): void {
-	updateSetting("notes_panel_dock_side", value);
+/** Scratchpad panel open/closed. Persists across launches. */
+export function setScratchpadOpen(value: boolean): void {
+	updateSetting("scratchpad_open", value);
+}
+
+/** Scratchpad dragged position (window-space px); null restores the default corner. */
+export function setScratchpadPos(value: { x: number; y: number } | null): void {
+	updateSetting("scratchpad_pos", value);
+}
+
+/** Scratchpad detached into its own OS window. Persists across launches. */
+export function setScratchpadDetached(value: boolean): void {
+	updateSetting("scratchpad_detached", value);
+}
+
+// Layout preferences (Parchment 7.3)
+export function setStripSlot(value: StripSlot): void {
+	updateSetting("strip_slot", value);
+}
+
+export function setCraftingLead(value: CraftingLead): void {
+	updateSetting("crafting_lead", value);
+}
+
+export function setCraftingDensity(value: CraftingDensity): void {
+	updateSetting("crafting_density", value);
+}
+
+export function setShowLastKill(value: boolean): void {
+	updateSetting("show_last_kill", value);
+}
+
+export function setShowUsedIn(value: boolean): void {
+	updateSetting("show_used_in", value);
+}
+
+export function setUiScale(value: number): void {
+	updateSetting("ui_scale", value);
+}
+
+/** Detached scratchpad window bounds (physical px). */
+export function setScratchpadWin(value: { x: number; y: number; w: number; h: number } | null): void {
+	updateSetting("scratchpad_win", value);
+}
+
+/** Note editor window bounds (physical px) — its own record, not the pad's. */
+export function setNoteWin(value: { x: number; y: number; w: number; h: number } | null): void {
+	updateSetting("note_win", value);
+}
+
+/**
+ * Point the single editor window at a note (null closes it). The list writes
+ * this; the editor window watches it and swaps its contents in place.
+ */
+export function setNoteEditingId(value: string | null): void {
+	updateSetting("note_editing_id", value);
 }
 
 /**
@@ -379,44 +441,3 @@ export function isFavorite(recipeId: string): boolean {
 	return get(settingsStore).favorites.includes(recipeId);
 }
 
-// ============ Theme color overrides ============
-
-/**
- * Set (or clear, when value is undefined) a single color slot on the given
- * theme. Persisting goes through the standard debounced save; the caller is
- * responsible for re-applying CSS vars via `applyTheme` for live preview.
- */
-export function setThemeOverride<K extends keyof ThemeOverrides>(
-	theme: AppTheme,
-	key: K,
-	value: ThemeOverrides[K] | undefined,
-): void {
-	settingsStore.update((s) => {
-		const next = { ...(s.theme_overrides?.[theme] ?? {}) };
-		if (value === undefined || value === null) {
-			delete next[key];
-		} else {
-			next[key] = value;
-		}
-		return {
-			...s,
-			theme_overrides: {
-				...(s.theme_overrides ?? { obsidian: {}, light: {} }),
-				[theme]: next,
-			},
-		};
-	});
-	debouncedSave();
-}
-
-/** Wipe every override for the given theme back to its baked-in defaults. */
-export function resetThemeOverrides(theme: AppTheme): void {
-	settingsStore.update((s) => ({
-		...s,
-		theme_overrides: {
-			...(s.theme_overrides ?? { obsidian: {}, light: {} }),
-			[theme]: {},
-		},
-	}));
-	debouncedSave();
-}

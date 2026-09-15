@@ -11,7 +11,7 @@
  * Persistence: single `notes.json` file containing both categories and notes
  * (load_notes / save_notes Rust commands).
  *
- * Design: docs/NOTES_SIDETAB_DESIGN.md
+ * Design: docs/archive/features/NOTES_SIDETAB_DESIGN.md
  */
 
 export type NoteId = string;
@@ -35,6 +35,18 @@ interface NoteBase {
 	tag: string | null;
 	created: number;
 	updated: number;
+	// v2 — any note may carry any of these. The three interfaces below still
+	// REQUIRE their own field, so `type` narrowing is unchanged.
+	//
+	// The undefined/null split is load-bearing on `when` and `items`: absent
+	// means "this note has no reminder / no checklist section", while `null`
+	// (or `[]`) means "the section exists, its value is unset". The editor's
+	// ADD row reads section existence off exactly that distinction, and the
+	// Rust side preserves it (see the double Option on `when` in lib.rs).
+	body?: string;
+	items?: TodoItem[];
+	when?: number | null;
+	fired?: boolean;
 }
 
 export interface TextNote extends NoteBase {
@@ -67,7 +79,13 @@ export interface NotesData {
 	notes: Note[];
 }
 
-export const NOTES_SCHEMA_VERSION = 1;
+/**
+ * v2 (2026-09-01): payload fields moved onto the base as optional, so one note
+ * can hold prose AND a checklist AND a time. `type` now says only how the list
+ * summarises a note — it is not what the note is, and nothing converts between
+ * types. No migration: absent fields read as undefined and no note is rewritten.
+ */
+export const NOTES_SCHEMA_VERSION = 2;
 
 export const MAX_CATEGORIES = 30;
 export const MAX_TITLE_LEN = 80;

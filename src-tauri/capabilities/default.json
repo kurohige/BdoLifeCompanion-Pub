@@ -1,8 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Capability for the main window, the loot OCR picker overlay, the detached scratchpad, and the note editor",
+  "windows": [
+    "main",
+    "loot-picker",
+    "scratchpad",
+    "note-editor"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-minimize",
@@ -20,7 +25,12 @@
     "fs:allow-write-text-file",
     "global-shortcut:default",
     "core:webview:allow-set-webview-zoom",
+    "core:webview:allow-create-webview-window",
     "core:window:allow-set-always-on-top",
-    "os:allow-locale"
+    "os:allow-locale",
+    "core:window:allow-set-position",
+    "core:window:allow-set-focus",
+    "core:window:allow-unminimize",
+    "core:window:allow-destroy"
   ]
 }

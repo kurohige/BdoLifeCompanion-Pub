@@ -106,46 +106,46 @@
 	function typeBadge(type: "grind" | "craft" | "exchange"): { label: () => string; classes: string } {
 		switch (type) {
 			case "grind":
-				return { label: () => m.treasure_type_grind(), classes: "bg-accent/20 text-accent" };
+				return { label: () => m.treasure_type_grind(), classes: "bg-secondary text-muted-foreground" };
 			case "craft":
 				return { label: () => m.treasure_type_craft(), classes: "bg-primary/20 text-primary" };
 			case "exchange":
-				return { label: () => m.treasure_type_exchange(), classes: "bg-cyan/20 text-cyan" };
+				return { label: () => m.treasure_type_exchange(), classes: "bg-secondary text-muted-foreground" };
 		}
 	}
 </script>
 
 <div class="flex flex-col h-full min-h-0 gap-3">
 	{#if !$treasureDataStore}
-		<div class="text-center py-6 text-muted-foreground text-[11px]">
+		<div class="text-center py-6 text-muted-foreground text-[12.5px]">
 			<p class="text-2xl mb-1">{m.treasure_loading()}</p>
 		</div>
 	{:else}
 		<!-- Overall Stats Bar -->
 		<div class="grid grid-cols-4 gap-2 flex-shrink-0">
-			<div class="glass-stats p-2 text-center">
-				<p class="text-lg font-bold neon-text-cyan">
+			<div class="paper-stats p-2 text-center">
+				<p class="text-lg font-bold font-mono text-foreground">
 					{overallStats().obtained}/{overallStats().total}
 				</p>
-				<p class="text-[9px] text-muted-foreground">{m.treasure_stat_pieces()}</p>
+				<p class="text-[12px] text-muted-foreground">{m.treasure_stat_pieces()}</p>
 			</div>
-			<div class="glass-stats p-2 text-center">
-				<p class="text-lg font-bold neon-text-purple">
+			<div class="paper-stats p-2 text-center">
+				<p class="text-lg font-bold font-mono text-foreground">
 					{overallStats().totalHours.toFixed(1)}h
 				</p>
-				<p class="text-[9px] text-muted-foreground">{m.treasure_stat_total_hours()}</p>
+				<p class="text-[12px] text-muted-foreground">{m.treasure_stat_total_hours()}</p>
 			</div>
-			<div class="glass-stats p-2 text-center">
-				<p class="text-lg font-bold text-foreground">
+			<div class="paper-stats p-2 text-center">
+				<p class="text-lg font-bold font-mono text-foreground">
 					{overallStats().avgHours.toFixed(1)}h
 				</p>
-				<p class="text-[9px] text-muted-foreground">{m.treasure_stat_avg_piece()}</p>
+				<p class="text-[12px] text-muted-foreground">{m.treasure_stat_avg_piece()}</p>
 			</div>
-			<div class="glass-stats p-2 text-center">
-				<p class="text-lg font-bold text-accent">
+			<div class="paper-stats p-2 text-center">
+				<p class="text-lg font-bold font-mono text-foreground">
 					~{overallStats().remaining.toFixed(0)}h
 				</p>
-				<p class="text-[9px] text-muted-foreground">{m.treasure_stat_est_left()}</p>
+				<p class="text-[12px] text-muted-foreground">{m.treasure_stat_est_left()}</p>
 			</div>
 		</div>
 
@@ -156,25 +156,25 @@
 				{@const isExpanded = expandedTreasures.has(treasure.id)}
 				{@const isComplete = stats.obtained === stats.total}
 
-				<div class="glass-card rounded-lg overflow-hidden {isComplete ? 'border-accent/50' : ''}">
+				<div class="paper-card rounded-lg overflow-hidden {isComplete ? 'border-l-2 border-l-primary' : ''}">
 					<!-- Card Header -->
 					<button
 						onclick={() => toggleExpand(treasure.id)}
 						class="w-full flex items-center gap-3 px-3 py-2 hover:bg-secondary/30 transition-colors text-left"
 					>
 						<!-- Expand/Collapse Icon -->
-						<span class="text-[10px] text-muted-foreground transition-transform {isExpanded ? 'rotate-90' : ''}">
+						<span class="text-[12px] text-muted-foreground transition-transform {isExpanded ? 'rotate-90' : ''}">
 							▶
 						</span>
 
 						<!-- Treasure Name -->
-						<span class="text-xs font-bold flex-1 truncate {isComplete ? 'text-accent' : 'text-foreground'}">
+						<span class="text-xs font-bold flex-1 truncate text-foreground">
 							{treasure.name}
 						</span>
 
 						<!-- Complete Badge -->
 						{#if isComplete}
-							<span class="px-1.5 py-0.5 text-[9px] font-bold bg-accent/20 text-accent rounded">
+							<span class="px-1.5 py-0.5 text-[12px] font-bold bg-primary/20 text-primary rounded">
 								{m.treasure_complete_badge()}
 							</span>
 						{/if}
@@ -183,11 +183,11 @@
 						<div class="flex items-center gap-2 flex-shrink-0">
 							<div class="w-20 h-1.5 bg-secondary rounded-full overflow-hidden">
 								<div
-									class="h-full rounded-full transition-all {isComplete ? 'bg-accent' : 'bg-primary'}"
+									class="h-full rounded-full transition-all bg-primary"
 									style="width: {stats.pct}%"
 								></div>
 							</div>
-							<span class="text-[10px] text-muted-foreground w-14 text-right">
+							<span class="text-[12px] text-muted-foreground w-14 text-right font-mono">
 								{stats.obtained}/{stats.total} ({stats.pct}%)
 							</span>
 						</div>
@@ -204,7 +204,7 @@
 									<!-- Checkbox -->
 									<button
 										onclick={() => handleToggleObtained(piece.id, treasure.id)}
-										class="w-4 h-4 flex items-center justify-center rounded border {prog.obtained ? 'bg-accent border-accent text-black' : 'border-border hover:border-primary'} transition-colors flex-shrink-0"
+										class="w-4 h-4 flex items-center justify-center rounded border {prog.obtained ? 'bg-primary border-primary text-primary-foreground' : 'border-border hover:border-primary'} transition-colors flex-shrink-0"
 										title={prog.obtained ? m.treasure_unmark_obtained() : m.treasure_mark_obtained()}
 									>
 										{#if prog.obtained}
@@ -216,16 +216,16 @@
 
 									<!-- Piece Icon -->
 									{#if piece.image}
-										<img src={"/" + piece.image} alt="" class="w-6 h-6 object-contain flex-shrink-0" />
+										<img src={"/" + piece.image} alt="" class="w-8 h-8 object-contain flex-shrink-0 icon-frame" />
 									{/if}
 
 									<!-- Piece Name -->
-									<span class="text-[11px] flex-1 min-w-0 truncate {prog.obtained ? 'line-through text-muted-foreground' : 'text-foreground'}">
+									<span class="text-[12.5px] flex-1 min-w-0 truncate {prog.obtained ? 'line-through text-muted-foreground' : 'text-foreground'}">
 										{piece.name}
 									</span>
 
 									<!-- Zone -->
-									<span class="text-[9px] text-muted-foreground flex-shrink-0 w-28 truncate text-right" title={piece.zone}>
+									<span class="text-[12px] text-muted-foreground flex-shrink-0 w-28 truncate text-right" title={piece.zone}>
 										{piece.zone}
 									</span>
 
@@ -238,22 +238,22 @@
 											value={prog.hoursSpent || ""}
 											placeholder="0"
 											oninput={(e) => handleHoursChange(piece.id, treasure.id, e.currentTarget.value)}
-											class="w-14 bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[10px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner flex-shrink-0"
+											class="w-14 bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[12px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner flex-shrink-0"
 										/>
-										<span class="text-[9px] text-muted-foreground flex-shrink-0">{m.treasure_hours_suffix()}</span>
+										<span class="text-[12px] text-muted-foreground flex-shrink-0">{m.treasure_hours_suffix()}</span>
 									{:else}
 										<span class="w-14 flex-shrink-0"></span>
-										<span class="text-[9px] text-muted-foreground flex-shrink-0 w-1.5"></span>
+										<span class="text-[12px] text-muted-foreground flex-shrink-0 w-1.5"></span>
 									{/if}
 
 									<!-- Type Badge -->
-									<span class="px-1.5 py-0.5 text-[8px] font-bold rounded flex-shrink-0 {badge.classes}">
+									<span class="px-1.5 py-0.5 text-[10.5px] font-bold rounded flex-shrink-0 {badge.classes}">
 										{badge.label()}
 									</span>
 
 									<!-- Obtained Date -->
 									{#if prog.obtained && prog.obtainedDate}
-										<span class="text-[8px] text-muted-foreground flex-shrink-0 w-16 text-right">
+										<span class="text-[10.5px] text-muted-foreground flex-shrink-0 w-16 text-right">
 											{prog.obtainedDate}
 										</span>
 									{:else}
@@ -263,7 +263,7 @@
 							{/each}
 
 							<!-- Card Footer Stats -->
-							<div class="flex items-center justify-center gap-4 px-3 py-1.5 bg-secondary/30 text-[9px] text-muted-foreground">
+							<div class="flex items-center justify-center gap-4 px-3 py-1.5 bg-secondary/30 text-[12px] text-muted-foreground">
 								<span>{m.treasure_footer_total({ hours: stats.totalHours.toFixed(1) })}</span>
 								<span class="text-border">|</span>
 								<span>{m.treasure_footer_avg({ hours: stats.avgHours.toFixed(1) })}</span>
@@ -281,7 +281,7 @@
 
 	<!-- Empty State (when no treasures loaded but not loading) -->
 	{#if $treasureDataStore && $treasureDataStore.treasures.length === 0}
-		<div class="text-center py-8 text-muted-foreground text-[11px]">
+		<div class="text-center py-8 text-muted-foreground text-[12.5px]">
 			<p class="text-2xl mb-1">💎</p>
 			<p>{m.treasure_no_data()}</p>
 		</div>

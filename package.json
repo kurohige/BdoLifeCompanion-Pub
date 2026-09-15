@@ -1,6 +1,6 @@
 {
   "name": "bdo-life-companion",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "BDO Life Companion - Cross-platform crafting calculator and timer",
   "type": "module",
   "scripts": {
@@ -9,10 +9,13 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test": "vitest run",
     "tauri": "tauri"
   },
   "license": "MIT",
   "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.6.0",
     "@tauri-apps/plugin-fs": "^2.4.5",
@@ -35,12 +38,13 @@
     "clsx": "^2.1.1",
     "png-to-ico": "^3.0.1",
     "postcss": "^8.5.6",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.4",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^3.4.0",
     "typescript": "~5.6.2",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "vitest": "^4.1.11"
   }
 }

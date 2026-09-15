@@ -139,26 +139,36 @@ export interface BarterSession {
 
 // ============== Ship Progression ==============
 
-export type CarrackVariant = "advance" | "balance" | "volante" | "valor";
+export type CarrackVariant = "advance" | "balance" | "volante" | "valor" | "panokseon";
 export type MaterialSource = "barter" | "crowCoin" | "daily" | "craft" | "drop" | "buy";
 
 export interface ShipMaterialDef {
 	id: string;
+	/**
+	 * Canonical item key, shared by every stage that consumes the same item.
+	 * `id` stays per-stage (it keys the user's have-count); `baseId` is what the
+	 * totals roll up on and what looks the item up in ship-material-recipes.json.
+	 */
+	baseId?: string;
 	name: string;
 	needed: number;
 	source: MaterialSource;
+	/** Icon under static/, e.g. "bartering/materials/seaweed_stalk.png" */
+	image?: string;
 }
 
 export interface ShipUpgradeStageDef {
 	id: string;
 	name: string;
 	pieceName: string;
+	/** Icon of the piece being built (yellow-grade stages) */
+	image?: string;
 	materials: ShipMaterialDef[];
 }
 
 export interface ShipUpgradePathDef {
 	variant: CarrackVariant;
-	baseShip: "caravel" | "galleass";
+	baseShip: "caravel" | "galleass" | "panokseon";
 	label: string;
 	description: string;
 	stages: ShipUpgradeStageDef[];
@@ -167,6 +177,68 @@ export interface ShipUpgradePathDef {
 export interface ShipUpgradesData {
 	version: number;
 	paths: ShipUpgradePathDef[];
+}
+
+// ============== Ship Material Recipes ==============
+
+export type ShipCraftMethod = "manufacture" | "simpleAlchemy" | "enhance";
+
+export interface ShipRecipeIngredient {
+	id: string;
+	name: string;
+	/** Units consumed per craft (per `yield` units produced) */
+	amount: number;
+	source: MaterialSource;
+	image?: string;
+}
+
+/** Mass Process shorthand: `batch`x the listed materials plus `extra` per batch */
+export interface ShipMassProcess {
+	batch: number;
+	extra?: { name: string; amount: number; image?: string };
+}
+
+/** Non-crafting route to the same item (e.g. the Lyngbakr's Horn exchange) */
+export interface ShipMaterialAlternative {
+	exchangeWith: string;
+	/** Units of the material received per exchange */
+	gives: number;
+}
+
+/**
+ * Why an item has no expandable recipe here.
+ * - `enhance_stage` — build the blue-grade version tracked below, then enhance it.
+ * - `untracked_chain` — the part chain is outside this tracker; bring it built.
+ */
+export type ShipRecipeNoteKey = "enhance_stage" | "untracked_chain";
+
+export interface ShipMaterialRecipe {
+	baseId: string;
+	name: string;
+	method: ShipCraftMethod;
+	/** Units produced per craft */
+	yield: number;
+	ingredients: ShipRecipeIngredient[];
+	massProcess?: ShipMassProcess;
+	alternative?: ShipMaterialAlternative;
+	/**
+	 * Stage ids in the same path that already produce this item. Those stages are
+	 * tracked separately, so the totals link to them instead of expanding their
+	 * materials — expanding would double-count.
+	 */
+	producedByStage?: string[];
+	/**
+	 * Translation key for the explanatory line under the recipe. A key rather than
+	 * prose because the data files are shipped untranslated — see NOTE_LABELS in
+	 * ShipMaterialTotals.svelte for the mapping.
+	 */
+	noteKey?: ShipRecipeNoteKey;
+}
+
+export interface ShipMaterialRecipesData {
+	version: number;
+	/** Keyed by material baseId */
+	recipes: Record<string, ShipMaterialRecipe>;
 }
 
 export interface ShipStatsTier {

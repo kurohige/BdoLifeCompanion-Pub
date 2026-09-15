@@ -33,6 +33,7 @@
 	import IslandNode, { type IslandNodeData } from "./IslandNode.svelte";
 	import RouteTradePopover from "./RouteTradePopover.svelte";
 	import TierBadge from "./ui/TierBadge.svelte";
+	import { Button } from "./ui";
 	import { formatSilverShort } from "$lib/constants/chart-theme";
 	import type { IslandNode as IslandNodeType } from "$lib/models/bartering";
 	import { m } from "$lib/paraglide/messages";
@@ -245,7 +246,7 @@
 
 <div class="routes-view">
 	<!-- Timer strip -->
-	<div class="timer-strip glass-card">
+	<div class="timer-strip paper-card">
 		<button
 			type="button"
 			class="play-btn"
@@ -261,17 +262,17 @@
 			<span class="timer-clock font-mono">{fmtTime(timerSeconds)}</span>
 			<span class="timer-rate font-mono">{formatSilverShort(silverPerHr)}/h</span>
 		</div>
-		<button type="button" class="strip-btn" onclick={onReset} disabled={!$currentRouteStore}>
+		<Button variant="ghost" size="sm" onclick={onReset} disabled={!$currentRouteStore}>
 			{m.bartering_routes_btn_reset()}
-		</button>
-		<button
-			type="button"
-			class="strip-btn primary"
+		</Button>
+		<Button
+			variant="primary"
+			size="sm"
 			onclick={onLogRoute}
 			disabled={!$currentRouteStore || trades.length === 0}
 		>
 			{m.bartering_routes_btn_log()}
-		</button>
+		</Button>
 	</div>
 
 	<!-- Map -->
@@ -301,7 +302,7 @@
 				<ViewportPortal target="back">
 					<div class="map-underlay-wrap" style:transform="translate(-73px, -142px)">
 						<img
-							src="/bartering/sailing-map.webp"
+							src="/bartering/sailing-map.png"
 							alt=""
 							class="map-underlay"
 							draggable="false"
@@ -319,7 +320,7 @@
 	</div>
 
 	<!-- Parley bar -->
-	<div class="parley-strip glass-card">
+	<div class="parley-strip paper-card">
 		<div class="parley-row">
 			<span class="parley-label">{m.bartering_routes_parley_label()}</span>
 			<span class="parley-amount font-mono" class:low={parleyPct < 25}>
@@ -340,7 +341,7 @@
 			></div>
 		</div>
 		{#if refillOpen}
-			<div class="refill-pop glass-card">
+			<div class="refill-pop paper-card">
 				<label class="refill-label">
 					{m.bartering_routes_refill_amount()}
 					<input
@@ -363,7 +364,7 @@
 	</div>
 
 	<!-- Ledger -->
-	<div class="ledger glass-card">
+	<div class="ledger paper-card">
 		<div class="ledger-head">
 			<span class="ledger-title">{m.bartering_routes_ledger_title({ count: trades.length })}</span>
 			{#if trades.length > 0}
@@ -425,15 +426,17 @@
 		border-radius: 50% !important;
 		background: var(--surface-high);
 		color: var(--secondary-container);
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 11px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12.5px;
 		font-weight: 700;
 		cursor: pointer;
 	}
 	.play-btn.running {
 		background: var(--secondary-container);
-		color: var(--bg, #0a0a0a);
-		box-shadow: 0 0 8px var(--secondary-container);
+		/* Teal on tint. Was `var(--bg, #0a0a0a)` — `--bg` is defined nowhere, a
+		   leftover from the dark theme where the page ground was near-black and
+		   made sense as the foreground on an accent fill. */
+		color: var(--teal);
 	}
 	.play-btn:disabled {
 		opacity: 0.3;
@@ -445,42 +448,19 @@
 		gap: 8px;
 	}
 	.timer-label {
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 9px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		letter-spacing: 0.2em;
 		color: var(--outline-hud);
 	}
 	.timer-clock {
 		font-size: 18px;
-		color: var(--secondary-container);
-		text-shadow: 0 0 6px color-mix(in oklab, var(--secondary-container) 50%, transparent);
+		color: var(--on-surface);
 	}
 	.timer-rate {
-		font-size: 10px;
+		font-size: 12px;
 		color: var(--outline-hud);
 	}
-	.strip-btn {
-		padding: 5px 10px;
-		background: var(--surface-lowest);
-		color: var(--outline-hud);
-		border: 0;
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 9px;
-		font-weight: 700;
-		letter-spacing: 0.16em;
-		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--outline-variant) 35%, transparent);
-		cursor: pointer;
-	}
-	.strip-btn:disabled {
-		opacity: 0.3;
-		cursor: not-allowed;
-	}
-	.strip-btn.primary {
-		background: var(--primary-container);
-		color: var(--bg, #0a0a0a);
-		box-shadow: 0 0 10px color-mix(in oklab, var(--primary-container) 50%, transparent);
-	}
-
 	/* Map */
 	.map-shell {
 		position: relative;
@@ -544,34 +524,34 @@
 		margin-bottom: 4px;
 	}
 	.parley-label {
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 9px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		letter-spacing: 0.2em;
 		color: var(--outline-hud);
 		font-weight: 600;
 	}
 	.parley-amount {
-		font-size: 11px;
-		color: var(--secondary);
+		font-size: 12.5px;
+		color: var(--on-surface);
 	}
 	.parley-amount.low {
 		color: var(--destructive);
 	}
 	.parley-refilled {
-		font-size: 9px;
+		font-size: 12px;
 		color: var(--t2);
 	}
 	.refill-btn {
 		margin-left: auto;
 		padding: 3px 8px;
 		background: var(--surface-lowest);
-		color: var(--secondary);
+		color: var(--outline-hud);
 		border: 0;
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 9px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		letter-spacing: 0.16em;
 		font-weight: 700;
-		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--secondary) 30%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--outline-variant) 35%, transparent);
 		cursor: pointer;
 	}
 	.parley-bar {
@@ -580,13 +560,11 @@
 	}
 	.parley-fill {
 		height: 100%;
-		background: var(--secondary-container);
-		box-shadow: 0 0 6px var(--secondary-container);
+		background: var(--primary-container);
 		transition: width 0.25s ease-out;
 	}
 	.parley-fill.low {
 		background: var(--destructive);
-		box-shadow: 0 0 6px var(--destructive);
 	}
 	.refill-pop {
 		position: absolute;
@@ -604,7 +582,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
-		font-size: 9px;
+		font-size: 12px;
 		letter-spacing: 0.18em;
 		color: var(--outline-hud);
 	}
@@ -613,8 +591,8 @@
 		background: var(--surface-lowest);
 		color: var(--on-surface);
 		border: 0;
-		font-size: 11px;
-		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--secondary) 25%, transparent);
+		font-size: 12.5px;
+		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--outline-variant) 35%, transparent);
 	}
 	.refill-presets {
 		display: flex;
@@ -624,20 +602,21 @@
 		flex: 1;
 		padding: 4px 0;
 		background: var(--surface-lowest);
-		color: var(--secondary);
+		color: var(--outline-hud);
 		border: 0;
-		font-size: 10px;
-		font-family: 'Space Grotesk', monospace;
+		font-size: 12px;
+		font-family: 'IBM Plex Mono', ui-monospace, monospace;
 		cursor: pointer;
-		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--secondary) 25%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--outline-variant) 30%, transparent);
 	}
 	.refill-confirm {
 		padding: 6px 0;
-		background: var(--secondary-container);
-		color: var(--bg, #0a0a0a);
+		background: var(--primary-container);
+		/* White on solid teal — near-black measured ~1.5:1 here. */
+		color: #ffffff;
 		border: 0;
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 10px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		font-weight: 700;
 		letter-spacing: 0.16em;
 		cursor: pointer;
@@ -659,15 +638,15 @@
 		margin-bottom: 4px;
 	}
 	.ledger-title {
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 9px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		letter-spacing: 0.18em;
 		color: var(--outline-hud);
 		font-weight: 600;
 	}
 	.ledger-total {
-		font-size: 11px;
-		color: var(--tertiary);
+		font-size: 12.5px;
+		color: var(--on-surface);
 	}
 	.ledger-rows {
 		flex: 1;
@@ -679,7 +658,7 @@
 	.ledger-empty {
 		text-align: center;
 		padding: 12px 0;
-		font-size: 10px;
+		font-size: 12px;
 		color: var(--outline-hud);
 		opacity: 0.6;
 	}
@@ -699,8 +678,8 @@
 		background: var(--row-color);
 	}
 	.row-node {
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 10px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		color: var(--row-color);
 		letter-spacing: 0.04em;
 		overflow: hidden;
@@ -708,21 +687,21 @@
 		white-space: nowrap;
 	}
 	.row-name {
-		font-size: 11px;
+		font-size: 12.5px;
 		color: var(--on-surface);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 	.row-qty {
-		font-size: 11px;
+		font-size: 12.5px;
 		color: var(--row-color);
 		min-width: 28px;
 		text-align: right;
 	}
 	.row-silver {
-		font-size: 11px;
-		color: var(--tertiary);
+		font-size: 12.5px;
+		color: var(--on-surface);
 		min-width: 56px;
 		text-align: right;
 	}

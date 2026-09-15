@@ -6,6 +6,128 @@
 
 ---
 
+## v2.8.0 — 2026-09-15
+
+The biggest release so far. The whole interface moves to a new light theme, the grinding
+tracker can read your loot log for you, and the ship upgrade tracker finally does the
+arithmetic instead of leaving it to you.
+
+### New Features
+
+- **Loot OCR Tracker.** A new **OCR** sub-tab under Grinding. You draw a rectangle over your
+  own loot log, and the app reads that region a few times a second and tallies drops as they
+  scroll past — matching each line against a catalog of around 440 items built from the
+  grinding, recipe, hunting, barter and treasure data. Lines it cannot match stay as raw text
+  so you can rename them, link them to a catalog item, or delete them. The hard part was not
+  reading the text but avoiding double counts: BDO redraws the same loot line as it fades and
+  scrolls, so a single misread quantity would otherwise become a permanent error. Each new
+  line now waits briefly, collects a reading per sighting, and commits the majority vote.
+  Sessions survive a restart (paused), and finishing one snapshots it into a browsable history.
+  It is strictly a reader — you start it, you draw the region, and it never sends input to
+  the game or touches the game process.
+- **Ship material totals and recipes.** Bartering ▸ Ships used to show requirements one stage
+  at a time, so the numbers that actually decide whether a grind is worth starting — 500
+  Sturdy Coral Support across the four Falasi stages — appeared nowhere. There is now a
+  **Total Materials Needed** panel that sums every material across the stages sharing it,
+  subtracts what you have entered, and skips stages you have marked done, with a **Full path**
+  toggle for planning before you begin. Each craftable material expands into its recipe scaled
+  to what is still missing, with the craft count, the Mass Process batch count, and the
+  Lyngbakr horn exchange as an alternative. The raw ingredients are trackable too, and a
+  **Raw Shopping List** at the bottom flattens every recipe into what you actually gather.
+- **A craft queue.** Queue batches with editable quantities and get a per-batch ETA from a
+  tunable seconds-per-craft figure, what each batch is short against your inventory, and a
+  total finish time.
+- **A live crafting session.** Start, pause and stop a session that tracks your crafted count
+  and crafts per hour. Logging a craft feeds both the crafting log and the running session.
+- **The Scratchpad — notes in their own window.** Notes moved out of a side tab into a
+  free-floating pad that opens as its own always-on-top window, draggable by its header and
+  remembering where you put it. Closing its window re-docks it into the main window, and
+  whichever you chose is remembered. `Ctrl+N` focuses it.
+- **A real note editor.** Creating a note opens a second window with a title, a body that
+  grows as you type, an optional checklist and an optional reminder time. Saving is automatic.
+- **A note can now hold prose, a checklist and a reminder at the same time.** Previously each
+  note was exactly one of the three, which meant checkboxes silently did nothing on a text
+  note and a reminder added to one never fired. Both now work.
+- **Search across your whole note library** with `Ctrl+F` — titles, body text, checklist
+  items, tags and category names, with matches highlighted.
+- **Layout preferences.** A new Settings ▸ Layout section: put the boss and session strip at
+  the top, dock it to the bottom, or hide it; choose whether the crafting screen leads with
+  search or with the recipe detail; pick comfortable or compact density; toggle the last-kill
+  line and the "Used in" panel; and scale the whole window between 90% and 125%.
+- **Silver per hour** on the Grinding and Hunting trackers, projected from your loot value and
+  elapsed time, next to Total Silver.
+- **Two more server regions.** SEA and SA join NA and EU for boss schedules and war times,
+  with a separate **Market Region** setting driving Central Market price lookups.
+- **Event bosses expire on their own.** Boss entries can carry a validity date range, so a
+  limited-time world boss goes inert when its window closes instead of needing a manual cleanup.
+
+### Changed
+
+- **Parchment — a new light theme, and the only one.** The app leaves Obsidian Dark for a warm
+  parchment ground with a single teal accent. This is a full conversion rather than a new
+  option: every screen was rebuilt on the new design, the window controls are now one
+  consistent set everywhere (minimise, a size chevron that steps between view modes, close),
+  the navigation rail is a slim floating card, and the boss strip spans the top of the window.
+  The mini and medium widgets were rebuilt too — the mini bar grows a line and turns amber
+  then rust as a spawn closes in, and fades when you leave it alone.
+- **IBM Plex is now actually included.** The interface had been naming it in its font stack
+  without shipping the files, so every install was quietly rendering system fallbacks instead.
+- **The crafting screen is built around search.** A search field summons a filtered recipe list
+  beneath it with full keyboard navigation; picking a recipe fills a detail card with editable
+  held counts, shortage rows against your inventory, and chips showing what else the item is
+  used in.
+- **Bigger item icons** across crafting, grinding, loot and the ships tab, and a firmer panel
+  outline so cards separate from the background.
+- **Updated for the Inner Edania patch.** Six new grinding zones with their loot, the Lyngbakr
+  Habitat zone, Falasi yellow-gear stages on all four Carrack paths, a new Panokseon —
+  Cheongun path, new sailing consumables, combat draught durations moved from 15 to 20 minutes
+  across 37 recipes, and 11 alchemy recipes that were simply missing.
+- **Spanish keeps pace.** Every new string is translated, and the two catalogues are now kept
+  in step by an automated check, so an untranslated label fails the build instead of showing
+  up in the Spanish interface.
+
+### Removed
+
+- **Obsidian Dark, the theme colour pickers and the glow intensity slider.** Parchment replaces
+  them. Your existing settings file still loads — the options it no longer needs are ignored.
+- **The Notes side tab.** Your notes are unchanged and now live in the Scratchpad.
+- **The announcement ticker and the in-app update check.** The whole announcements system is
+  gone, which also means the app no longer tells you when a new version is out — watch the
+  GitHub Releases page instead.
+- **The Cooking Rank and Alchemy Rank dropdowns.** They saved a value nothing ever read; the
+  mastery figure and progress bar come from the mastery fields directly beneath them and are
+  unaffected.
+
+### Fixed
+
+- **The app could launch completely off-screen and look like it had failed to start.**
+  Minimising fires the same events the app uses to remember its position, so closing while
+  minimised saved the off-screen coordinates Windows reports for a minimised window. Placement
+  is no longer recorded while minimised, and on launch a saved position is checked against the
+  monitors actually connected — so a stale position from a display you have since unplugged
+  falls back to the default instead of hiding the window.
+- **The note editor and the detached Scratchpad had the same problem** and now get the same
+  guard, keeping the size you had chosen.
+- **The font size setting did nothing.** Two parts of the app were both setting the zoom level
+  and the UI scale one always landed last, wiping the font size — which also meant any
+  settings change reset your zoom. One place now owns it and combines both.
+- **Unreadable text on the bartering map and route buttons.** Five places took their text
+  colour from a value that was never defined, so they fell back to near-black — fine on the
+  old dark theme, unreadable on teal and the darker tier colours.
+- **Checkboxes and reminders on notes that were not created as to-dos** now work; see the note
+  model change above.
+- **The smallest view could not be reached from the main window.** The size chevron stepped
+  large to medium and back; it now walks large, small, medium, and reverses on right-click.
+- **The Cooking, Alchemy, Draughts and Planner sub-tabs show their icons**, which had been
+  supported but never actually passed through.
+- **Loot OCR accuracy**, across several passes: a scanner race that could run two readers at
+  once, a cold-start gap that let a catastrophic first misread through unchallenged, and
+  re-counts when BDO scrolls the log quickly.
+- **Diagnostics export is disabled when there is nothing recorded**, instead of looking
+  available and then reporting that there was nothing to export.
+
+---
+
 ## v2.7.0 — 2026-05-11
 
 ### New Features

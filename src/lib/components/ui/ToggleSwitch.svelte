@@ -1,5 +1,5 @@
 <!--
-	Gold-styled toggle switch used across Settings (bold text, always on top,
+	Primary-styled toggle switch used across Settings (bold text, always on top,
 	background animation, etc.). For the smaller cyan/primary toggles in the
 	Notifications section, use inline markup — the two visual scales are
 	deliberately different.
@@ -20,7 +20,7 @@
 	type="button"
 	role="switch"
 	aria-checked={checked}
-	class="relative w-9 h-5 rounded-full transition-colors flex-shrink-0 {checked ? 'bg-[var(--gold-glow)]' : 'bg-secondary border border-outline-variant/30'}"
+	class="relative w-9 h-5 rounded-full transition-colors flex-shrink-0 {checked ? 'bg-[var(--teal)]' : 'bg-[var(--overlay-chip)]'}"
 >
-	<div class="absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-foreground transition-transform {checked ? 'translate-x-[18px]' : ''}"></div>
+	<div class="absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.18)] transition-transform {checked ? 'translate-x-[18px]' : ''}"></div>
 </button>

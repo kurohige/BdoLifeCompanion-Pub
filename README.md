@@ -8,7 +8,7 @@ A lightweight desktop overlay for **Black Desert Online** that helps you track c
 
 ## Download
 
-**Latest version: v2.7.0**
+**Latest version: v2.8.0**
 
 - [GitHub Releases](https://github.com/kurohige/BdoLifeCompanion-Pub/releases) — Portable `.zip`, no installer needed
 
@@ -52,12 +52,12 @@ A spatial map of all 90 official barter destinations rendered over the in-game s
 
 ### Crafting
 
-- **Recipe Browser** — 981 recipes across Cooking, Alchemy, and Draughts. Search, filter, and see ingredient breakdowns with item images.
+- **Recipe Browser** — 472 recipes across Cooking, Alchemy, and Draughts. Search, filter, and see ingredient breakdowns with item images.
 - **Ingredient Navigation** — Click any ingredient to jump to its recipe. See a "Used In" section showing every recipe that uses the current item.
 - **Alternative Ingredients** — Recipes with substitutable ingredients are marked so you know your options.
 - **Crafting Planner** — Build a dependency tree for what you want to craft. It checks your inventory, calculates what you still need, and gives you a shopping list and step-by-step crafting order.
 - **Inventory Tracker** — Keep track of how many of each item you have. Supports CSV import/export for backup or spreadsheet use.
-- **Crafting Log** — Log your crafting sessions with yield, mastery, and life skill rank tracking.
+- **Crafting Log** — Log your crafting sessions with crafted count, yield, mastery, and silver earned. A live session tracker shows crafts per hour while you work.
 
 ### Grinding
 
@@ -98,13 +98,13 @@ The app has 3 view modes:
 |------|------|-------------|
 | **Full** | 560 x 680 | All tabs, full feature navigation, resizable window |
 | **Medium** | 460 x 150 | Compact dashboard with timer, boss countdown, reset timers |
-| **Mini** | 400 x 56 | Thin floating bar with boss countdown and announcements |
+| **Mini** | 400 x 56 | Thin floating bar with boss countdown and live session |
 
 All modes support always-on-top (toggleable) and adjustable transparency. The window remembers its position and size between launches.
 
-### Themes
+### Theme
 
-Two built-in themes: **Obsidian Dark** (default — sharp corners, Space Grotesk, gold accents, neon hex particle background) and **Light** (warm off-white, readable).
+One theme: **Parchment** — a warm light interface built on a single teal accent, with IBM Plex Sans and IBM Plex Mono bundled with the app. As of v2.8.0 this replaces the old Obsidian Dark theme, the per-theme colour pickers and the glow slider; existing settings files still load and simply ignore the options that no longer exist.
 
 ### Languages
 

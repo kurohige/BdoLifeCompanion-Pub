@@ -4,6 +4,7 @@
 	import { formatDuration } from "$lib/utils/format";
 	import RouteMapPreview from "./RouteMapPreview.svelte";
 	import TierBadge from "./ui/TierBadge.svelte";
+	import { Button } from "./ui";
 	import type { RouteLog, IslandNode } from "$lib/models/bartering";
 	import { m } from "$lib/paraglide/messages";
 	import { getCurrentLocale } from "$lib/i18n/locale.svelte";
@@ -86,7 +87,7 @@
 	<!-- Detail view -->
 	<div class="detail-view">
 		<div class="detail-head">
-			<button type="button" class="back-btn" onclick={() => (openId = null)}>{m.bartering_logs_back()}</button>
+			<Button variant="ghost" size="sm" onclick={() => (openId = null)}>{m.bartering_logs_back()}</Button>
 			<span class="detail-title">{autoTitle(openLog)}</span>
 			<span class="detail-when font-mono">{logDateLabel(openLog)} · {logTime(openLog)}</span>
 			<button
@@ -94,7 +95,7 @@
 				class="delete-btn"
 				onclick={() => onDelete(openLog!)}
 				aria-label={m.bartering_logs_delete_aria()}
-			>🗑</button>
+			>×</button>
 		</div>
 
 		{#if openLog.legacy}
@@ -116,19 +117,19 @@
 		<div class="stat-ribbon">
 			<div class="stat-cell">
 				<span class="stat-label">{m.bartering_logs_stat_earned()}</span>
-				<span class="stat-val font-mono" style:color="var(--tertiary)">
+				<span class="stat-val font-mono">
 					{formatSilverShort(openLog.totalSilver)}
 				</span>
 			</div>
 			<div class="stat-cell">
 				<span class="stat-label">{m.bartering_logs_stat_duration()}</span>
-				<span class="stat-val font-mono" style:color="var(--secondary)">
+				<span class="stat-val font-mono">
 					{openLog.legacy ? "—" : formatDuration(openLog.durationSeconds)}
 				</span>
 			</div>
 			<div class="stat-cell">
 				<span class="stat-label">{m.bartering_logs_stat_silver_hr()}</span>
-				<span class="stat-val font-mono" style:color="var(--primary-container)">
+				<span class="stat-val font-mono">
 					{formatSilverShort(silverPerHour(openLog))}
 				</span>
 			</div>
@@ -141,7 +142,7 @@
 		</div>
 
 		{#if openLog.trades.length > 0}
-			<div class="ledger glass-card">
+			<div class="ledger paper-card">
 				<div class="ledger-head">
 					<span class="ledger-title">{m.bartering_routes_ledger_title({ count: openLog.trades.length })}</span>
 					<span class="ledger-meta font-mono">{m.bartering_logs_meta_stops_items({ stops: openLog.visitedNodeIds.length, items: openLog.totalQty })}</span>
@@ -173,17 +174,17 @@
 		<div class="stat-ribbon">
 			<div class="stat-cell">
 				<span class="stat-label">{m.bartering_logs_stat_logs()}</span>
-				<span class="stat-val font-mono" style:color="var(--primary-container)">{stats.count}</span>
+				<span class="stat-val font-mono">{stats.count}</span>
 			</div>
 			<div class="stat-cell">
 				<span class="stat-label">{m.bartering_logs_stat_total()}</span>
-				<span class="stat-val font-mono" style:color="var(--tertiary)">
+				<span class="stat-val font-mono">
 					{formatSilverShort(stats.totalSilver)}
 				</span>
 			</div>
 			<div class="stat-cell">
 				<span class="stat-label">{m.bartering_logs_stat_on_water()}</span>
-				<span class="stat-val font-mono" style:color="var(--secondary)">
+				<span class="stat-val font-mono">
 					{formatDuration(stats.totalDuration)}
 				</span>
 			</div>
@@ -281,8 +282,8 @@
 		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--outline-variant) 25%, transparent);
 	}
 	.stat-label {
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 8px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 10.5px;
 		letter-spacing: 0.18em;
 		color: var(--outline-hud);
 		font-weight: 600;
@@ -302,8 +303,8 @@
 		background: var(--surface-lowest);
 		color: var(--outline-hud);
 		border: 0;
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 9px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		font-weight: 700;
 		letter-spacing: 0.18em;
 		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--outline-variant) 20%, transparent);
@@ -325,7 +326,7 @@
 	.empty {
 		text-align: center;
 		padding: 24px 0;
-		font-size: 11px;
+		font-size: 12.5px;
 		color: var(--outline-hud);
 		opacity: 0.6;
 	}
@@ -355,8 +356,8 @@
 		align-items: center;
 		justify-content: center;
 		background: var(--surface-low);
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 9px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		letter-spacing: 0.16em;
 		color: var(--outline-hud);
 		font-weight: 700;
@@ -373,7 +374,7 @@
 		gap: 6px;
 	}
 	.log-label {
-		font-family: 'Manrope', system-ui, sans-serif;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
 		font-size: 12px;
 		color: var(--on-surface);
 		overflow: hidden;
@@ -381,7 +382,7 @@
 		white-space: nowrap;
 	}
 	.log-when {
-		font-size: 9px;
+		font-size: 12px;
 		color: var(--outline-hud);
 		opacity: 0.7;
 	}
@@ -392,11 +393,10 @@
 	}
 	.log-silver {
 		font-size: 13px;
-		color: var(--tertiary);
-		text-shadow: 0 0 6px color-mix(in oklab, var(--tertiary) 40%, transparent);
+		color: var(--on-surface);
 	}
 	.log-rate, .log-dur {
-		font-size: 9px;
+		font-size: 12px;
 		color: var(--outline-hud);
 	}
 	.log-dots {
@@ -411,8 +411,8 @@
 		border-radius: 50% !important;
 	}
 	.dots-meta {
-		font-family: 'Space Grotesk', monospace;
-		font-size: 9px;
+		font-family: 'IBM Plex Mono', ui-monospace, monospace;
+		font-size: 12px;
 		color: var(--outline-hud);
 		margin-left: 4px;
 	}
@@ -428,26 +428,14 @@
 		align-items: center;
 		gap: 8px;
 	}
-	.back-btn {
-		padding: 4px 10px;
-		background: var(--surface-lowest);
-		color: var(--outline-hud);
-		border: 0;
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 9px;
-		letter-spacing: 0.16em;
-		font-weight: 700;
-		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--outline-variant) 30%, transparent);
-		cursor: pointer;
-	}
 	.detail-title {
-		font-family: 'Space Grotesk', system-ui, sans-serif;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
 		font-size: 12px;
 		color: var(--on-surface);
 		font-weight: 600;
 	}
 	.detail-when {
-		font-size: 9px;
+		font-size: 12px;
 		color: var(--outline-hud);
 		opacity: 0.7;
 	}
@@ -475,14 +463,14 @@
 		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--outline-variant) 25%, transparent);
 	}
 	.legacy-label {
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 10px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		letter-spacing: 0.2em;
-		color: var(--tertiary);
+		color: var(--on-surface);
 		font-weight: 700;
 	}
 	.legacy-note {
-		font-size: 10px;
+		font-size: 12px;
 		color: var(--outline-hud);
 	}
 
@@ -500,14 +488,14 @@
 		margin-bottom: 4px;
 	}
 	.ledger-title {
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 9px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		letter-spacing: 0.18em;
 		color: var(--outline-hud);
 		font-weight: 600;
 	}
 	.ledger-meta {
-		font-size: 9px;
+		font-size: 12px;
 		color: var(--outline-hud);
 	}
 	.ledger-rows {
@@ -533,8 +521,8 @@
 		background: var(--row-color);
 	}
 	.row-node {
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 10px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		color: var(--row-color);
 		letter-spacing: 0.04em;
 		overflow: hidden;
@@ -542,21 +530,21 @@
 		white-space: nowrap;
 	}
 	.row-name {
-		font-size: 11px;
+		font-size: 12.5px;
 		color: var(--on-surface);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 	.row-qty {
-		font-size: 11px;
+		font-size: 12.5px;
 		color: var(--row-color);
 		min-width: 28px;
 		text-align: right;
 	}
 	.row-silver {
-		font-size: 11px;
-		color: var(--tertiary);
+		font-size: 12.5px;
+		color: var(--on-surface);
 		min-width: 56px;
 		text-align: right;
 	}

@@ -26,6 +26,7 @@
 		logHuntingSearchStore,
 	} from "$lib/stores";
 	import { formatDate, formatDuration, formatYieldRate } from "$lib/utils/format";
+	import { Button } from "$lib/components/ui";
 	import { m } from "$lib/paraglide/messages";
 
 	// Load crafting log on mount
@@ -146,7 +147,7 @@
 		>
 			{m.log_subtab_crafting()}
 			{#if $craftingLogStore.length > 0}
-				<span class="ml-1 text-[9px] text-muted-foreground">({$craftingLogStore.length})</span>
+				<span class="ml-1 text-[12px] text-muted-foreground">({$craftingLogStore.length})</span>
 			{/if}
 			{#if $logSubTabStore === "crafting"}
 				<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
@@ -154,26 +155,26 @@
 		</button>
 		<button
 			onclick={() => logSubTabStore.set("grinding")}
-			class="px-3 py-1.5 text-xs font-bold transition-colors relative {$logSubTabStore === 'grinding' ? 'text-accent' : 'text-muted-foreground hover:text-foreground'}"
+			class="px-3 py-1.5 text-xs font-bold transition-colors relative {$logSubTabStore === 'grinding' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}"
 		>
 			{m.log_subtab_grinding()}
 			{#if $grindingLogStore.length > 0}
-				<span class="ml-1 text-[9px] text-muted-foreground">({$grindingLogStore.length})</span>
+				<span class="ml-1 text-[12px] text-muted-foreground">({$grindingLogStore.length})</span>
 			{/if}
 			{#if $logSubTabStore === "grinding"}
-				<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"></div>
+				<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
 			{/if}
 		</button>
 		<button
 			onclick={() => logSubTabStore.set("hunting")}
-			class="px-3 py-1.5 text-xs font-bold transition-colors relative {$logSubTabStore === 'hunting' ? 'text-accent' : 'text-muted-foreground hover:text-foreground'}"
+			class="px-3 py-1.5 text-xs font-bold transition-colors relative {$logSubTabStore === 'hunting' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}"
 		>
 			{m.log_subtab_hunting()}
 			{#if $huntingLogStore.length > 0}
-				<span class="ml-1 text-[9px] text-muted-foreground">({$huntingLogStore.length})</span>
+				<span class="ml-1 text-[12px] text-muted-foreground">({$huntingLogStore.length})</span>
 			{/if}
 			{#if $logSubTabStore === "hunting"}
-				<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"></div>
+				<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
 			{/if}
 		</button>
 	</div>
@@ -181,35 +182,31 @@
 	{#if $logSubTabStore === "crafting"}
 		<!-- ===== CRAFTING LOG ===== -->
 		<div class="flex items-center justify-between">
-			<h2 class="text-base font-bold neon-text-cyan">{m.log_subtab_crafting()}</h2>
-			<button
-				onclick={handleClearAll}
-				disabled={$craftingLogStore.length === 0}
-				class="px-2 py-1 text-[11px] bg-destructive text-destructive-foreground rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-			>
+			<h2 class="text-base font-bold text-foreground">{m.log_subtab_crafting()}</h2>
+			<Button variant="danger" size="sm" onclick={handleClearAll} disabled={$craftingLogStore.length === 0}>
 				{m.log_clear_all_btn()}
-			</button>
+			</Button>
 		</div>
 
 		<!-- Stats Cards -->
 		<div class="grid grid-cols-4 gap-2">
-			<div class="glass-stats p-2 text-center">
-				<p class="text-xl font-bold neon-text-cyan">{stats().totalSessions}</p>
-				<p class="text-[10px] text-muted-foreground">{m.log_stat_sessions()}</p>
+			<div class="paper-stats p-2 text-center">
+				<p class="text-xl font-bold font-mono text-foreground">{stats().totalSessions}</p>
+				<p class="text-[12px] text-muted-foreground">{m.log_stat_sessions()}</p>
 			</div>
-			<div class="glass-stats p-2 text-center">
-				<p class="text-xl font-bold neon-text-purple">{stats().totalCrafted}</p>
-				<p class="text-[10px] text-muted-foreground">{m.log_stat_crafted()}</p>
+			<div class="paper-stats p-2 text-center">
+				<p class="text-xl font-bold font-mono text-foreground">{stats().totalCrafted}</p>
+				<p class="text-[12px] text-muted-foreground">{m.log_stat_crafted()}</p>
 			</div>
-			<div class="glass-stats p-2 text-center">
-				<p class="text-xl font-bold neon-text-green">{stats().totalYielded}</p>
-				<p class="text-[10px] text-muted-foreground">{m.log_stat_yielded()}</p>
+			<div class="paper-stats p-2 text-center">
+				<p class="text-xl font-bold font-mono text-foreground">{stats().totalYielded}</p>
+				<p class="text-[12px] text-muted-foreground">{m.log_stat_yielded()}</p>
 			</div>
-			<div class="glass-stats p-2 text-center">
-				<p class="text-xl font-bold text-accent">
+			<div class="paper-stats p-2 text-center">
+				<p class="text-xl font-bold font-mono text-foreground">
 					{stats().avgYieldRate.toFixed(1)}x
 				</p>
-				<p class="text-[10px] text-muted-foreground">{m.log_stat_avg_yield()}</p>
+				<p class="text-[12px] text-muted-foreground">{m.log_stat_avg_yield()}</p>
 			</div>
 		</div>
 
@@ -219,11 +216,11 @@
 				type="text"
 				bind:value={$logCraftingSearchStore}
 				placeholder={m.log_search_recipe_placeholder()}
-				class="flex-1 glass-input text-foreground rounded px-2 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
+				class="flex-1 paper-input text-foreground rounded px-2 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-primary"
 			/>
 			<select
 				bind:value={$logCraftingCategoryStore}
-				class="bg-input text-foreground border border-border rounded px-2 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
+				class="bg-input text-foreground border border-border rounded px-2 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-primary"
 			>
 				<option value="all">{m.log_filter_all_categories()}</option>
 				<option value="cooking">{m.log_filter_cooking()}</option>
@@ -235,7 +232,7 @@
 		<!-- Sessions List -->
 		<div class="space-y-2 max-h-[350px] overflow-auto">
 			{#if filteredSessions().length === 0}
-				<div class="text-center py-6 text-muted-foreground text-[11px]">
+				<div class="text-center py-6 text-muted-foreground text-[12.5px]">
 					{#if $craftingLogStore.length === 0}
 						<p class="text-2xl mb-1">📜</p>
 						<p>{m.log_empty_no_crafting()}</p>
@@ -247,12 +244,12 @@
 				</div>
 			{:else}
 				{#each filteredSessions() as session (session.id)}
-					<div class="glass-card rounded-lg p-2 hover:border-primary transition-colors">
+					<div class="paper-card rounded-lg p-2 hover:border-primary transition-colors">
 						<div class="flex items-start justify-between gap-2">
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 mb-1">
 									<span
-										class="px-1.5 py-0.5 text-[9px] font-bold text-white rounded {getCategoryColor(
+										class="px-1.5 py-0.5 text-[12px] font-bold text-white rounded {getCategoryColor(
 											session.category
 										)}"
 									>
@@ -260,19 +257,19 @@
 									</span>
 									<span class="font-medium text-[13px] truncate">{session.recipeName}</span>
 								</div>
-								<div class="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+								<div class="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
 									<span>{m.log_field_mastery()} <span class="text-foreground">{session.mastery}</span></span>
 									<span>{m.log_field_crafted()} <span class="text-foreground">{session.crafted}</span></span>
-									<span>{m.log_field_yielded()} <span class="text-accent">{session.yielded}</span></span>
+									<span>{m.log_field_yielded()} <span class="text-foreground font-mono">{session.yielded}</span></span>
 									<span>
-										{m.log_field_rate()} <span class="text-accent">{formatYieldRate(session.crafted, session.yielded)}</span>
+										{m.log_field_rate()} <span class="text-foreground font-mono">{formatYieldRate(session.crafted, session.yielded)}</span>
 									</span>
 								</div>
-								<p class="text-[9px] text-muted-foreground mt-1">{formatDate(session.timestamp)}</p>
+								<p class="text-[12px] text-muted-foreground mt-1">{formatDate(session.timestamp)}</p>
 							</div>
 							<button
 								onclick={() => handleDelete(session.id)}
-								class="w-5 h-5 flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground rounded transition-colors text-[11px]"
+								class="w-5 h-5 flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground rounded transition-colors text-[12.5px]"
 								title={m.log_delete_title()}
 							>
 								✕
@@ -284,36 +281,32 @@
 		</div>
 
 		<!-- Summary -->
-		<div class="text-[11px] text-muted-foreground text-center">
+		<div class="text-[12.5px] text-muted-foreground text-center">
 			{m.log_showing_summary({ shown: filteredSessions().length, total: $craftingLogStore.length })}
 		</div>
 
 	{:else if $logSubTabStore === "grinding"}
 		<!-- ===== GRINDING LOG ===== -->
 		<div class="flex items-center justify-between">
-			<h2 class="text-base font-bold neon-text-cyan">{m.log_subtab_grinding()}</h2>
-			<button
-				onclick={handleClearAllGrinding}
-				disabled={$grindingLogStore.length === 0}
-				class="px-2 py-1 text-[11px] bg-destructive text-destructive-foreground rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-			>
+			<h2 class="text-base font-bold text-foreground">{m.log_subtab_grinding()}</h2>
+			<Button variant="danger" size="sm" onclick={handleClearAllGrinding} disabled={$grindingLogStore.length === 0}>
 				{m.log_clear_all_btn()}
-			</button>
+			</Button>
 		</div>
 
 		<!-- Stats Cards -->
 		<div class="grid grid-cols-3 gap-2">
-			<div class="glass-stats p-2 text-center">
-				<p class="text-xl font-bold neon-text-cyan">{grindingStats().totalSessions}</p>
-				<p class="text-[10px] text-muted-foreground">{m.log_stat_sessions()}</p>
+			<div class="paper-stats p-2 text-center">
+				<p class="text-xl font-bold font-mono text-foreground">{grindingStats().totalSessions}</p>
+				<p class="text-[12px] text-muted-foreground">{m.log_stat_sessions()}</p>
 			</div>
-			<div class="glass-stats p-2 text-center">
-				<p class="text-xl font-bold neon-text-purple">{formatDuration(grindingStats().totalDurationSeconds)}</p>
-				<p class="text-[10px] text-muted-foreground">{m.log_stat_total_time()}</p>
+			<div class="paper-stats p-2 text-center">
+				<p class="text-xl font-bold font-mono text-foreground">{formatDuration(grindingStats().totalDurationSeconds)}</p>
+				<p class="text-[12px] text-muted-foreground">{m.log_stat_total_time()}</p>
 			</div>
-			<div class="glass-stats p-2 text-center">
-				<p class="text-xl font-bold text-accent">{grindingStats().totalItemsLogged}</p>
-				<p class="text-[10px] text-muted-foreground">{m.log_stat_items_logged()}</p>
+			<div class="paper-stats p-2 text-center">
+				<p class="text-xl font-bold font-mono text-foreground">{grindingStats().totalItemsLogged}</p>
+				<p class="text-[12px] text-muted-foreground">{m.log_stat_items_logged()}</p>
 			</div>
 		</div>
 
@@ -322,13 +315,13 @@
 			type="text"
 			bind:value={$logGrindingSearchStore}
 			placeholder={m.log_search_spot_placeholder()}
-			class="w-full glass-input text-foreground rounded px-2 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary"
+			class="w-full paper-input text-foreground rounded px-2 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-primary"
 		/>
 
 		<!-- Grinding Sessions List -->
 		<div class="space-y-2 max-h-[350px] overflow-auto">
 			{#if filteredGrindingSessions().length === 0}
-				<div class="text-center py-6 text-muted-foreground text-[11px]">
+				<div class="text-center py-6 text-muted-foreground text-[12.5px]">
 					{#if $grindingLogStore.length === 0}
 						<p class="text-2xl mb-1">⚔️</p>
 						<p>{m.log_empty_no_grinding()}</p>
@@ -340,18 +333,18 @@
 				</div>
 			{:else}
 				{#each filteredGrindingSessions() as session (session.id)}
-					<div class="glass-card rounded-lg p-2 hover:border-accent transition-colors">
+					<div class="paper-card rounded-lg p-2 hover:border-outline-hud transition-colors">
 						<div class="flex items-start justify-between gap-2">
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 mb-1">
-									<span class="px-1.5 py-0.5 text-[9px] font-bold text-white rounded bg-accent/80">
+									<span class="px-1.5 py-0.5 text-[12px] font-bold text-white rounded bg-accent/80">
 										{m.log_badge_grinding()}
 									</span>
 									<span class="font-medium text-[13px] truncate">{session.spotName}</span>
 								</div>
-								<div class="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+								<div class="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
 									<span>{m.log_field_duration()} <span class="text-foreground">{formatDuration(session.durationSeconds)}</span></span>
-									<span>{m.log_field_items()} <span class="text-accent">{session.loot.reduce((sum, l) => sum + l.count, 0)}</span></span>
+									<span>{m.log_field_items()} <span class="text-foreground font-mono">{session.loot.reduce((sum, l) => sum + l.count, 0)}</span></span>
 									{#if session.ap != null}
 										<span>{m.log_field_ap()} <span class="text-foreground">{session.ap}</span></span>
 									{/if}
@@ -362,17 +355,17 @@
 								{#if session.loot.length > 0}
 									<div class="flex flex-wrap gap-1 mt-1.5">
 										{#each session.loot as lootEntry (lootEntry.itemId)}
-											<span class="px-1.5 py-0.5 text-[9px] bg-secondary rounded text-foreground/70">
-												{lootEntry.itemName}: <span class="text-accent font-medium">{lootEntry.count}</span>
+											<span class="px-1.5 py-0.5 text-[12px] bg-secondary rounded text-foreground/70">
+												{lootEntry.itemName}: <span class="text-foreground font-mono font-medium">{lootEntry.count}</span>
 											</span>
 										{/each}
 									</div>
 								{/if}
-								<p class="text-[9px] text-muted-foreground mt-1">{formatDate(session.timestamp)}</p>
+								<p class="text-[12px] text-muted-foreground mt-1">{formatDate(session.timestamp)}</p>
 							</div>
 							<button
 								onclick={() => handleDeleteGrinding(session.id)}
-								class="w-5 h-5 flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground rounded transition-colors text-[11px]"
+								class="w-5 h-5 flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground rounded transition-colors text-[12.5px]"
 								title={m.log_delete_title()}
 							>
 								✕
@@ -384,36 +377,32 @@
 		</div>
 
 		<!-- Summary -->
-		<div class="text-[11px] text-muted-foreground text-center">
+		<div class="text-[12.5px] text-muted-foreground text-center">
 			{m.log_showing_summary({ shown: filteredGrindingSessions().length, total: $grindingLogStore.length })}
 		</div>
 
 	{:else}
 		<!-- ===== HUNTING LOG ===== -->
 		<div class="flex items-center justify-between">
-			<h2 class="text-base font-bold neon-text-green">{m.log_subtab_hunting()}</h2>
-			<button
-				onclick={handleClearAllHunting}
-				disabled={$huntingLogStore.length === 0}
-				class="px-2 py-1 text-[11px] bg-destructive text-destructive-foreground rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-			>
+			<h2 class="text-base font-bold text-foreground">{m.log_subtab_hunting()}</h2>
+			<Button variant="danger" size="sm" onclick={handleClearAllHunting} disabled={$huntingLogStore.length === 0}>
 				{m.log_clear_all_btn()}
-			</button>
+			</Button>
 		</div>
 
 		<!-- Stats Cards -->
 		<div class="grid grid-cols-3 gap-2">
-			<div class="glass-stats p-2 text-center">
-				<p class="text-xl font-bold neon-text-cyan">{huntingStats().totalSessions}</p>
-				<p class="text-[10px] text-muted-foreground">{m.log_stat_sessions()}</p>
+			<div class="paper-stats p-2 text-center">
+				<p class="text-xl font-bold font-mono text-foreground">{huntingStats().totalSessions}</p>
+				<p class="text-[12px] text-muted-foreground">{m.log_stat_sessions()}</p>
 			</div>
-			<div class="glass-stats p-2 text-center">
-				<p class="text-xl font-bold neon-text-purple">{formatDuration(huntingStats().totalDurationSeconds)}</p>
-				<p class="text-[10px] text-muted-foreground">{m.log_stat_total_time()}</p>
+			<div class="paper-stats p-2 text-center">
+				<p class="text-xl font-bold font-mono text-foreground">{formatDuration(huntingStats().totalDurationSeconds)}</p>
+				<p class="text-[12px] text-muted-foreground">{m.log_stat_total_time()}</p>
 			</div>
-			<div class="glass-stats p-2 text-center">
-				<p class="text-xl font-bold text-accent">{huntingStats().totalItemsLogged}</p>
-				<p class="text-[10px] text-muted-foreground">{m.log_stat_items_logged()}</p>
+			<div class="paper-stats p-2 text-center">
+				<p class="text-xl font-bold font-mono text-foreground">{huntingStats().totalItemsLogged}</p>
+				<p class="text-[12px] text-muted-foreground">{m.log_stat_items_logged()}</p>
 			</div>
 		</div>
 
@@ -422,13 +411,13 @@
 			type="text"
 			bind:value={$logHuntingSearchStore}
 			placeholder={m.log_search_spot_placeholder()}
-			class="w-full glass-input text-foreground rounded px-2 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-accent"
+			class="w-full paper-input text-foreground rounded px-2 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-primary"
 		/>
 
 		<!-- Hunting Sessions List -->
 		<div class="space-y-2 max-h-[350px] overflow-auto">
 			{#if filteredHuntingSessions().length === 0}
-				<div class="text-center py-6 text-muted-foreground text-[11px]">
+				<div class="text-center py-6 text-muted-foreground text-[12.5px]">
 					{#if $huntingLogStore.length === 0}
 						<p class="text-2xl mb-1">🏹</p>
 						<p>{m.log_empty_no_hunting()}</p>
@@ -440,18 +429,18 @@
 				</div>
 			{:else}
 				{#each filteredHuntingSessions() as session (session.id)}
-					<div class="glass-card rounded-lg p-2 hover:border-accent transition-colors">
+					<div class="paper-card rounded-lg p-2 hover:border-outline-hud transition-colors">
 						<div class="flex items-start justify-between gap-2">
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 mb-1">
-									<span class="px-1.5 py-0.5 text-[9px] font-bold text-white rounded bg-green-600/80">
+									<span class="px-1.5 py-0.5 text-[12px] font-bold text-white rounded bg-green-600/80">
 										{m.log_badge_hunting()}
 									</span>
 									<span class="font-medium text-[13px] truncate">{session.spotName}</span>
 								</div>
-								<div class="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+								<div class="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
 									<span>{m.log_field_duration()} <span class="text-foreground">{formatDuration(session.durationSeconds)}</span></span>
-									<span>{m.log_field_items()} <span class="text-accent">{session.loot.reduce((sum, l) => sum + l.count, 0)}</span></span>
+									<span>{m.log_field_items()} <span class="text-foreground font-mono">{session.loot.reduce((sum, l) => sum + l.count, 0)}</span></span>
 									{#if session.mastery != null}
 										<span>{m.log_field_mastery()} <span class="text-foreground">{session.mastery}</span></span>
 									{/if}
@@ -465,17 +454,17 @@
 								{#if session.loot.length > 0}
 									<div class="flex flex-wrap gap-1 mt-1.5">
 										{#each session.loot as lootEntry (lootEntry.itemId)}
-											<span class="px-1.5 py-0.5 text-[9px] bg-secondary rounded text-foreground/70">
-												{lootEntry.itemName}: <span class="text-accent font-medium">{lootEntry.count}</span>
+											<span class="px-1.5 py-0.5 text-[12px] bg-secondary rounded text-foreground/70">
+												{lootEntry.itemName}: <span class="text-foreground font-mono font-medium">{lootEntry.count}</span>
 											</span>
 										{/each}
 									</div>
 								{/if}
-								<p class="text-[9px] text-muted-foreground mt-1">{formatDate(session.timestamp)}</p>
+								<p class="text-[12px] text-muted-foreground mt-1">{formatDate(session.timestamp)}</p>
 							</div>
 							<button
 								onclick={() => handleDeleteHunting(session.id)}
-								class="w-5 h-5 flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground rounded transition-colors text-[11px]"
+								class="w-5 h-5 flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground rounded transition-colors text-[12.5px]"
 								title={m.log_delete_title()}
 							>
 								✕
@@ -487,7 +476,7 @@
 		</div>
 
 		<!-- Summary -->
-		<div class="text-[11px] text-muted-foreground text-center">
+		<div class="text-[12.5px] text-muted-foreground text-center">
 			{m.log_showing_summary({ shown: filteredHuntingSessions().length, total: $huntingLogStore.length })}
 		</div>
 	{/if}

@@ -55,7 +55,7 @@
 		border: none;
 		padding: 0;
 		cursor: pointer;
-		font-family: 'Space Grotesk', system-ui, sans-serif;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
 	}
 	.dot {
 		width: var(--node-size);
@@ -105,10 +105,16 @@
 	.island-node.custom .dot {
 		border-style: dashed;
 	}
+	/* Ink on the dot's own gradient, which runs from a whitened tier colour to
+	   the tier colour itself. Was `var(--bg, #0a0a0a)` — `--bg` is defined
+	   nowhere in the app, so the declaration always resolved to its fallback
+	   and only looked theme-aware. The size stays at 7px on purpose: the dot is
+	   8–16px (it grows with the count), so larger digits would spill out of the
+	   marker, and the map canvas zooms. */
 	.count {
 		font-size: 7px;
 		font-weight: 700;
-		color: var(--bg, #0a0a0a);
+		color: var(--ink);
 		font-variant-numeric: tabular-nums;
 		line-height: 1;
 	}
@@ -120,7 +126,7 @@
 		left: 50%;
 		transform: translateX(-50%);
 		margin-top: 3px;
-		font-size: 9px;
+		font-size: 12px;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		color: var(--outline-hud);

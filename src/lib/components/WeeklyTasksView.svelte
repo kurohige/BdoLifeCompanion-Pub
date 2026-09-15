@@ -12,6 +12,7 @@
 	import type { WeeklyTaskDefinition, WeeklyTaskProgress } from "$lib/models/weekly-tasks";
 	import { getNextWeeklyReset } from "$lib/utils/reset";
 	import { m } from "$lib/paraglide/messages";
+	import { Button } from "$lib/components/ui";
 
 	function localizeCategory(cat: string): string {
 		return cat === "boss" ? m.weekly_type_boss() : m.weekly_type_normal();
@@ -80,10 +81,10 @@
 <div class="space-y-3">
 	<!-- Header -->
 	<div class="flex items-center justify-between px-1">
-		<h2 class="text-xs font-headline font-bold text-primary uppercase tracking-wider">{m.weekly_title()}</h2>
-		<div class="flex items-center gap-2 text-[10px] text-muted-foreground">
+		<h2 class="text-xs font-headline font-bold text-foreground uppercase tracking-wider">{m.weekly_title()}</h2>
+		<div class="flex items-center gap-2 text-[12px] text-muted-foreground">
 			<span>{m.weekly_reset_label()}</span>
-			<span class="font-mono text-accent">{formatCountdown(weeklyResetMs)}</span>
+			<span class="font-mono text-foreground">{formatCountdown(weeklyResetMs)}</span>
 		</div>
 	</div>
 
@@ -92,23 +93,23 @@
 		{#each $weeklyTasksDataStore.tasks as task (task.id)}
 			{@const progress = getProgress(task.id)}
 			{@const pct = task.stages.length > 0 ? Math.round((progress.highestStageCleared / task.stages.length) * 100) : 0}
-			<div class="glass-card rounded-lg p-3 space-y-2.5">
+			<div class="paper-card rounded-lg p-3 space-y-2.5">
 				<!-- Card Header -->
 				<div class="flex items-center gap-2">
 					<span class="text-lg">{task.icon}</span>
 					<div class="flex-1">
 						<h3 class="text-[13px] font-headline font-bold text-foreground">{task.name}</h3>
-						<p class="text-[10px] text-muted-foreground">{task.description}</p>
+						<p class="text-[12px] text-muted-foreground">{task.description}</p>
 					</div>
 					<div class="flex items-center gap-2">
-						<span class="text-[11px] font-mono font-bold {progress.highestStageCleared > 0 ? 'text-accent' : 'text-muted-foreground'}">
+						<span class="text-[12.5px] font-mono font-bold {progress.highestStageCleared > 0 ? 'text-foreground' : 'text-muted-foreground'}">
 							{progress.highestStageCleared}/{task.stages.length}
 						</span>
 						<button
 							onclick={() => toggleCompletedThisWeek(task.id)}
 							class="w-6 h-6 flex items-center justify-center rounded border text-[12px] transition-colors
 								{progress.completedThisWeek
-									? 'bg-accent/20 border-accent/50 text-accent'
+									? 'bg-primary/20 border-primary/50 text-primary'
 									: 'border-outline-variant/30 text-muted-foreground/40 hover:border-outline-variant/60'}"
 							title={progress.completedThisWeek ? m.weekly_mark_incomplete() : m.weekly_mark_done()}
 						>
@@ -124,7 +125,7 @@
 							{@const cleared = s.stage <= progress.highestStageCleared}
 							{@const isBoss = s.category === "boss"}
 							{@const segClass = cleared
-								? (isBoss ? "bg-yellow-500" : "bg-accent")
+								? (isBoss ? "bg-yellow-500" : "bg-primary")
 								: (isBoss ? "bg-yellow-500/15" : "bg-white/5")}
 							<div
 								class="flex-1 transition-colors relative group {segClass}"
@@ -137,20 +138,20 @@
 							</div>
 						{/each}
 					</div>
-					<div class="flex items-center justify-between text-[9px] text-muted-foreground">
+					<div class="flex items-center justify-between text-[12px] text-muted-foreground">
 						<span>{m.weekly_stage_label({ n: 1 })}</span>
-						<span class="font-mono text-accent">{pct}%</span>
+						<span class="font-mono text-foreground">{pct}%</span>
 						<span>{m.weekly_stage_label({ n: task.stages.length })}</span>
 					</div>
 				</div>
 
 				<!-- Stage Selector -->
 				<div class="flex items-center gap-2">
-					<span class="text-[10px] text-muted-foreground w-20 shrink-0">{m.weekly_highest_cleared()}</span>
+					<span class="text-[12px] text-muted-foreground w-20 shrink-0">{m.weekly_highest_cleared()}</span>
 					<button
 						onclick={() => decrementStage(task)}
 						disabled={progress.highestStageCleared <= 0}
-						class="w-6 h-6 flex items-center justify-center text-[12px] glass-input rounded disabled:opacity-30 hover:bg-white/5"
+						class="w-6 h-6 flex items-center justify-center text-[12px] paper-input rounded disabled:opacity-30 hover:bg-white/5"
 					>-</button>
 					<input
 						type="number"
@@ -158,32 +159,33 @@
 						onchange={(e) => handleStageChange(task.id, (e.target as HTMLInputElement).value)}
 						min="0"
 						max={task.stages.length}
-						class="glass-input text-[11px] px-2 py-1 w-14 text-center font-mono no-spinner"
+						class="paper-input text-[12.5px] px-2 py-1 w-14 text-center font-mono no-spinner"
 					/>
 					<button
 						onclick={() => incrementStage(task)}
 						disabled={progress.highestStageCleared >= task.stages.length}
-						class="w-6 h-6 flex items-center justify-center text-[12px] glass-input rounded disabled:opacity-30 hover:bg-white/5"
+						class="w-6 h-6 flex items-center justify-center text-[12px] paper-input rounded disabled:opacity-30 hover:bg-white/5"
 					>+</button>
-					<button
+					<Button
+						variant="secondary"
+						size="sm"
 						onclick={() => setHighestStage(task.id, task.stages.length)}
 						disabled={progress.highestStageCleared >= task.stages.length}
-						class="px-2 py-0.5 text-[9px] font-mono glass-input rounded hover:bg-white/5 disabled:opacity-30"
-					>{m.weekly_btn_max()}</button>
+					>{m.weekly_btn_max()}</Button>
 				</div>
 
 				<!-- AP/DP Reference (collapsible) -->
 				<div>
 					<button
 						onclick={() => toggleApDp(task.id)}
-						class="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+						class="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
 					>
-						<span class="text-[8px]">{showApDp[task.id] ? "▼" : "▶"}</span>
+						<span class="text-[10.5px]">{showApDp[task.id] ? "▼" : "▶"}</span>
 						<span class="font-headline font-bold uppercase tracking-wider">{m.weekly_apdp_header()}</span>
 					</button>
 					{#if showApDp[task.id]}
 						<div class="mt-1.5 overflow-hidden rounded border border-outline-variant/20">
-							<table class="w-full text-[10px]">
+							<table class="w-full text-[12px]">
 								<thead>
 									<tr class="bg-white/5">
 										<th class="px-2 py-1 text-left text-muted-foreground font-medium">{m.weekly_table_stage()}</th>
@@ -216,11 +218,11 @@
 				<div>
 					<button
 						onclick={() => toggleFirstClearSection(task.id)}
-						class="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+						class="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
 					>
-						<span class="text-[8px]">{showFirstClear[task.id] ? "▼" : "▶"}</span>
+						<span class="text-[10.5px]">{showFirstClear[task.id] ? "▼" : "▶"}</span>
 						<span class="font-headline font-bold uppercase tracking-wider">{m.weekly_first_clear_header()}</span>
-						<span class="text-[9px] font-mono text-accent ml-1">
+						<span class="text-[12px] font-mono text-foreground ml-1">
 							{progress.firstClearStages.length}/{task.stages.length}
 						</span>
 					</button>
@@ -230,9 +232,9 @@
 								{@const claimed = progress.firstClearStages.includes(s.stage)}
 								<button
 									onclick={() => toggleFirstClear(task.id, s.stage)}
-									class="h-7 flex items-center justify-center rounded text-[10px] font-mono transition-colors border
+									class="h-7 flex items-center justify-center rounded text-[12px] font-mono transition-colors border
 										{claimed
-											? 'bg-accent/20 border-accent/50 text-accent'
+											? 'bg-primary/20 border-primary/50 text-primary'
 											: s.category === 'boss'
 												? 'border-yellow-500/30 text-yellow-400/60 hover:border-yellow-500/60'
 												: 'border-outline-variant/20 text-muted-foreground/50 hover:border-outline-variant/40'}"
@@ -249,7 +251,7 @@
 	{:else}
 		<div class="text-center py-8">
 			<p class="text-[32px] mb-1 opacity-30">📋</p>
-			<p class="text-[11px] text-muted-foreground">{m.weekly_loading()}</p>
+			<p class="text-[12.5px] text-muted-foreground">{m.weekly_loading()}</p>
 		</div>
 	{/if}
 </div>

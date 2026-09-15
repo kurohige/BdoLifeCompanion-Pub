@@ -6,22 +6,22 @@
 	import TitleBar from "$lib/components/TitleBar.svelte";
 	import MiniMode from "$lib/components/MiniMode.svelte";
 	import MediumMode from "$lib/components/MediumMode.svelte";
-	import CraftingView from "$lib/components/CraftingView.svelte";
-	import CraftingPlanner from "$lib/components/CraftingPlanner.svelte";
+	import CraftingScreen from "$lib/components/CraftingScreen.svelte";
 	import InventoryView from "$lib/components/InventoryView.svelte";
 	import GrindingTracker from "$lib/components/GrindingTracker.svelte";
 	import TreasureTracker from "$lib/components/TreasureTracker.svelte";
 	import HuntingTracker from "$lib/components/HuntingTracker.svelte";
+	import LootView from "$lib/components/LootView.svelte";
 	import BarteringView from "$lib/components/BarteringView.svelte";
 	import WeeklyTasksView from "$lib/components/WeeklyTasksView.svelte";
 	import AboutView from "$lib/components/AboutView.svelte";
 	import CraftingLogView from "$lib/components/CraftingLogView.svelte";
 	import DashboardView from "$lib/components/DashboardView.svelte";
 	import SettingsView from "$lib/components/SettingsView.svelte";
-	import AnnouncementCarousel from "$lib/components/AnnouncementCarousel.svelte";
-	import BossBar from "$lib/components/BossBar.svelte";
-	import NotesPanel from "$lib/components/NotesPanel.svelte";
+	import StatusStrip from "$lib/components/StatusStrip.svelte";
+	import Scratchpad from "$lib/components/Scratchpad.svelte";
 	import ToastContainer from "$lib/components/ToastContainer.svelte";
+	import SubTabs from "$lib/components/ui/SubTabs.svelte";
 	// Tabs import removed — using side nav with direct state switching
 	import { onMount, onDestroy } from "svelte";
 	import { recipeRepository } from "$lib/services";
@@ -32,7 +32,6 @@
 		selectedRecipesByCategoryStore,
 		searchTextStore,
 		searchTextByCategoryStore,
-		setActiveCategory,
 		showOnlyFavoritesStore,
 		initInventory,
 		initSettings,
@@ -58,6 +57,7 @@
 		loadWeeklyTasksData,
 		loadWeeklyTasksProgress,
 		loadNotesData,
+		initNotesSync,
 		flushNotes,
 		initAppVersion,
 		appVersionStore,
@@ -72,19 +72,21 @@
 		saveWindowState,
 		flushSettings,
 		setViewMode,
-		initAnnouncements,
-		fetchAnnouncements,
-		stopAnnouncementPolling,
-		notesPanelOpenStore,
 		setReminderFireCallback,
 		startReminderTick,
 		stopReminderTick,
 		showToast,
 		type ActiveTab,
-		type AppTheme,
 		type FontFamily,
 		type FontSize,
 	} from "$lib/stores";
+	import { craftingSubTabStore } from "$lib/stores/ui-state";
+	import { loadCraftQueue } from "$lib/stores/craft-queue";
+	import { initLoot, type LootInitHandle } from "$lib/services/loot-init";
+	import { openScratchpadWindow, teardownScratchpadWindowForExit } from "$lib/services/scratchpad-window";
+	import { openNoteEditor, teardownNoteEditorForExit } from "$lib/services/note-window";
+	import { positionIsOnScreen } from "$lib/services/window-bounds";
+	import { cleanupCaptureSession } from "$lib/stores/loot-session";
 	import { playBossAlert } from "$lib/utils/audio";
 	import { m } from "$lib/paraglide/messages";
 
@@ -93,14 +95,12 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
-	// Crafting sub-tab state (allows programmatic switching for jump-to-craft)
-	let craftingSubTab = $state("cooking");
 	// Grinding sub-tab state
-	let grindingSubTab = $state<"tracker" | "treasures" | "hunting">("tracker");
+	let grindingSubTab = $state<"tracker" | "treasures" | "hunting" | "ocr">("tracker");
 	// Active main tab (side nav)
 	let activeTab = $state("crafting");
-	let jumpingToCraft = false;
 	let unlistenClickThrough: UnlistenFn | null = null;
+	let lootHandle: LootInitHandle | null = null;
 	let unlistenCloseRequested: UnlistenFn | null = null;
 	let unlistenResized: UnlistenFn | null = null;
 	let unlistenMoved: UnlistenFn | null = null;
@@ -121,11 +121,9 @@
 	let lastAlertedSpawnTime: number | null = null;
 	let bossAlertInitialized = false;
 
-	import { applyTheme } from "$lib/utils/theme";
-
-	// Font family CSS stacks
+	// Font family CSS stacks — "system" is the Parchment default (bundled IBM Plex)
 	const FONT_FAMILIES: Record<FontFamily, string> = {
-		system: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+		system: '"IBM Plex Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
 		monospace: '"Consolas", "Courier New", monospace',
 		serif: '"Georgia", "Times New Roman", serif',
 	};
@@ -139,19 +137,28 @@
 		xxl: "1.45",
 	};
 
-	// Apply font settings via CSS variables + native webview zoom.
-	// Bold is applied as a body class so a global CSS rule can override explicit
-	// font-weights throughout the app (Tailwind classes, inline styles, etc.).
-	function applyFontSettings(fontFamily: FontFamily, fontBold: boolean, fontSize: FontSize) {
+	// Apply font family + bold via CSS. Bold is a body class so a global rule can
+	// override explicit font-weights throughout the app (Tailwind classes, inline
+	// styles, etc.).
+	//
+	// Font SIZE is deliberately not applied here. It and UI scale are both webview
+	// zoom, and when this function owned one of them the two fought: this runs from
+	// a synchronous store subscription, the UI-scale $effect runs after it on the
+	// same store write, and the effect's setZoom(ui_scale) silently wiped the font
+	// zoom every time. The font-size buttons had been inert since UI scale shipped.
+	// Both factors are now composed in one place — see the zoom effect below.
+	function applyFontSettings(fontFamily: FontFamily, fontBold: boolean) {
 		document.body.style.setProperty("--app-font-family", FONT_FAMILIES[fontFamily] ?? FONT_FAMILIES.system);
 		document.body.classList.toggle("app-bold", fontBold);
-		const zoom = parseFloat(FONT_ZOOM[fontSize] ?? "1");
-		getCurrentWebview().setZoom(zoom).catch(() => {});
 	}
 
 	// Save current window state to settings
 	async function persistWindowState() {
 		try {
+			// A minimized window reports the Windows "iconic" sentinel position
+			// (-32000,-32000) and a collapsed size; persisting that strands the
+			// window off-screen on the next launch. Keep the last normal state.
+			if (await appWindow.isMinimized()) return;
 			const size = await appWindow.outerSize();
 			const pos = await appWindow.outerPosition();
 			saveWindowState({
@@ -193,19 +200,37 @@
 				loadSailorRoster(),
 				loadWeeklyTasksData(),
 				loadWeeklyTasksProgress(),
-				loadNotesData(),
+				loadNotesData().then(() => initNotesSync()),
+				loadCraftQueue(),
 				initAppVersion(),
+				initLoot().then((h) => {
+					lootHandle = h;
+				}),
 			]);
 
 			catalogsStore.set(catalogs);
 
-			// Apply transparency, theme, font, and always-on-top whenever settings change.
+			// The scratchpad was detached when the app last closed (or the
+			// detached-by-default migration just set it) — respawn its window.
+			// focus:false — a boot spawn must not steal focus from the main window.
+			if ($settingsStore.scratchpad_detached) {
+				void openScratchpadWindow({ focus: false });
+			}
+
+			// The editor was open when the app last closed — reopen it on the
+			// same note. teardownNoteEditorForExit skips the destroy handler
+			// precisely so note_editing_id survives to be read here.
+			const heldNote = $settingsStore.note_editing_id;
+			if (heldNote) {
+				void openNoteEditor(heldNote);
+			}
+
+			// Apply transparency, font, and always-on-top whenever settings change.
 			// All fields are normalized by initSettings before the subscription fires,
 			// so no `??` fallbacks needed here.
 			unsubscribeSettings = settingsStore.subscribe((settings) => {
 				document.documentElement.style.setProperty("--app-opacity", String(settings.transparency));
-				applyTheme(settings.theme, settings.theme_overrides?.[settings.theme]);
-				applyFontSettings(settings.font_family, settings.font_bold, settings.font_size);
+				applyFontSettings(settings.font_family, settings.font_bold);
 				appWindow.setAlwaysOnTop(settings.always_on_top).catch((e) => {
 					console.warn("Failed to set always-on-top:", e);
 				});
@@ -236,14 +261,20 @@
 						await appWindow.setSize(new PhysicalSize(w, h));
 						setViewMode("full");
 					}
-					// Restore position if saved. Guard against off-screen coords
-					// (multi-monitor disconnected) with a per-call try/catch so
-					// even an invalid position doesn't strand the user.
+					// Restore position if saved — but only when the point sits on a
+					// connected monitor. setPosition() accepts off-screen coords
+					// without throwing (disconnected monitor, or the -32000 minimized
+					// sentinel older builds persisted), so validate instead of relying
+					// on the catch.
 					if (savedState.x != null && savedState.y != null) {
+						const sx = savedState.x;
+						const sy = savedState.y;
 						try {
-							await appWindow.setPosition(
-								new PhysicalPosition(savedState.x, savedState.y),
-							);
+							if (await positionIsOnScreen(sx, sy)) {
+								await appWindow.setPosition(new PhysicalPosition(sx, sy));
+							} else {
+								console.warn("Saved window position is off-screen; keeping default:", sx, sy);
+							}
 						} catch (err) {
 							console.warn("Failed to restore window position; ignoring:", err);
 						}
@@ -264,9 +295,6 @@
 				void playBossAlert();
 			});
 			startReminderTick();
-
-			// Initialize announcements (loads cache, then fetches if URL set)
-			initAnnouncements();
 
 			// Listen for click-through toggle event from Rust (Ctrl+Shift+L global shortcut)
 			unlistenClickThrough = await listen("toggle-click-through", async () => {
@@ -297,6 +325,15 @@
 				await persistWindowState();
 				await flushSettings();
 				await flushNotes();
+				if (lootHandle) await lootHandle.flush();
+				// Take the detached scratchpad down with the main window so the
+				// app doesn't linger as an orphaned always-on-top pad. Listener
+				// teardown keeps scratchpad_detached=true → respawns next launch.
+				await teardownScratchpadWindowForExit();
+				// Same treatment for the editor: destroy it without the destroy
+				// handler, so note_editing_id survives and it reopens on the
+				// same note next launch.
+				await teardownNoteEditorForExit();
 			});
 
 			loading = false;
@@ -310,12 +347,13 @@
 		stopBossTimer();
 		stopReminderTick();
 		cleanupGrindingTimer();
-		stopAnnouncementPolling();
+		cleanupCaptureSession();
 		unlistenClickThrough?.();
 		unlistenCloseRequested?.();
 		unlistenResized?.();
 		unlistenMoved?.();
 		unsubscribeSettings?.();
+		void lootHandle?.cleanup();
 		if (windowStateDebounce) clearTimeout(windowStateDebounce);
 	});
 
@@ -352,40 +390,21 @@
 		if (next.remainingMs <= thresholdMs && lastAlertedSpawnTime !== spawnTime) {
 			lastAlertedSpawnTime = spawnTime;
 			void playBossAlert();
-			// Piggyback: also refresh announcements on boss alert
-			fetchAnnouncements();
 		}
 	});
 
-	// Handle crafting sub-tab changes — per-category recipe memory is handled
-	// inside setActiveCategory (saves outgoing, restores incoming).
-	function handleCategoryChange(category: string) {
-		if (category === "cooking" || category === "alchemy" || category === "draughts") {
-			if (jumpingToCraft) {
-				jumpingToCraft = false;
-				activeCategoryStore.set(category);
-			} else {
-				setActiveCategory(category);
-			}
-		}
-		// "planner" tab needs no category store change
-	}
-
-	// Watch for jump-to-craft navigation from CraftingPlanner
+	// Watch for jump-to-craft navigation from CraftingPlanner. Setting the
+	// category store directly (not setActiveCategory) bypasses the per-category
+	// memory restore so the jumped-to recipe wins.
 	$effect(() => {
 		const nav = $navigateToRecipeStore;
 		if (nav) {
-			jumpingToCraft = true;
-			craftingSubTab = nav.category;
+			craftingSubTabStore.set(nav.category);
 			activeCategoryStore.set(nav.category);
 			selectedRecipeStore.set(nav.recipe);
 			searchTextStore.set(nav.recipe.name);
 			showOnlyFavoritesStore.set(false);
 			navigateToRecipeStore.set(null);
-			// Safety: clear flag even if onValueChange doesn't fire
-			requestAnimationFrame(() => {
-				jumpingToCraft = false;
-			});
 		}
 	});
 
@@ -401,11 +420,31 @@
 		const search = $searchTextStore;
 		searchTextByCategoryStore.update((m) => (m[cat] === search ? m : { ...m, [cat]: search }));
 	});
+
+	// Widget modes float a rounded paper shell on the transparent window —
+	// keep the body ground from painting behind its corners.
+	$effect(() => {
+		document.body.classList.toggle("widget-mode", $viewModeStore !== "full");
+	});
+
+	// The ONE webview-zoom writer. Two settings ride on zoom and they compose:
+	//   - UI scale (7.3), full window only — the mini/medium widgets are
+	//     fixed-size shells whose layouts assume 1:1, so scale is pinned to 1.
+	//   - Font size, which applies in every view mode.
+	// Anything else that calls setZoom will fight this effect and lose, because
+	// the effect re-runs on every settings write.
+	$effect(() => {
+		const uiScale = $viewModeStore === "full" ? ($settingsStore.ui_scale ?? 100) / 100 : 1;
+		const fontZoom = parseFloat(FONT_ZOOM[$settingsStore.font_size] ?? "1");
+		getCurrentWebview()
+			.setZoom(uiScale * fontZoom)
+			.catch((e) => console.warn("Failed to set zoom:", e));
+	});
 </script>
 
 {#if $clickThroughStore}
 	<div class="fixed inset-0 z-50 pointer-events-none rounded click-through-border">
-		<div class="absolute top-0 left-1/2 -translate-x-1/2 bg-card/90 text-accent text-[8px] font-bold px-2 py-px rounded-b border border-t-0 border-accent/40">
+		<div class="absolute top-0 left-1/2 -translate-x-1/2 bg-card/90 text-accent text-[10.5px] font-bold px-2 py-px rounded-b border border-t-0 border-accent/40">
 			Ctrl+Shift+L
 		</div>
 	</div>
@@ -430,19 +469,20 @@
 			<TitleBar />
 		</div>
 
-		<!-- Boss Spawn Bar -->
-		{#if !loading}
-			<div class="flex-shrink-0 z-40">
-				<BossBar />
+		<!-- Boss row — full-width status strip above the rail and content
+		     (slot 0; strip_slot preference can dock it below the body or hide it) -->
+		{#if !loading && !error && $settingsStore.strip_slot === "top"}
+			<div class="flex-shrink-0 px-4 pt-3">
+				<StatusStrip craftingActions={activeTab === "crafting"} />
 			</div>
 		{/if}
 
-		<!-- Body: Side Nav + Content -->
-		<div class="flex flex-1 min-h-0 overflow-hidden">
+		<!-- Body: Side Nav + Content (16px page padding, 16px gap — spec 5a) -->
+		<div class="flex flex-1 min-h-0 overflow-hidden p-4 pt-3 gap-4">
 
-			<!-- Side Navigation (w-9) -->
+			<!-- Side Navigation -->
 			{#if !loading && !error}
-				<nav class="w-9 backdrop-blur-md flex flex-col items-center py-3 gap-3 z-30 flex-shrink-0" style="background: rgba(14, 14, 14, 0.3);">
+				<nav class="nav-rail z-30">
 					{#each [
 						{ id: "crafting", label: m.nav_crafting(), img: "/icons/crafting.png" },
 						{ id: "timer", label: m.nav_grinding(), img: "/icons/grinding.png" },
@@ -450,15 +490,16 @@
 						{ id: "inventory", label: m.nav_inventory(), img: "/icons/inventory.png" },
 						{ id: "weekly", label: m.nav_weekly(), img: "/icons/weekly.png" },
 						{ id: "log", label: m.nav_dashboard(), img: "/icons/dashboard.png" },
-						{ id: "settings", label: m.nav_settings(), img: "/icons/settings.png" },
+						{ id: "settings", label: m.nav_settings(), img: "/icons/settings.png", bottom: true },
 						{ id: "about", label: m.nav_about(), img: "/icons/about.png", glow: "neon" },
 					] as tab}
 						<button
 							onclick={() => { activeTab = tab.id; activeTabStore.set(tab.id as ActiveTab); }}
-							class="nav-glow-btn {activeTab === tab.id ? 'nav-glow-active' : ''} {tab.glow === 'neon' && activeTab !== tab.id ? 'nav-neon-pulse' : ''}"
+							class="rail-btn {activeTab === tab.id ? 'rail-active' : ''} {tab.glow === 'neon' && activeTab !== tab.id ? 'rail-pulse' : ''} {tab.bottom ? 'mt-auto' : ''}"
 							title={tab.label}
+							aria-current={activeTab === tab.id ? "page" : undefined}
 						>
-							<img src={tab.img} alt={tab.label} class="nav-glow-icon" />
+							<img src={tab.img} alt={tab.label} class="rail-icon" />
 						</button>
 					{/each}
 				</nav>
@@ -466,102 +507,50 @@
 
 			<!-- Main Content Area -->
 			<main class="flex-1 flex flex-col overflow-hidden min-w-0">
-				<!-- Announcement ticker (compact marquee) + Note trigger -->
-				{#if !loading}
-					<div class="flex-shrink-0 px-2 pt-1 flex items-center gap-2">
-						<div class="flex-1 min-w-0">
-							<AnnouncementCarousel compact />
-						</div>
-						<button
-							type="button"
-							class="note-trigger"
-							onclick={() => notesPanelOpenStore.set(!$notesPanelOpenStore)}
-							title={m.notes_button_title()}
-						>
-							<svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-								<path d="M2.5 2h6.5l3 3v7H2.5z" stroke="currentColor" stroke-width="1.2" />
-								<path d="M9 2v3h3" stroke="currentColor" stroke-width="1.2" />
-							</svg>
-							<span>{m.notes_button_label()}</span>
-						</button>
-					</div>
-				{/if}
-
-				<!-- Scrollable content -->
-				<div class="flex-1 overflow-auto p-2 flex flex-col min-h-0">
+				<!-- Scrollable content — top row is the status strip (boss row), per spec 5a -->
+				<div class="flex-1 overflow-auto flex flex-col min-h-0">
 					{#if loading}
 						<div class="text-center py-8">
-							<p class="obsidian-timer text-sm">{m.chrome_loading()}</p>
-							<p class="text-[#b0a4b4] text-xs mt-1">{m.chrome_loading_subtitle()}</p>
+							<p class="timer-accent text-sm">{m.chrome_loading()}</p>
+							<p class="text-[var(--ink-faint)] text-xs mt-1">{m.chrome_loading_subtitle()}</p>
 						</div>
 					{:else if error}
 						<div class="text-center py-8">
 							<p class="text-destructive text-sm">{m.chrome_error()}</p>
-							<p class="text-[#b0a4b4] text-xs mt-1">{error}</p>
+							<p class="text-[var(--ink-faint)] text-xs mt-1">{error}</p>
 						</div>
 					{:else}
 						<!-- Crafting -->
 						{#if activeTab === "crafting"}
-							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
-								<!-- Sub-tabs: pill style (sticky) -->
-								<div class="flex gap-2 mb-2 sticky top-0 z-10 backdrop-blur-sm py-1 -mx-2 px-2 items-center justify-center flex-shrink-0">
-									{#each [
-										{ id: "cooking", label: "", icon: "/icons/cooking.webp" },
-										{ id: "alchemy", label: "", icon: "/icons/alchemy.webp" },
-										{ id: "draughts", label: "", icon: "/icons/draught.webp" },
-										{ id: "planner", label: "", icon: "/icons/planner.webp" },
-									] as sub}
-										<button
-											onclick={() => { craftingSubTab = sub.id; handleCategoryChange(sub.id); }}
-											class="craft-glow-btn {craftingSubTab === sub.id ? 'craft-glow-active' : ''}"
-											title={sub.id}
-										>
-											<img src={sub.icon} alt={sub.id} class="w-7 h-7 relative z-[1]" />
-										</button>
-									{/each}
-								</div>
-
-								<div class="flex-1 flex flex-col min-h-0">
-									{#if craftingSubTab === "planner"}
-										<CraftingPlanner />
-									{:else}
-										<CraftingView />
-									{/if}
-								</div>
-							</div>
+							<CraftingScreen />
 
 						<!-- Inventory -->
 						{:else if activeTab === "inventory"}
-							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
+							<div class="paper-card p-3 flex-1 flex flex-col min-h-0">
 								<InventoryView />
 							</div>
 
 						<!-- Dashboard -->
 						{:else if activeTab === "log"}
-							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
+							<div class="paper-card p-3 flex-1 flex flex-col min-h-0">
 								<DashboardView />
 							</div>
 
 						<!-- Grinding -->
 						{:else if activeTab === "timer"}
-							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
-								<!-- Sub-tabs: underline style (sticky) -->
-								<div class="flex gap-4 mb-2 border-b border-outline-variant/10 sticky top-0 z-10 backdrop-blur-sm py-1 -mx-2 px-2 flex-shrink-0">
-									{#each [
-										{ id: "tracker", label: m.grinding_subtab_tracker() },
-										{ id: "treasures", label: m.grinding_subtab_treasures() },
-										{ id: "hunting", label: m.grinding_subtab_hunting() },
-									] as sub}
-										<button
-											onclick={() => grindingSubTab = sub.id as "tracker" | "treasures" | "hunting"}
-											class="pb-2 px-1 text-[13px] font-headline font-medium transition-colors
-												{grindingSubTab === sub.id
-													? 'obsidian-pill-active'
-													: 'obsidian-pill'}"
-										>
-											{sub.label}
-										</button>
-									{/each}
+							<div class="paper-card p-3 flex-1 flex flex-col min-h-0">
+								<!-- Sub-tabs (unified, sticky) -->
+								<div class="sticky top-0 z-10 mb-2 -mx-2 px-2 border-b border-outline-variant flex-shrink-0" style="background: var(--surface-lowest);">
+									<SubTabs
+										tabs={[
+											{ id: "tracker", label: m.grinding_subtab_tracker() },
+											{ id: "treasures", label: m.grinding_subtab_treasures() },
+											{ id: "hunting", label: m.grinding_subtab_hunting() },
+											{ id: "ocr", label: m.grinding_subtab_ocr() },
+										]}
+										active={grindingSubTab}
+										onSelect={(id) => grindingSubTab = id as "tracker" | "treasures" | "hunting" | "ocr"}
+									/>
 								</div>
 
 								<div class="flex-1 flex flex-col min-h-0">
@@ -569,33 +558,35 @@
 										<GrindingTracker />
 									{:else if grindingSubTab === "treasures"}
 										<TreasureTracker />
-									{:else}
+									{:else if grindingSubTab === "hunting"}
 										<HuntingTracker />
+									{:else}
+										<LootView />
 									{/if}
 								</div>
 							</div>
 
 						<!-- Bartering -->
 						{:else if activeTab === "bartering"}
-							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
+							<div class="paper-card p-3 flex-1 flex flex-col min-h-0">
 								<BarteringView />
 							</div>
 
 						<!-- Weekly Tasks -->
 						{:else if activeTab === "weekly"}
-							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
+							<div class="paper-card p-3 flex-1 flex flex-col min-h-0">
 								<WeeklyTasksView />
 							</div>
 
 						<!-- Settings -->
 						{:else if activeTab === "settings"}
-							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
+							<div class="paper-card p-3 flex-1 flex flex-col min-h-0">
 								<SettingsView />
 							</div>
 
 						<!-- About -->
 						{:else if activeTab === "about"}
-							<div class="glass-panel p-2 obsidian-accent flex-1 flex flex-col min-h-0">
+							<div class="paper-card p-3 flex-1 flex flex-col min-h-0">
 								<AboutView />
 							</div>
 						{/if}
@@ -603,18 +594,25 @@
 				</div>
 
 				<!-- Status footer -->
-				<footer class="obsidian-footer flex items-center justify-between px-3 flex-shrink-0">
+				<footer class="app-footer flex items-center justify-between px-3 flex-shrink-0">
 					<span>BDO Life Companion v{$appVersionStore}</span>
 				</footer>
 			</main>
 		</div>
+
+		<!-- Boss row docked below the body (strip_slot = "bottom", spec order 9) -->
+		{#if !loading && !error && $settingsStore.strip_slot === "bottom"}
+			<div class="flex-shrink-0 px-4 pb-3">
+				<StatusStrip craftingActions={activeTab === "crafting"} />
+			</div>
+		{/if}
 	</div>
 {/if}
 </div>
 {/key}
 
 {#if $viewModeStore === "full" && !loading}
-	<NotesPanel />
+	<Scratchpad />
 {/if}
 
 <ToastContainer />
@@ -630,26 +628,4 @@
 		50% { border-color: hsl(var(--accent) / 0.8); }
 	}
 
-	.note-trigger {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 3px 9px;
-		font-family: var(--font-display);
-		font-size: 10px;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		color: #bdf4ff;
-		background: rgba(189, 244, 255, 0.06);
-		border: 1px solid rgba(189, 244, 255, 0.4);
-		border-radius: 3px;
-		cursor: pointer;
-		flex-shrink: 0;
-		transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
-	}
-	.note-trigger:hover {
-		background: rgba(189, 244, 255, 0.12);
-		border-color: rgba(189, 244, 255, 0.65);
-		box-shadow: 0 0 6px rgba(189, 244, 255, 0.25);
-	}
 </style>

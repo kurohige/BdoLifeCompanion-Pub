@@ -72,27 +72,45 @@ function jsDayToSchedule(jsDay: number): number {
 	return jsDay === 0 ? 6 : jsDay - 1;
 }
 
+/** Parse a "YYYY-MM-DD" boundary as a UTC ms timestamp (start or end of that day). */
+function parseUtcBoundary(date: string, endOfDay: boolean): number {
+	const [y, m, d] = date.split("-").map(Number);
+	return endOfDay ? Date.UTC(y, m - 1, d, 23, 59, 59, 999) : Date.UTC(y, m - 1, d);
+}
+
 /**
  * Get the next occurrence of a spawn time from a given reference time.
- * All schedule times are in UTC.
+ * All schedule times are in UTC. Returns null when the spawn's event window
+ * (validFrom/validUntil, inclusive UTC dates) has no occurrence left.
  */
-function getNextSpawnDate(spawn: BossSpawn, now: Date): Date {
+function getNextSpawnDate(spawn: BossSpawn, now: Date): Date | null {
+	// Before an event starts, look forward from the window start instead of now
+	let ref = now;
+	if (spawn.validFrom) {
+		const windowStart = parseUtcBoundary(spawn.validFrom, false);
+		if (now.getTime() < windowStart) ref = new Date(windowStart - 1000);
+	}
+
 	const [hours, minutes] = spawn.time.split(":").map(Number);
 	const targetJsDay = scheduleToJsDay(spawn.day);
-	const currentJsDay = now.getUTCDay();
+	const currentJsDay = ref.getUTCDay();
 
 	// Calculate days until target day
 	let daysUntil = targetJsDay - currentJsDay;
 	if (daysUntil < 0) daysUntil += 7;
 
 	// Create target date in UTC
-	const target = new Date(now);
+	const target = new Date(ref);
 	target.setUTCDate(target.getUTCDate() + daysUntil);
 	target.setUTCHours(hours, minutes, 0, 0);
 
 	// If same day but time has passed, go to next week
-	if (daysUntil === 0 && target.getTime() <= now.getTime()) {
+	if (daysUntil === 0 && target.getTime() <= ref.getTime()) {
 		target.setUTCDate(target.getUTCDate() + 7);
+	}
+
+	if (spawn.validUntil && target.getTime() > parseUtcBoundary(spawn.validUntil, true)) {
+		return null; // event is over — no further occurrences
 	}
 
 	return target;
@@ -100,24 +118,36 @@ function getNextSpawnDate(spawn: BossSpawn, now: Date): Date {
 
 /**
  * Get the most recent past occurrence of a spawn time from a given reference time.
- * Mirror of getNextSpawnDate — walks backward instead of forward.
+ * Mirror of getNextSpawnDate — walks backward instead of forward. Returns null when
+ * no occurrence falls inside the spawn's event window.
  */
-function getMostRecentSpawnDate(spawn: BossSpawn, now: Date): Date {
+function getMostRecentSpawnDate(spawn: BossSpawn, now: Date): Date | null {
+	// After an event ends, look backward from the window end instead of now
+	let ref = now;
+	if (spawn.validUntil) {
+		const windowEnd = parseUtcBoundary(spawn.validUntil, true);
+		if (now.getTime() > windowEnd) ref = new Date(windowEnd);
+	}
+
 	const [hours, minutes] = spawn.time.split(":").map(Number);
 	const targetJsDay = scheduleToJsDay(spawn.day);
-	const currentJsDay = now.getUTCDay();
+	const currentJsDay = ref.getUTCDay();
 
 	// Days since target day (0-6)
 	let daysSince = currentJsDay - targetJsDay;
 	if (daysSince < 0) daysSince += 7;
 
-	const target = new Date(now);
+	const target = new Date(ref);
 	target.setUTCDate(target.getUTCDate() - daysSince);
 	target.setUTCHours(hours, minutes, 0, 0);
 
 	// If same day but time hasn't arrived yet today, the most recent occurrence is last week
-	if (daysSince === 0 && target.getTime() > now.getTime()) {
+	if (daysSince === 0 && target.getTime() > ref.getTime()) {
 		target.setUTCDate(target.getUTCDate() - 7);
+	}
+
+	if (spawn.validFrom && target.getTime() < parseUtcBoundary(spawn.validFrom, false)) {
+		return null; // event hadn't started yet — no past occurrence
 	}
 
 	return target;
@@ -148,6 +178,7 @@ function findNextSpawns(
 		const spawn = filterSpawnBosses(rawSpawn, hidden);
 		if (!spawn) continue;
 		const spawnDate = getNextSpawnDate(spawn, now);
+		if (!spawnDate) continue;
 		const remainingMs = spawnDate.getTime() - now.getTime();
 		results.push({ spawn, remainingMs, spawnDate });
 	}
@@ -173,6 +204,7 @@ function findPreviousSpawn(
 		const spawn = filterSpawnBosses(rawSpawn, hidden);
 		if (!spawn) continue;
 		const spawnDate = getMostRecentSpawnDate(spawn, now);
+		if (!spawnDate) continue;
 		const elapsedMs = now.getTime() - spawnDate.getTime();
 		if (elapsedMs < 0) continue;
 		if (!best || elapsedMs < best.elapsedMs) {
@@ -198,6 +230,29 @@ export function formatCountdown(ms: number): string {
 		return `${hours}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
 	}
 	return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+}
+
+/**
+ * Format milliseconds as a fixed-width clock (`02:47:09`) — the Parchment
+ * widgets and status strip render countdowns in tabular mono, so the string
+ * must keep a constant shape.
+ */
+export function formatCountdownClock(ms: number): string {
+	if (ms <= 0) return "NOW!";
+	const totalSeconds = Math.floor(ms / 1000);
+	const hours = Math.floor(totalSeconds / 3600);
+	const minutes = Math.floor((totalSeconds % 3600) / 60);
+	const seconds = totalSeconds % 60;
+	return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+/** Format milliseconds as `MM:SS` — the mini bar's 5-minute escalation line. */
+export function formatCountdownMinSec(ms: number): string {
+	if (ms <= 0) return "00:00";
+	const totalSeconds = Math.floor(ms / 1000);
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 /**

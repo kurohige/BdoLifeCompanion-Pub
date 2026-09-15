@@ -34,6 +34,8 @@
 	} from "$lib/stores";
 	import { m } from "$lib/paraglide/messages";
 	import { formatNumber } from "$lib/utils/format";
+	import { formatSilverShort } from "$lib/constants/chart-theme";
+	import { Button } from "$lib/components/ui";
 
 	let showDropdown = $state(false);
 	let mastery = $state("");
@@ -113,13 +115,15 @@
 		}
 	}
 
+	// Grade colors for loot list left-borders — muted data colors, no bg tint
+	// (rarity is data, not decoration: just a thin colored edge).
 	function gradeColor(grade: string): string {
 		switch (grade) {
-			case "legendary": return "border-l-yellow-500 bg-yellow-500/5";
-			case "epic": return "border-l-purple-400 bg-purple-400/5";
-			case "rare": return "border-l-blue-400 bg-blue-400/5";
-			case "uncommon": return "border-l-green-400 bg-green-400/5";
-			default: return "border-l-border";
+			case "legendary": return "border-l-[#d9b24a]";
+			case "epic": return "border-l-[#b98cff]";
+			case "rare": return "border-l-[#5aa9e6]";
+			case "uncommon": return "border-l-[#6fc28a]";
+			default: return "border-l-outline-variant";
 		}
 	}
 
@@ -137,6 +141,13 @@
 	const hasElapsed = $derived($grindingTimerStore.totalSeconds - $grindingTimerStore.remainingSeconds > 0 || $grindingTimerStore.isFinished);
 	const timerFontClass = $derived($grindingTimerDisplay.length > 5 ? "text-base" : "text-xl");
 
+	// Silver/hr projection from loot value + timer elapsed (needs ≥1 min so a few
+	// seconds of runtime don't extrapolate into an absurd rate)
+	const elapsedSeconds = $derived($grindingTimerStore.totalSeconds - $grindingTimerStore.remainingSeconds);
+	const silverPerHour = $derived(
+		elapsedSeconds >= 60 ? Math.round(($huntingTotalLootValue * 3600) / elapsedSeconds) : 0,
+	);
+
 	function formatSilver(value: number): string {
 		return formatNumber(value);
 	}
@@ -146,7 +157,7 @@
 	<!-- Top: Title (left) + Zone Search (right) -->
 	<div class="flex items-start gap-4">
 		<div class="flex-shrink-0">
-			<h2 class="text-lg font-bold neon-text-green">{m.hunting_tracker_title()}</h2>
+			<h2 class="text-base font-bold text-foreground">{m.hunting_tracker_title()}</h2>
 		</div>
 
 		<div class="flex-1 min-w-0 space-y-1">
@@ -157,16 +168,16 @@
 					placeholder={m.hunting_zone_search_placeholder()}
 					onfocus={handleSearchFocus}
 					onblur={handleSearchBlur}
-					class="w-full glass-input text-foreground rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+					class="w-full paper-input text-foreground rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
 				/>
 				{#if showDropdown && $huntingFilteredSpotsStore.length > 0}
-					<div class="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-auto glass-dropdown rounded">
+					<div class="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-auto paper-dropdown rounded">
 						{#each $huntingFilteredSpotsStore as spot (spot.id)}
 							<button
 								onmousedown={() => handleSpotSelect(spot)}
 								class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-secondary/50 transition-colors text-left"
 							>
-								<img src={"/" + spot.image} alt="" class="w-6 h-6 rounded object-cover" />
+								<img src={"/" + spot.image} alt="" class="w-8 h-8 rounded object-cover icon-frame" />
 								<span class="text-xs text-foreground">{spot.name}</span>
 							</button>
 						{/each}
@@ -175,12 +186,12 @@
 			</div>
 
 			{#if $huntingSelectedSpotStore}
-				<div class="flex items-center gap-2 bg-card border border-accent rounded px-2 py-1">
-					<img src={"/" + $huntingSelectedSpotStore.image} alt="" class="w-6 h-6 rounded object-cover" />
-					<span class="text-xs font-bold neon-text-green truncate flex-1">{$huntingSelectedSpotStore.name}</span>
+				<div class="flex items-center gap-2 bg-card border-l-2 border-l-primary border-y border-r border-outline-variant rounded px-2 py-1">
+					<img src={"/" + $huntingSelectedSpotStore.image} alt="" class="w-8 h-8 rounded object-cover icon-frame" />
+					<span class="text-xs font-bold text-foreground truncate flex-1">{$huntingSelectedSpotStore.name}</span>
 					<button
 						onclick={clearHuntingSpot}
-						class="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
+						class="text-[12px] text-muted-foreground hover:text-destructive transition-colors"
 						title={m.grinding_change_spot()}
 					>
 						✕
@@ -196,10 +207,12 @@
 		<div class="w-[210px] flex-shrink-0 flex flex-col items-center gap-2">
 			<div class="relative w-[110px] h-[100px]">
 				<svg viewBox="0 0 110 100" class="w-full h-full">
-					<circle cx="55" cy="50" r={RING_RADIUS} fill="none" stroke="#292929" stroke-width="8" />
+					<circle cx="55" cy="50" r={RING_RADIUS} fill="none" stroke="var(--surface-high)" stroke-width="8" />
 					<circle
 						cx="55" cy="50" r={RING_RADIUS}
-						fill="none" stroke="#00FF9D" stroke-width="8"
+						fill="none"
+						stroke={$grindingTimerStore.isRunning ? "var(--teal)" : "var(--teal)"}
+						stroke-width="8"
 						stroke-linecap="round"
 						stroke-dasharray={RING_CIRCUMFERENCE}
 						stroke-dashoffset={ringOffset}
@@ -210,7 +223,7 @@
 				<div class="absolute inset-0 flex items-center justify-center">
 					<button
 						onclick={handleTimerToggle}
-						class="font-mono {timerFontClass} font-bold {$grindingTimerStore.isRunning ? 'neon-text-green' : $grindingTimerStore.isPaused ? 'text-accent' : $grindingTimerStore.isFinished ? 'text-accent' : 'text-muted-foreground'} hover:opacity-80 transition-opacity"
+						class="font-mono {timerFontClass} font-bold {$grindingTimerStore.isRunning ? 'text-accent' : $grindingTimerStore.isPaused ? 'text-primary' : $grindingTimerStore.isFinished ? 'text-accent' : 'text-muted-foreground'} hover:opacity-80 transition-opacity"
 						title={$grindingTimerStore.isRunning ? m.grinding_timer_pause() : m.grinding_timer_start()}
 					>
 						{$grindingTimerDisplay}
@@ -218,11 +231,11 @@
 				</div>
 			</div>
 
-			<p class="text-[9px] text-muted-foreground uppercase tracking-wider font-bold">{m.grinding_timer_session()}</p>
+			<p class="text-[12px] text-muted-foreground uppercase tracking-wider font-bold">{m.grinding_timer_session()}</p>
 
 			<div class="flex gap-3">
 				<div class="flex flex-col items-center">
-					<span class="text-[10px] text-muted-foreground">{m.grinding_timer_minutes()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.grinding_timer_minutes()}</span>
 					<input
 						type="text" inputmode="numeric" pattern="[0-9]*"
 						value={$grindingTimerStore.minutes}
@@ -232,11 +245,11 @@
 							else if (e.currentTarget.value === '') setGrindingTimerMinutes(0);
 						}}
 						disabled={$grindingTimerStore.isRunning}
-						class="w-[50px] bg-secondary text-foreground border border-border rounded px-1 py-1 text-lg font-mono text-center focus:outline-none focus:ring-1 focus:ring-accent no-spinner disabled:opacity-50"
+						class="w-[50px] bg-secondary text-foreground border border-border rounded px-1 py-1 text-lg font-mono text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner disabled:opacity-50"
 					/>
 				</div>
 				<div class="flex flex-col items-center">
-					<span class="text-[10px] text-muted-foreground">{m.grinding_timer_seconds()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.grinding_timer_seconds()}</span>
 					<input
 						type="text" inputmode="numeric" pattern="[0-9]*"
 						value={$grindingTimerStore.seconds}
@@ -246,7 +259,7 @@
 							else if (e.currentTarget.value === '') setGrindingTimerSeconds(0);
 						}}
 						disabled={$grindingTimerStore.isRunning}
-						class="w-[50px] bg-secondary text-foreground border border-border rounded px-1 py-1 text-lg font-mono text-center focus:outline-none focus:ring-1 focus:ring-accent no-spinner disabled:opacity-50"
+						class="w-[50px] bg-secondary text-foreground border border-border rounded px-1 py-1 text-lg font-mono text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner disabled:opacity-50"
 					/>
 				</div>
 			</div>
@@ -255,7 +268,7 @@
 				{#each PRESETS as preset}
 					<button
 						onclick={() => setGrindingTimerPreset(preset.mins)}
-						class="px-2 py-1 text-[11px] bg-secondary border border-border rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+						class="px-2 py-1 text-[12.5px] bg-secondary border border-border rounded hover:bg-primary hover:text-primary-foreground transition-colors"
 					>
 						{preset.label}
 					</button>
@@ -265,7 +278,7 @@
 			<div class="flex gap-3 justify-center mt-1">
 				<button
 					onclick={handleTimerToggle}
-					class="w-6 h-6 flex items-center justify-center rounded bg-secondary border border-border hover:border-accent transition-colors {$grindingTimerStore.isRunning ? 'text-accent' : 'text-foreground'}"
+					class="w-6 h-6 flex items-center justify-center rounded bg-secondary border border-border hover:border-primary transition-colors {$grindingTimerStore.isRunning ? 'text-accent' : 'text-foreground'}"
 					title={$grindingTimerStore.isRunning ? m.grinding_timer_pause() : timerActive ? m.grinding_timer_resume() : m.grinding_timer_start()}
 				>
 					{#if $grindingTimerStore.isRunning}
@@ -285,7 +298,7 @@
 				<button
 					onclick={() => resetGrindingTimer()}
 					disabled={$grindingTimerStore.isRunning}
-					class="w-6 h-6 flex items-center justify-center rounded bg-secondary border border-border hover:border-accent transition-colors disabled:opacity-30"
+					class="w-6 h-6 flex items-center justify-center rounded bg-secondary border border-border hover:border-primary transition-colors disabled:opacity-30"
 					title={m.grinding_timer_reset()}
 				>
 					<svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
@@ -298,26 +311,27 @@
 			{#if $huntingSelectedSpotStore}
 				<div class="flex items-center justify-between mb-1">
 					<div class="flex items-center gap-2">
-						<p class="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
-							{m.grinding_items_header({ count: $huntingSelectedSpotStore.loot.length })} <span class="text-accent">{$huntingTotalLootCount}</span>
+						<p class="text-[12px] text-muted-foreground uppercase tracking-wider font-bold">
+							{m.grinding_items_header({ count: $huntingSelectedSpotStore.loot.length })} <span class="text-foreground font-mono">{$huntingTotalLootCount}</span>
 						</p>
-						<button
+						<Button
+							variant="secondary"
+							size="sm"
 							onclick={handleFetchPrices}
 							disabled={$huntingMarketPricesLoadingStore}
-							class="px-1.5 py-0.5 text-[9px] bg-secondary border border-border rounded hover:border-accent hover:text-accent transition-colors disabled:opacity-50 disabled:cursor-wait"
 							title={m.grinding_fetch_prices_title()}
 						>
 							{#if $huntingMarketPricesLoadingStore}
 								<span class="inline-block animate-spin">⟳</span>
 							{:else}
-								💰 {m.grinding_prices_btn()}
+								{m.grinding_prices_btn()}
 							{/if}
-						</button>
+						</Button>
 						{#if fetchPriceError}
-							<span class="text-[9px] text-destructive">{fetchPriceError}</span>
+							<span class="text-[12px] text-destructive">{fetchPriceError}</span>
 						{/if}
 					</div>
-					<div class="flex gap-2 text-[8px] text-muted-foreground/60 uppercase">
+					<div class="flex gap-2 text-[10.5px] text-muted-foreground/60 uppercase">
 						<span class="w-[42px] text-center">{m.grinding_col_qty()}</span>
 						<span class="w-[58px] text-center">{m.grinding_col_value()}</span>
 					</div>
@@ -327,21 +341,21 @@
 						{@const count = $huntingLootCountsStore.get(item.id) ?? 0}
 						{@const value = $huntingLootValuesStore.get(item.id) ?? 0}
 						<div class="flex items-center gap-1.5 border border-border {gradeColor(item.grade)} border-l-2 rounded px-1.5 py-0.5">
-							<img src={"/" + item.image} alt="" class="w-6 h-6 object-contain flex-shrink-0" />
-							<span class="text-[11px] text-foreground truncate flex-1">{item.name}</span>
+							<img src={"/" + item.image} alt="" class="w-9 h-9 object-contain flex-shrink-0 icon-frame" />
+							<span class="text-[12.5px] text-foreground truncate flex-1">{item.name}</span>
 							<input
 								type="text" inputmode="numeric" pattern="[0-9]*"
 								value={count || ""}
 								placeholder="0"
 								oninput={(e) => handleLootChange(item.id, e.currentTarget.value)}
-								class="w-[42px] bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[11px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-accent no-spinner"
+								class="w-[42px] bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[12.5px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner"
 							/>
 							<input
 								type="text" inputmode="numeric"
 								value={value ? formatNumber(value) : ""}
 								placeholder={m.grinding_silver_placeholder()}
 								oninput={(e) => handleLootValueChange(item.id, e.currentTarget.value)}
-								class="w-[70px] bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[11px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-accent/50 no-spinner"
+								class="w-[70px] bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[12.5px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-accent/50 no-spinner"
 							/>
 						</div>
 					{/each}
@@ -351,7 +365,7 @@
 					<div>
 						<p class="text-2xl mb-1">🏹</p>
 						<p class="text-sm">{m.hunting_select_zone()}</p>
-						<p class="text-[10px] mt-1">{m.grinding_search_zones_above({ count: $huntingDataStore?.total_spots ?? 0 })}</p>
+						<p class="text-[12px] mt-1">{m.grinding_search_zones_above({ count: $huntingDataStore?.total_spots ?? 0 })}</p>
 					</div>
 				</div>
 			{/if}
@@ -360,24 +374,24 @@
 
 	<!-- Bottom Bar: Mastery + Equipment + Total Silver + Log Session -->
 	{#if $huntingSelectedSpotStore}
-		<div class="flex items-end gap-2 glass-card rounded p-2">
+		<div class="flex items-end gap-2 paper-card rounded p-2">
 			<div class="flex gap-2 flex-wrap">
 				<div>
-					<label for="hunt-mastery" class="text-[9px] text-muted-foreground">{m.hunting_mastery_label()}</label>
+					<label for="hunt-mastery" class="text-[12px] text-muted-foreground">{m.hunting_mastery_label()}</label>
 					<input
 						id="hunt-mastery"
 						type="text" inputmode="numeric" pattern="[0-9]*"
 						bind:value={mastery}
 						placeholder="0"
-						class="w-[55px] bg-secondary text-foreground border border-border rounded px-1 py-1 text-xs font-mono text-center focus:outline-none focus:ring-1 focus:ring-accent no-spinner"
+						class="w-[55px] bg-secondary text-foreground border border-border rounded px-1 py-1 text-xs font-mono text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner"
 					/>
 				</div>
 				<div>
-					<label for="hunt-matchlock" class="text-[9px] text-muted-foreground">{m.hunting_matchlock_label()}</label>
+					<label for="hunt-matchlock" class="text-[12px] text-muted-foreground">{m.hunting_matchlock_label()}</label>
 					<select
 						id="hunt-matchlock"
 						bind:value={matchlockTier}
-						class="w-[70px] bg-secondary text-foreground border border-border rounded px-1 py-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-accent"
+						class="w-[70px] bg-secondary text-foreground border border-border rounded px-1 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-primary"
 					>
 						<option value="">—</option>
 						{#each EQUIPMENT_TIERS as tier}
@@ -386,11 +400,11 @@
 					</select>
 				</div>
 				<div>
-					<label for="hunt-knife" class="text-[9px] text-muted-foreground">{m.hunting_knife_label()}</label>
+					<label for="hunt-knife" class="text-[12px] text-muted-foreground">{m.hunting_knife_label()}</label>
 					<select
 						id="hunt-knife"
 						bind:value={butcheringKnife}
-						class="w-[70px] bg-secondary text-foreground border border-border rounded px-1 py-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-accent"
+						class="w-[70px] bg-secondary text-foreground border border-border rounded px-1 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-primary"
 					>
 						<option value="">—</option>
 						{#each EQUIPMENT_TIERS as tier}
@@ -400,19 +414,25 @@
 				</div>
 				{#if $huntingTotalLootValue > 0}
 					<div>
-						<span class="text-[9px] text-muted-foreground">{m.grinding_total_silver()}</span>
-						<p class="text-xs font-bold font-mono text-accent">{formatSilver($huntingTotalLootValue)}</p>
+						<span class="text-[12px] text-muted-foreground">{m.grinding_total_silver()}</span>
+						<p class="text-xs font-bold font-mono text-foreground">{formatSilver($huntingTotalLootValue)}</p>
 					</div>
+					{#if silverPerHour > 0}
+						<div>
+							<span class="text-[12px] text-muted-foreground">{m.grinding_silver_per_hour()}</span>
+							<p class="text-xs font-bold font-mono text-foreground">{formatSilverShort(silverPerHour)}</p>
+						</div>
+					{/if}
 				{/if}
 			</div>
 			<div class="flex-1"></div>
-			<button
+			<Button
+				variant="primary"
 				onclick={handleEndSession}
 				disabled={!hasElapsed && $huntingTotalLootCount === 0}
-				class="px-4 py-1.5 text-[11px] bg-accent text-accent-foreground font-bold rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				{m.grinding_log_session()}
-			</button>
+			</Button>
 		</div>
 	{/if}
 </div>

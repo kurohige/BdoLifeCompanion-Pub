@@ -76,23 +76,23 @@
 
 <div class="space-y-2">
 	<!-- Header: Crow Coins + Total Value -->
-	<div class="glass-card p-3 flex items-center justify-between">
+	<div class="paper-card p-3 flex items-center justify-between">
 		<div class="flex items-center gap-3">
 			<div>
-				<label for="crow-coins-input" class="text-[10px] text-muted-foreground">{m.bartering_inv_crow_coins()}</label>
+				<label for="crow-coins-input" class="text-[12px] text-muted-foreground">{m.bartering_inv_crow_coins()}</label>
 				<input
 					id="crow-coins-input"
 					type="number"
 					bind:value={crowCoinsInput}
 					onchange={handleCrowCoinsChange}
 					min="0"
-					class="glass-input text-[12px] font-mono px-2 py-1 w-28 no-spinner"
+					class="paper-input text-[12px] font-mono px-2 py-1 w-28 no-spinner"
 				/>
 			</div>
 		</div>
 		<div class="text-right">
-			<p class="text-[10px] text-muted-foreground">{m.bartering_inv_total_value()}</p>
-			<p class="text-sm font-mono font-bold text-accent">{formatSilverShort(inventoryValue.total)}</p>
+			<p class="text-[12px] text-muted-foreground">{m.bartering_inv_total_value()}</p>
+			<p class="text-sm font-mono font-bold text-foreground">{formatSilverShort(inventoryValue.total)}</p>
 		</div>
 	</div>
 
@@ -102,20 +102,20 @@
 			{@const items = getItemsByTier(tier)}
 			{@const tierValue = inventoryValue.byTier[tier] ?? 0}
 			{@const tierCount = itemCounts[tier] ?? 0}
-			<div class="glass-card overflow-hidden">
+			<div class="paper-card overflow-hidden">
 				<!-- Tier Header (clickable to collapse) -->
 				<button
 					onclick={() => toggleTier(tier)}
 					class="w-full px-3 py-2 flex items-center justify-between hover:bg-white/[0.02] transition-colors cursor-pointer"
 				>
 					<div class="flex items-center gap-2">
-						<span class="text-[10px] {collapsed[tier] ? 'rotate-0' : 'rotate-90'} transition-transform inline-block">&#9654;</span>
+						<span class="text-[12px] {collapsed[tier] ? 'rotate-0' : 'rotate-90'} transition-transform inline-block">&#9654;</span>
 						<span class="text-xs font-headline font-bold {color}">{label()}</span>
-						<span class="text-[10px] text-muted-foreground">{m.bartering_inv_items_count({ count: tierCount })}</span>
+						<span class="text-[12px] text-muted-foreground">{m.bartering_inv_items_count({ count: tierCount })}</span>
 					</div>
-					<div class="flex gap-3 text-[10px]">
+					<div class="flex gap-3 text-[12px]">
 						{#if tierValue > 0}
-							<span class="text-accent font-mono">{formatSilverShort(tierValue)}</span>
+							<span class="text-foreground font-mono">{formatSilverShort(tierValue)}</span>
 						{/if}
 					</div>
 				</button>
@@ -127,23 +127,23 @@
 							{@const qty = $barterInventoryStore.items[item.id] ?? 0}
 							<div class="flex items-center gap-2 px-3 py-1.5 border-l-2 {border} hover:bg-white/[0.02] transition-colors">
 								{#if item.image}
-									<img src="/{item.image}" alt={item.name} class="w-6 h-6 shrink-0 rounded" />
+									<img src="/{item.image}" alt={item.name} class="w-8 h-8 shrink-0 rounded icon-frame" />
 								{/if}
-								<span class="text-[11px] text-foreground flex-1">{item.name}</span>
+								<span class="text-[12.5px] text-foreground flex-1">{item.name}</span>
 								<button
 									onclick={() => decrementItem(item.id)}
-									class="w-5 h-5 flex items-center justify-center text-[11px] text-muted-foreground hover:text-foreground glass-input rounded"
+									class="w-5 h-5 flex items-center justify-center text-[12.5px] text-muted-foreground hover:text-foreground paper-input rounded"
 								>-</button>
 								<input
 									type="number"
 									value={qty}
 									onchange={(e) => handleQuantityChange(item.id, (e.target as HTMLInputElement).value)}
 									min="0"
-									class="glass-input text-[11px] font-mono px-1 py-0.5 w-14 text-center no-spinner"
+									class="paper-input text-[12.5px] font-mono px-1 py-0.5 w-14 text-center no-spinner"
 								/>
 								<button
 									onclick={() => incrementItem(item.id)}
-									class="w-5 h-5 flex items-center justify-center text-[11px] text-muted-foreground hover:text-foreground glass-input rounded"
+									class="w-5 h-5 flex items-center justify-center text-[12.5px] text-muted-foreground hover:text-foreground paper-input rounded"
 								>+</button>
 							</div>
 						{/each}
@@ -153,7 +153,7 @@
 		{/each}
 	{:else}
 		<div class="text-center py-6">
-			<p class="text-[11px] text-muted-foreground">{m.bartering_inv_loading()}</p>
+			<p class="text-[12.5px] text-muted-foreground">{m.bartering_inv_loading()}</p>
 		</div>
 	{/if}
 </div>

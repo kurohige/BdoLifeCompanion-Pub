@@ -72,6 +72,14 @@ export class RecipeRepository {
 			}
 		}
 
+		// Ingredients that are themselves recipe outputs (e.g. "Pan-fried Oyster"
+		// inside Margoria Seafood Meal) use that recipe's own icon — the filename
+		// guess below breaks on hyphenated names.
+		const recipeImageByName = new Map<string, string>();
+		for (const recipe of file.recipes) {
+			if (recipe.image) recipeImageByName.set(recipe.name.toLowerCase(), recipe.image);
+		}
+
 		// Generate items for ingredients not explicitly defined
 		for (const ingredientId of allIngredientIds) {
 			const lowerCaseId = ingredientId.toLowerCase();
@@ -82,8 +90,8 @@ export class RecipeRepository {
 				continue;
 			}
 
-			// Generate image path from ingredient ID
-			const imagePath = this.convertItemIdToImagePath(ingredientId);
+			// Recipe icon if the ingredient is a recipe output, else guess from the ID
+			const imagePath = recipeImageByName.get(lowerCaseId) ?? this.convertItemIdToImagePath(ingredientId);
 
 			itemsById.set(lowerCaseId, {
 				id: ingredientId,

@@ -31,6 +31,8 @@
 	} from "$lib/stores";
 	import { m } from "$lib/paraglide/messages";
 	import { formatNumber } from "$lib/utils/format";
+	import { formatSilverShort } from "$lib/constants/chart-theme";
+	import { Button } from "$lib/components/ui";
 
 	let showDropdown = $state(false);
 	let ap = $state("");
@@ -108,14 +110,15 @@
 		}
 	}
 
-	// Grade colors for loot list borders + subtle background tints
+	// Grade colors for loot list left-borders — muted data colors, no bg tint
+	// (rarity is data, not decoration: just a thin colored edge).
 	function gradeColor(grade: string): string {
 		switch (grade) {
-			case "legendary": return "border-l-yellow-500 bg-yellow-500/5";
-			case "epic": return "border-l-purple-400 bg-purple-400/5";
-			case "rare": return "border-l-blue-400 bg-blue-400/5";
-			case "uncommon": return "border-l-green-400 bg-green-400/5";
-			default: return "border-l-border";
+			case "legendary": return "border-l-[#d9b24a]";
+			case "epic": return "border-l-[#b98cff]";
+			case "rare": return "border-l-[#5aa9e6]";
+			case "uncommon": return "border-l-[#6fc28a]";
+			default: return "border-l-outline-variant";
 		}
 	}
 
@@ -133,6 +136,13 @@
 	// Responsive font class: smaller for hour-format timers
 	const timerFontClass = $derived($grindingTimerDisplay.length > 5 ? "text-base" : "text-xl");
 
+	// Silver/hr projection from loot value + timer elapsed (needs ≥1 min so a few
+	// seconds of runtime don't extrapolate into an absurd rate)
+	const elapsedSeconds = $derived($grindingTimerStore.totalSeconds - $grindingTimerStore.remainingSeconds);
+	const silverPerHour = $derived(
+		elapsedSeconds >= 60 ? Math.round(($totalLootValue * 3600) / elapsedSeconds) : 0,
+	);
+
 	// Format silver value with locale-aware thousands separator
 	function formatSilver(value: number): string {
 		return formatNumber(value);
@@ -144,7 +154,7 @@
 	<div class="flex items-start gap-4">
 		<!-- Title -->
 		<div class="flex-shrink-0">
-			<h2 class="text-lg font-bold neon-text-cyan">{m.grinding_tracker_title()}</h2>
+			<h2 class="text-base font-bold text-foreground">{m.grinding_tracker_title()}</h2>
 		</div>
 
 		<!-- Zone Search & Selection (right side) -->
@@ -156,16 +166,16 @@
 					placeholder={m.grinding_zone_search_placeholder()}
 					onfocus={handleSearchFocus}
 					onblur={handleSearchBlur}
-					class="w-full glass-input text-foreground rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+					class="w-full paper-input text-foreground rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
 				/>
 				{#if showDropdown && $filteredSpotsStore.length > 0}
-					<div class="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-auto glass-dropdown rounded">
+					<div class="absolute z-20 top-full left-0 right-0 mt-1 max-h-48 overflow-auto paper-dropdown rounded">
 						{#each $filteredSpotsStore as spot (spot.id)}
 							<button
 								onmousedown={() => handleSpotSelect(spot)}
 								class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-secondary/50 transition-colors text-left"
 							>
-								<img src={"/" + spot.image} alt="" class="w-6 h-6 rounded object-cover" />
+								<img src={"/" + spot.image} alt="" class="w-8 h-8 rounded object-cover icon-frame" />
 								<span class="text-xs text-foreground">{spot.name}</span>
 							</button>
 						{/each}
@@ -174,12 +184,12 @@
 			</div>
 
 			{#if $selectedSpotStore}
-				<div class="flex items-center gap-2 bg-card border border-primary rounded px-2 py-1">
-					<img src={"/" + $selectedSpotStore.image} alt="" class="w-6 h-6 rounded object-cover" />
-					<span class="text-xs font-bold neon-text-purple truncate flex-1">{$selectedSpotStore.name}</span>
+				<div class="flex items-center gap-2 bg-card border-l-2 border-l-primary border-y border-r border-outline-variant rounded px-2 py-1">
+					<img src={"/" + $selectedSpotStore.image} alt="" class="w-8 h-8 rounded object-cover icon-frame" />
+					<span class="text-xs font-bold text-foreground truncate flex-1">{$selectedSpotStore.name}</span>
 					<button
 						onclick={clearSpot}
-						class="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
+						class="text-[12px] text-muted-foreground hover:text-destructive transition-colors"
 						title={m.grinding_change_spot()}
 					>
 						✕
@@ -200,14 +210,14 @@
 					<circle
 						cx="55" cy="50" r={RING_RADIUS}
 						fill="none"
-						stroke="#292929"
+						stroke="var(--surface-high)"
 						stroke-width="8"
 					/>
-					<!-- Progress ring -->
+					<!-- Progress ring — cyan while running (live), primary otherwise -->
 					<circle
 						cx="55" cy="50" r={RING_RADIUS}
 						fill="none"
-						stroke="#C77DFF"
+						stroke={$grindingTimerStore.isRunning ? "var(--teal)" : "var(--teal)"}
 						stroke-width="8"
 						stroke-linecap="round"
 						stroke-dasharray={RING_CIRCUMFERENCE}
@@ -220,7 +230,7 @@
 				<div class="absolute inset-0 flex items-center justify-center">
 					<button
 						onclick={handleTimerToggle}
-						class="font-mono {timerFontClass} font-bold {$grindingTimerStore.isRunning ? 'neon-text-cyan' : $grindingTimerStore.isPaused ? 'text-primary' : $grindingTimerStore.isFinished ? 'text-accent' : 'text-muted-foreground'} hover:opacity-80 transition-opacity"
+						class="font-mono {timerFontClass} font-bold {$grindingTimerStore.isRunning ? 'live-teal' : $grindingTimerStore.isPaused ? 'text-primary' : $grindingTimerStore.isFinished ? 'text-accent' : 'text-muted-foreground'} hover:opacity-80 transition-opacity"
 						title={$grindingTimerStore.isRunning ? m.grinding_timer_pause() : m.grinding_timer_start()}
 					>
 						{$grindingTimerDisplay}
@@ -229,12 +239,12 @@
 			</div>
 
 			<!-- Session Timer Label -->
-			<p class="text-[9px] text-muted-foreground uppercase tracking-wider font-bold">{m.grinding_timer_session()}</p>
+			<p class="text-[12px] text-muted-foreground uppercase tracking-wider font-bold">{m.grinding_timer_session()}</p>
 
 			<!-- Minutes / Seconds Inputs -->
 			<div class="flex gap-3">
 				<div class="flex flex-col items-center">
-					<span class="text-[10px] text-muted-foreground">{m.grinding_timer_minutes()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.grinding_timer_minutes()}</span>
 					<input
 						type="text"
 						inputmode="numeric"
@@ -250,7 +260,7 @@
 					/>
 				</div>
 				<div class="flex flex-col items-center">
-					<span class="text-[10px] text-muted-foreground">{m.grinding_timer_seconds()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.grinding_timer_seconds()}</span>
 					<input
 						type="text"
 						inputmode="numeric"
@@ -272,7 +282,7 @@
 				{#each PRESETS as preset}
 					<button
 						onclick={() => setGrindingTimerPreset(preset.mins)}
-						class="px-2 py-1 text-[11px] bg-secondary border border-border rounded hover:bg-primary hover:text-primary-foreground transition-colors"
+						class="px-2 py-1 text-[12.5px] bg-secondary border border-border rounded hover:bg-primary hover:text-primary-foreground transition-colors"
 					>
 						{preset.label}
 					</button>
@@ -319,26 +329,27 @@
 			{#if $selectedSpotStore}
 				<div class="flex items-center justify-between mb-1">
 					<div class="flex items-center gap-2">
-						<p class="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
-							{m.grinding_items_header({ count: $selectedSpotStore.loot.length })} <span class="text-accent">{$totalLootCount}</span>
+						<p class="text-[12px] text-muted-foreground uppercase tracking-wider font-bold">
+							{m.grinding_items_header({ count: $selectedSpotStore.loot.length })} <span class="text-foreground font-mono">{$totalLootCount}</span>
 						</p>
-						<button
+						<Button
+							variant="secondary"
+							size="sm"
 							onclick={handleFetchPrices}
 							disabled={$marketPricesLoadingStore}
-							class="px-1.5 py-0.5 text-[9px] bg-secondary border border-border rounded hover:border-accent hover:text-accent transition-colors disabled:opacity-50 disabled:cursor-wait"
 							title={m.grinding_fetch_prices_title()}
 						>
 							{#if $marketPricesLoadingStore}
 								<span class="inline-block animate-spin">⟳</span>
 							{:else}
-								💰 {m.grinding_prices_btn()}
+								{m.grinding_prices_btn()}
 							{/if}
-						</button>
+						</Button>
 						{#if fetchPriceError}
-							<span class="text-[9px] text-destructive">{fetchPriceError}</span>
+							<span class="text-[12px] text-destructive">{fetchPriceError}</span>
 						{/if}
 					</div>
-					<div class="flex gap-2 text-[8px] text-muted-foreground/60 uppercase">
+					<div class="flex gap-2 text-[10.5px] text-muted-foreground/60 uppercase">
 						<span class="w-[42px] text-center">{m.grinding_col_qty()}</span>
 						<span class="w-[58px] text-center">{m.grinding_col_value()}</span>
 					</div>
@@ -348,8 +359,8 @@
 						{@const count = $lootCountsStore.get(item.id) ?? 0}
 						{@const value = $lootValuesStore.get(item.id) ?? 0}
 						<div class="flex items-center gap-1.5 border border-border {gradeColor(item.grade)} border-l-2 rounded px-1.5 py-0.5">
-							<img src={"/" + item.image} alt="" class="w-6 h-6 object-contain flex-shrink-0" />
-							<span class="text-[11px] text-foreground truncate flex-1">{item.name}</span>
+							<img src={"/" + item.image} alt="" class="w-9 h-9 rounded object-contain flex-shrink-0 icon-frame" />
+							<span class="text-[12.5px] text-foreground truncate flex-1">{item.name}</span>
 							<input
 								type="text"
 								inputmode="numeric"
@@ -357,7 +368,7 @@
 								value={count || ""}
 								placeholder="0"
 								oninput={(e) => handleLootChange(item.id, e.currentTarget.value)}
-								class="w-[42px] bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[11px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner"
+								class="w-[42px] bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[12.5px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner"
 							/>
 							<input
 								type="text"
@@ -365,7 +376,7 @@
 								value={value ? formatNumber(value) : ""}
 								placeholder={m.grinding_silver_placeholder()}
 								oninput={(e) => handleLootValueChange(item.id, e.currentTarget.value)}
-								class="w-[70px] bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[11px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-accent/50 no-spinner"
+								class="w-[70px] bg-secondary text-foreground border border-border rounded px-1 py-0.5 text-[12.5px] font-mono text-center focus:outline-none focus:ring-1 focus:ring-accent/50 no-spinner"
 							/>
 						</div>
 					{/each}
@@ -373,9 +384,9 @@
 			{:else}
 				<div class="flex-1 flex items-center justify-center text-center text-muted-foreground">
 					<div>
-						<img src="/icons/grinding.png" alt={m.grinding_alt_image()} class="w-8 h-8 mx-auto mb-1 opacity-60" />
+						<img src="/icons/grinding.png" alt={m.grinding_alt_image()} class="h-11 w-auto mx-auto mb-1 opacity-90" />
 						<p class="text-sm">{m.grinding_select_zone()}</p>
-						<p class="text-[10px] mt-1">{m.grinding_search_zones_above({ count: $grindingDataStore?.total_spots ?? 0 })}</p>
+						<p class="text-[12px] mt-1">{m.grinding_search_zones_above({ count: $grindingDataStore?.total_spots ?? 0 })}</p>
 					</div>
 				</div>
 			{/if}
@@ -384,10 +395,10 @@
 
 	<!-- Bottom Bar: AP/DP + Total Value + Log Session -->
 	{#if $selectedSpotStore}
-		<div class="flex items-end gap-3 glass-card rounded p-2">
+		<div class="flex items-end gap-3 paper-card rounded p-2">
 			<div class="flex gap-3">
 				<div>
-					<label for="ap-input" class="text-[9px] text-muted-foreground">{m.grinding_ap_label()}</label>
+					<label for="ap-input" class="text-[12px] text-muted-foreground">{m.grinding_ap_label()}</label>
 					<input
 						id="ap-input"
 						type="text"
@@ -399,7 +410,7 @@
 					/>
 				</div>
 				<div>
-					<label for="dp-input" class="text-[9px] text-muted-foreground">{m.grinding_dp_label()}</label>
+					<label for="dp-input" class="text-[12px] text-muted-foreground">{m.grinding_dp_label()}</label>
 					<input
 						id="dp-input"
 						type="text"
@@ -412,19 +423,25 @@
 				</div>
 				{#if $totalLootValue > 0}
 					<div>
-						<span class="text-[9px] text-muted-foreground">{m.grinding_total_silver()}</span>
-						<p class="text-xs font-bold font-mono text-accent">{formatSilver($totalLootValue)}</p>
+						<span class="text-[12px] text-muted-foreground">{m.grinding_total_silver()}</span>
+						<p class="text-xs font-bold font-mono text-foreground">{formatSilver($totalLootValue)}</p>
 					</div>
+					{#if silverPerHour > 0}
+						<div>
+							<span class="text-[12px] text-muted-foreground">{m.grinding_silver_per_hour()}</span>
+							<p class="text-xs font-bold font-mono text-foreground">{formatSilverShort(silverPerHour)}</p>
+						</div>
+					{/if}
 				{/if}
 			</div>
 			<div class="flex-1"></div>
-			<button
+			<Button
+				variant="primary"
 				onclick={handleEndSession}
 				disabled={!hasElapsed && $totalLootCount === 0}
-				class="px-4 py-1.5 text-[11px] bg-accent text-accent-foreground font-bold rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				{m.grinding_log_session()}
-			</button>
+			</Button>
 		</div>
 	{/if}
 </div>

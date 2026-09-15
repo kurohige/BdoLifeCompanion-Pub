@@ -1,14 +1,16 @@
 /**
- * Chart.js cyberpunk theme configuration.
+ * Chart.js Parchment theme configuration.
  * Activity colors, gradient factories, and global chart styling.
+ * Series palette: teal is the accent, orange is the second series (spec 3b);
+ * the third series borrows the amber warning hue, kept muted.
  */
 
 import type { ActivityType } from "$lib/stores/dashboard";
 
 export const ACTIVITY_COLORS: Record<ActivityType, string> = {
-	grinding: "#00E5FF",
-	hunting: "#00FF9D",
-	crafting: "#C77DFF",
+	grinding: "#16706a",
+	hunting: "#ef8f4b",
+	crafting: "#c07c2c",
 };
 
 export const ACTIVITY_ICONS: Record<ActivityType, string> = {
@@ -24,19 +26,19 @@ export const ACTIVITY_LABELS: Record<ActivityType, string> = {
 };
 
 export const GRADE_COLORS: Record<string, string> = {
-	legendary: "#EAB308",
-	epic: "#A855F7",
-	rare: "#3B82F6",
-	uncommon: "#22C55E",
-	common: "#6B7280",
+	legendary: "#a8842e",
+	epic: "#7d5ba6",
+	rare: "#2f6fa8",
+	uncommon: "#3f8560",
+	common: "#8d8292",
 };
 
 export const CHART_COLORS = {
-	gridLines: "rgba(255, 255, 255, 0.06)",
-	tickLabels: "#808080",
-	tooltipBg: "rgba(10, 10, 10, 0.95)",
-	tooltipBorder: "#333333",
-	tooltipText: "#F0F0F0",
+	gridLines: "rgba(32, 33, 31, 0.07)",
+	tickLabels: "#6b665d",
+	tooltipBg: "#ffffff",
+	tooltipBorder: "#e9e4da",
+	tooltipText: "#20211f",
 };
 
 export function createGradient(

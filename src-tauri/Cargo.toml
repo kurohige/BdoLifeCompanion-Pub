@@ -1,6 +1,6 @@
 [package]
 name = "lifeskill-companion-by-jhidal"
-version = "2.7.0"
+version = "2.8.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -31,4 +31,22 @@ reqwest = { version = "0.12", features = ["rustls-tls"], default-features = fals
 tokio = { version = "1", features = ["rt"] }
 tauri-plugin-global-shortcut = "2.3.1"
 tauri-plugin-os = "2"
+
+# Loot OCR feature: screen capture + Windows.Media.Ocr + text parsing
+xcap = "0.0.14"
+image = { version = "0.25", default-features = false, features = ["png"] }
+regex = "1"
+base64 = "0.22"
+windows = { version = "0.58", features = [
+    "Media_Ocr",
+    "Graphics_Imaging",
+    "Storage_Streams",
+    "Security_Cryptography",
+    "Foundation",
+    "Foundation_Collections",
+    "Globalization",
+    "Win32_System_WinRT",
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+] }
 

@@ -12,6 +12,15 @@ const config = {
     adapter: adapter({
       fallback: "index.html",
     }),
+    // The loot-picker, scratchpad and note routes are opened only via
+    // `new WebviewWindow(...)`, not linked from any prerendered page, so
+    // SvelteKit's crawler doesn't discover them. Listing them explicitly
+    // forces the build to emit their index.html so the new Tauri windows
+    // resolve. A window route that is not listed here 404s in production
+    // only — dev serves it fine, which is how it gets missed.
+    prerender: {
+      entries: ["*", "/loot-picker", "/scratchpad", "/note"],
+    },
   },
 };
 

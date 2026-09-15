@@ -17,7 +17,7 @@
 			<div
 				in:fly={{ x: 200, duration: 250 }}
 				out:fade={{ duration: 150 }}
-				class="glass-toast border-l-4 {typeColor(toast.type)} rounded px-3 py-2 shadow-lg flex items-start gap-2"
+				class="paper-toast border-l-4 {typeColor(toast.type)} rounded px-3 py-2 shadow-lg flex items-start gap-2"
 			>
 				<span class="text-xs flex-1">{toast.message}</span>
 				<button

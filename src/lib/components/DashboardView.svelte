@@ -3,6 +3,7 @@
 	import type { DashboardTab, TimeRange } from "$lib/stores";
 	import { showToast } from "$lib/stores/toast";
 	import { exportLog, type LogType, type ExportFormat } from "$lib/utils/export-logs";
+	import { Button } from "$lib/components/ui";
 	import { m } from "$lib/paraglide/messages";
 
 	let activeTab = $state<DashboardTab>("all");
@@ -47,10 +48,10 @@
 			{#each TABS as tab_item}
 				<button
 					onclick={() => activeTab = tab_item.value}
-					class="pb-2 px-2 text-[11px] font-headline font-medium transition-colors relative
+					class="pb-2 px-2 text-[12.5px] font-headline font-medium transition-colors relative
 						{activeTab === tab_item.value
-							? 'obsidian-pill-active'
-							: 'obsidian-pill'}"
+							? 'tab-pill-active'
+							: 'tab-pill'}"
 				>
 					{tab_item.label()}
 				</button>
@@ -58,36 +59,37 @@
 
 			<!-- Export button (right-aligned) -->
 			<div class="ml-auto relative">
-				<button
+				<Button
+					variant="ghost"
+					size="sm"
 					onclick={() => showExportMenu = !showExportMenu}
-					class="px-2 py-0.5 text-[10px] font-headline font-bold uppercase tracking-wider text-[#00e3fd] [text-shadow:0_0_8px_rgba(0,227,253,0.5)] hover:text-[#bdf4ff] transition-colors"
 					title={m.dashboard_export_btn_title()}
 				>
-					📥 {m.dashboard_export_btn()}
-				</button>
+					{m.dashboard_export_btn()}
+				</Button>
 
 				{#if showExportMenu}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
-						class="absolute right-0 top-full mt-1 glass-dropdown p-2 rounded-sm z-20 min-w-[140px]"
+						class="absolute right-0 top-full mt-1 paper-dropdown p-2 rounded-sm z-20 min-w-[140px]"
 						onmouseleave={() => showExportMenu = false}
 					>
-						<p class="obsidian-header mb-1">{m.dashboard_export_logs_header()}</p>
+						<p class="eyebrow mb-1">{m.dashboard_export_logs_header()}</p>
 						{#each [
 							{ type: "grinding" as LogType, label: () => m.dashboard_export_grinding() },
 							{ type: "crafting" as LogType, label: () => m.dashboard_export_crafting() },
 							{ type: "hunting" as LogType, label: () => m.dashboard_export_hunting() },
 						] as item}
 							<div class="flex items-center justify-between gap-2 py-1">
-								<span class="text-[10px] text-on-surface">{item.label()}</span>
+								<span class="text-[12px] text-on-surface">{item.label()}</span>
 								<div class="flex gap-1">
 									<button
 										onclick={() => handleExport(item.type, "csv")}
-										class="px-1.5 py-0.5 text-[8px] font-bold text-secondary-container hover:bg-surface-high rounded-sm transition-colors"
+										class="px-1.5 py-0.5 text-[10.5px] font-bold text-secondary-container hover:bg-surface-high rounded-sm transition-colors"
 									>CSV</button>
 									<button
 										onclick={() => handleExport(item.type, "json")}
-										class="px-1.5 py-0.5 text-[8px] font-bold text-primary hover:bg-surface-high rounded-sm transition-colors"
+										class="px-1.5 py-0.5 text-[10.5px] font-bold text-primary hover:bg-surface-high rounded-sm transition-colors"
 									>JSON</button>
 								</div>
 							</div>
@@ -99,14 +101,14 @@
 
 		<!-- Time Range Pills -->
 		<div class="flex items-center gap-1">
-			<span class="text-[9px] text-outline-hud uppercase tracking-wider mr-1 font-label">{m.dashboard_range_label()}</span>
+			<span class="text-[12px] text-outline-hud uppercase tracking-wider mr-1 font-label">{m.dashboard_range_label()}</span>
 			{#each TIME_RANGES as range}
 				<button
 					onclick={() => timeRange = range.value}
-					class="px-3 py-0.5 text-[10px] font-headline transition-colors
+					class="px-3 py-0.5 text-[12px] font-headline transition-colors
 						{timeRange === range.value
-							? 'obsidian-pill-active text-[10px]'
-							: 'obsidian-pill text-[10px]'}"
+							? 'tab-pill-active text-[12px]'
+							: 'tab-pill text-[12px]'}"
 				>
 					{range.label()}
 				</button>

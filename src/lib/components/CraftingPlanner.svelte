@@ -24,6 +24,7 @@
 		type PlannerView,
 	} from "$lib/stores";
 	import { inventoryStore, setInventoryQuantity } from "$lib/stores/inventory";
+	import { Button } from "$lib/components/ui";
 	import { m } from "$lib/paraglide/messages";
 
 	function categoryName(cat: string): string {
@@ -237,8 +238,8 @@
 
 	function statusColor(deficit: number, needed: number): string {
 		if (needed === 0) return "text-muted-foreground";
-		if (deficit === 0) return "text-accent";
-		if (deficit < needed) return "text-yellow-400";
+		if (deficit === 0) return "text-green-500/80";
+		if (deficit < needed) return "text-yellow-500/80";
 		return "text-destructive";
 	}
 
@@ -269,36 +270,26 @@
 		{/if}
 
 		{#if creatingPlan}
-			<button
-				onclick={handleCancelNew}
-				class="px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-muted transition-colors"
-			>
+			<Button variant="secondary" size="sm" onclick={handleCancelNew}>
 				{m.crafting_planner_cancel()}
-			</button>
+			</Button>
 		{:else}
-			<button
-				onclick={handleNewPlan}
-				class="px-2 py-1 text-xs bg-accent text-accent-foreground font-bold rounded hover:opacity-80 transition-opacity whitespace-nowrap"
-			>
+			<Button variant="primary" size="sm" class="whitespace-nowrap" onclick={handleNewPlan}>
 				{m.crafting_planner_new_plan()}
-			</button>
+			</Button>
 		{/if}
 
 		{#if $activePlanStore && !creatingPlan}
-			<button
-				onclick={handleDelete}
-				class="px-2 py-1 text-xs bg-destructive/20 text-destructive rounded hover:bg-destructive/30 transition-colors"
-				title={m.crafting_planner_delete()}
-			>
+			<Button variant="danger" size="sm" onclick={handleDelete} title={m.crafting_planner_delete()}>
 				✕
-			</button>
+			</Button>
 		{/if}
 	</div>
 
 	<!-- ═══ New Plan: Recipe Search ═══ -->
 	{#if creatingPlan}
 		<div class="relative">
-			<label for="goal-search" class="text-[10px] font-bold neon-text-cyan">
+			<label for="goal-search" class="text-[12px] font-bold text-muted-foreground">
 				{m.crafting_planner_search_label()}
 			</label>
 			<input
@@ -322,7 +313,7 @@
 					bind:this={recipeDropdownEl}
 					id="goal-search-listbox"
 					role="listbox"
-					class="absolute z-50 w-full mt-1 glass-dropdown rounded max-h-[200px] overflow-auto"
+					class="absolute z-50 w-full mt-1 paper-dropdown rounded max-h-[200px] overflow-auto"
 				>
 					{#each filteredGoalRecipes as { recipe, category }, i (recipe.id)}
 						<button
@@ -335,7 +326,7 @@
 							class="w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors border-b border-border last:border-b-0 {i === recipeHighlightIndex ? 'bg-primary/20 text-foreground' : 'hover:bg-secondary'}"
 						>
 							<div
-								class="w-5 h-5 border border-muted rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
+								class="w-7 h-7 border border-muted rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
 							>
 								{#if recipe.image}
 									<img
@@ -349,7 +340,7 @@
 								{/if}
 							</div>
 							<span class="flex-1 text-xs truncate">{recipe.name}</span>
-							<span class="text-[10px] text-muted-foreground">
+							<span class="text-[12px] text-muted-foreground">
 								{categoryEmoji(category)} {categoryName(category)}
 							</span>
 						</button>
@@ -358,7 +349,7 @@
 			{/if}
 
 			{#if $plannerRecipeSearchStore.trim().length >= 2 && filteredGoalRecipes.length === 0}
-				<p class="text-[10px] text-muted-foreground mt-1">{m.crafting_planner_no_results()}</p>
+				<p class="text-[12px] text-muted-foreground mt-1">{m.crafting_planner_no_results()}</p>
 			{/if}
 		</div>
 	{/if}
@@ -368,7 +359,7 @@
 		{@const plan = $activePlanStore}
 
 		<!-- Goal Info Row -->
-		<div class="flex items-center gap-2 p-1.5 glass-card rounded">
+		<div class="flex items-center gap-2 p-1.5 paper-card rounded">
 			<div
 				class="w-8 h-8 border border-primary rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
 			>
@@ -387,10 +378,10 @@
 			</div>
 
 			<div class="flex-1 min-w-0">
-				<p class="text-xs font-bold neon-text-purple truncate">
+				<p class="text-xs font-bold text-foreground truncate">
 					{plan.goalRecipeName}
 				</p>
-				<p class="text-[10px] text-muted-foreground">
+				<p class="text-[12px] text-muted-foreground">
 					{categoryEmoji(plan.goalCategory)}
 					{categoryName(plan.goalCategory)}
 				</p>
@@ -398,7 +389,7 @@
 
 			<!-- Quantity Input -->
 			<div class="flex items-center gap-1">
-				<span class="text-[10px] text-muted-foreground">{m.crafting_planner_qty()}</span>
+				<span class="text-[12px] text-muted-foreground">{m.crafting_planner_qty()}</span>
 				<input
 					type="text"
 					inputmode="numeric"
@@ -415,8 +406,8 @@
 			<!-- Inventory Toggle -->
 			<button
 				onclick={() => inventoryAwareStore.update((v) => !v)}
-				class="px-1.5 py-0.5 text-[10px] rounded border transition-colors whitespace-nowrap {$inventoryAwareStore
-					? 'border-accent text-accent bg-accent/10'
+				class="px-1.5 py-0.5 text-[12px] rounded border transition-colors whitespace-nowrap {$inventoryAwareStore
+					? 'border-primary text-primary bg-primary/10'
 					: 'border-border text-muted-foreground bg-secondary'}"
 				title={$inventoryAwareStore
 					? m.crafting_planner_inv_aware_on()
@@ -450,29 +441,21 @@
 			{#if $plannerTreeStore}
 				<!-- Expand/Collapse Controls -->
 				<div class="flex items-center justify-between">
-					<p class="text-[10px] font-bold neon-text-cyan">
+					<p class="text-[12px] font-bold text-muted-foreground">
 						{m.crafting_planner_tree_header({ qty: plan.goalQuantity, name: plan.goalRecipeName })}
 					</p>
-					<div class="flex gap-2">
-						<button
-							onclick={expandAll}
-							class="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-							title={m.crafting_planner_expand_all()}
-						>
+					<div class="flex gap-1.5">
+						<Button variant="ghost" size="sm" onclick={expandAll} title={m.crafting_planner_expand_all()}>
 							▼ All
-						</button>
-						<button
-							onclick={collapseAll}
-							class="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-							title={m.crafting_planner_collapse_all()}
-						>
+						</Button>
+						<Button variant="ghost" size="sm" onclick={collapseAll} title={m.crafting_planner_collapse_all()}>
 							▶ All
-						</button>
+						</Button>
 					</div>
 				</div>
 
 				<!-- Column Headers -->
-				<div class="flex items-center text-[9px] text-muted-foreground px-1">
+				<div class="flex items-center text-[12px] text-muted-foreground px-1">
 					<span class="flex-1">{m.crafting_planner_col_recipe()}</span>
 					<span class="w-12 text-right">{m.crafting_planner_col_need()}</span>
 					<span class="w-12 text-center">{m.crafting_planner_col_have()}</span>
@@ -500,7 +483,7 @@
 
 							<!-- Image -->
 							<div
-								class="w-4 h-4 border border-muted rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
+								class="w-6 h-6 border border-muted rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
 							>
 								{#if node.image}
 									<img
@@ -522,14 +505,14 @@
 							>
 								{node.name}
 								{#if node.quantityPerCraft > 1 && depth > 0}
-									<span class="text-[10px] text-muted-foreground">
+									<span class="text-[12px] text-muted-foreground">
 										×{node.quantityPerCraft}
 									</span>
 								{/if}
 							</span>
 
 							<!-- Stats -->
-							<span class="w-12 text-right text-[10px] text-muted-foreground">
+							<span class="w-12 text-right text-[12px] text-muted-foreground">
 								{node.quantityNeeded}
 							</span>
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -546,11 +529,11 @@
 											updateHaveQty(node.id, val || "0");
 										}
 									}}
-									class="w-full bg-input text-foreground border border-border rounded px-1 py-0 text-[10px] text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner"
+									class="w-full bg-input text-foreground border border-border rounded px-1 py-0 text-[12px] text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner"
 								/>
 							</span>
 							<span
-								class="w-12 text-right text-[10px] font-bold {statusColor(
+								class="w-12 text-right text-[12px] font-bold {statusColor(
 									node.deficit,
 									node.quantityNeeded,
 								)}"
@@ -575,16 +558,16 @@
 		<!-- ═══ Shopping List View ═══ -->
 		{:else if $plannerViewStore === "shopping"}
 			<div class="flex items-center justify-between">
-				<p class="text-[10px] font-bold neon-text-cyan">
+				<p class="text-[12px] font-bold text-muted-foreground">
 					{m.crafting_planner_shopping_header({ qty: plan.goalQuantity, name: plan.goalRecipeName })}
 				</p>
-				<p class="text-[10px] text-muted-foreground">
+				<p class="text-[12px] text-muted-foreground">
 					{m.crafting_planner_ready({ fulfilled: shoppingStats.fulfilled, total: shoppingStats.total })}
 				</p>
 			</div>
 
 			<!-- Column Headers -->
-			<div class="flex items-center text-[9px] text-muted-foreground px-1">
+			<div class="flex items-center text-[12px] text-muted-foreground px-1">
 				<span class="flex-1">{m.crafting_planner_col_material()}</span>
 				<span class="w-12 text-right">{m.crafting_planner_col_need()}</span>
 				<span class="w-14 text-center">{m.crafting_planner_col_have()}</span>
@@ -602,7 +585,7 @@
 					>
 						<!-- Image -->
 						<div
-							class="w-5 h-5 border border-muted rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
+							class="w-7 h-7 border border-muted rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
 						>
 							{#if item.image}
 								<img
@@ -622,7 +605,7 @@
 						</span>
 
 						<!-- Need -->
-						<span class="w-12 text-right text-[10px] text-muted-foreground">
+						<span class="w-12 text-right text-[12px] text-muted-foreground">
 							{item.quantityNeeded}
 						</span>
 
@@ -638,14 +621,14 @@
 									updateHaveQty(item.itemId, val || "0");
 								}
 							}}
-							class="w-14 bg-input text-foreground border rounded px-1 py-0.5 text-[10px] text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner {fulfilled
-								? 'border-accent/50'
+							class="w-14 bg-input text-foreground border rounded px-1 py-0.5 text-[12px] text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner {fulfilled
+								? 'border-green-500/40'
 								: 'border-border'}"
 						/>
 
 						<!-- Deficit -->
 						<span
-							class="w-12 text-right text-[10px] font-bold {statusColor(
+							class="w-12 text-right text-[12px] font-bold {statusColor(
 								item.deficit,
 								item.quantityNeeded,
 							)}"
@@ -669,10 +652,10 @@
 		<!-- ═══ Steps View ═══ -->
 		{:else if $plannerViewStore === "steps"}
 			<div class="flex items-center justify-between">
-				<p class="text-[10px] font-bold neon-text-cyan">
+				<p class="text-[12px] font-bold text-muted-foreground">
 					{m.crafting_planner_steps_header({ qty: plan.goalQuantity, name: plan.goalRecipeName })}
 				</p>
-				<p class="text-[10px] text-muted-foreground">
+				<p class="text-[12px] text-muted-foreground">
 					{m.crafting_planner_done({ done: progress.done, total: progress.total })}
 				</p>
 			</div>
@@ -681,7 +664,7 @@
 			{#if progress.total > 0}
 				<div class="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
 					<div
-						class="h-full bg-accent rounded-full transition-all duration-300"
+						class="h-full bg-primary rounded-full transition-all duration-300"
 						style="width: {progress.pct}%"
 					></div>
 				</div>
@@ -692,7 +675,7 @@
 				{#each groupedSteps as group, groupIdx (groupIdx)}
 					<!-- Group Header -->
 					<div class="border-b border-border pb-0.5">
-						<p class="text-[10px] font-bold neon-text-purple">{group.label}</p>
+						<p class="text-[12px] font-bold text-foreground">{group.label}</p>
 					</div>
 
 					<!-- Steps in Group -->
@@ -708,7 +691,7 @@
 								type="checkbox"
 								checked={isCompleted}
 								onchange={() => toggleStep(step.recipeId)}
-								class="w-3.5 h-3.5 mt-0.5 flex-shrink-0 accent-accent cursor-pointer"
+								class="w-3.5 h-3.5 mt-0.5 flex-shrink-0 accent-primary cursor-pointer"
 							/>
 
 							<!-- Step Content -->
@@ -716,7 +699,7 @@
 								<div class="flex items-center gap-1">
 									<!-- Recipe Image -->
 									<div
-										class="w-5 h-5 border border-muted rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
+										class="w-7 h-7 border border-muted rounded overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center"
 									>
 										{#if step.image}
 											<img
@@ -745,9 +728,9 @@
 								<div class="mt-0.5 pl-6 space-y-0.5">
 									{#each step.ingredients as ing (ing.itemId)}
 										{@const invQty = $inventoryStore.get(ing.itemId.toLowerCase()) ?? $inventoryStore.get(ing.itemId.toLowerCase().replace(/_/g, " ")) ?? $inventoryStore.get(ing.itemId.toLowerCase().replace(/ /g, "_")) ?? 0}
-										<div class="flex items-center gap-1 text-[10px] text-muted-foreground">
+										<div class="flex items-center gap-1 text-[12px] text-muted-foreground">
 											<span class="truncate">{ing.name} ×{ing.amount}</span>
-											<span class="text-[9px] ml-auto shrink-0">{m.crafting_planner_have_inline()}</span>
+											<span class="text-[12px] ml-auto shrink-0">{m.crafting_planner_have_inline()}</span>
 											<input
 												type="text"
 												inputmode="numeric"
@@ -759,7 +742,7 @@
 														updateHaveQty(ing.itemId, val || "0");
 													}
 												}}
-												class="w-10 bg-input text-foreground border border-border rounded px-1 py-0 text-[10px] text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner shrink-0"
+												class="w-10 bg-input text-foreground border border-border rounded px-1 py-0 text-[12px] text-center focus:outline-none focus:ring-1 focus:ring-primary no-spinner shrink-0"
 											/>
 										</div>
 									{/each}
@@ -793,12 +776,9 @@
 			<p class="text-xs">
 				{m.crafting_planner_empty_subtitle()}
 			</p>
-			<button
-				onclick={handleNewPlan}
-				class="px-4 py-1.5 text-xs bg-accent text-accent-foreground font-bold rounded hover:opacity-80 transition-opacity"
-			>
+			<Button variant="primary" size="sm" onclick={handleNewPlan}>
 				{m.crafting_planner_create_first()}
-			</button>
+			</Button>
 		</div>
 	{/if}
 </div>

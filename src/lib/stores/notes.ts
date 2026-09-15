@@ -10,7 +10,7 @@
  * Writes are debounced 300ms (matches the bartering-routes pattern). Mutations
  * touch the store first (optimistic UI) then schedule a save.
  *
- * Design: docs/NOTES_SIDETAB_DESIGN.md
+ * Design: docs/archive/features/NOTES_SIDETAB_DESIGN.md
  */
 
 import { writable, get } from "svelte/store";
@@ -21,7 +21,6 @@ import type {
 	NoteCategoryKey,
 	NotesData,
 	StickyColor,
-	TodoNote,
 	ReminderNote,
 } from "$lib/models/notes";
 import {
@@ -39,19 +38,16 @@ import { newId } from "$lib/utils/note-parser";
 export const notesStore = writable<Note[]>([]);
 export const noteCategoriesStore = writable<NoteCategory[]>([]);
 export const notesLoadingStore = writable<boolean>(true);
+/** Epoch ms of the last successful notes save — drives "Saved Ns ago". */
+export const notesLastSavedStore = writable<number | null>(null);
 
-// ─────────── ui-only stores (not persisted, but live across panel open/close) ───────────
+// ─────────── ui-only stores (not persisted) ───────────
 
-export const notesPanelOpenStore = writable<boolean>(false);
-/** Currently filtered category key. `null` = "all" (show all categories). */
-export const notesActiveCategoryStore = writable<NoteCategoryKey | null>(null);
 /**
- * Which category the command line creates notes under. Always defined —
- * decoupled from `notesActiveCategoryStore` because the user might be filtering
- * "all" but still want capture to land somewhere predictable.
+ * Which category the Scratchpad composer creates notes under. Always defined —
+ * seeded to the first category on load.
  */
 export const notesCaptureCategoryStore = writable<NoteCategoryKey>("");
-export const notesSearchStore = writable<string>("");
 
 // ─────────── persistence ───────────
 
@@ -73,6 +69,31 @@ async function saveNotesData(): Promise<void> {
 		notes: get(notesStore),
 	};
 	await invoke("save_notes", { data });
+	notesLastSavedStore.set(Date.now());
+	// Tell the other window (main app ↔ detached scratchpad) to reload.
+	emitNotesChanged().catch(() => undefined);
+}
+
+// ─────────── cross-window sync (main app ↔ detached scratchpad) ───────────
+// Both windows run their own copy of this store over the same notes.json.
+// Whichever window saves emits `notes-changed`; the other reloads from disk.
+
+async function emitNotesChanged(): Promise<void> {
+	const { emit } = await import("@tauri-apps/api/event");
+	const { getCurrentWindow } = await import("@tauri-apps/api/window");
+	await emit("notes-changed", { source: getCurrentWindow().label });
+}
+
+/** Subscribe this window to notes saves made by the other window. */
+export async function initNotesSync(): Promise<void> {
+	const { listen } = await import("@tauri-apps/api/event");
+	const { getCurrentWindow } = await import("@tauri-apps/api/window");
+	const myLabel = getCurrentWindow().label;
+	await listen<{ source: string }>("notes-changed", (e) => {
+		if (e.payload?.source !== myLabel) {
+			loadNotesData().catch((err) => console.error("Failed to reload notes after sync:", err));
+		}
+	});
 }
 
 /** Force-flush any pending debounced save. Called from the close handler. */
@@ -189,9 +210,6 @@ export function deleteCategory(key: NoteCategoryKey): void {
 	const remaining = cats.filter((c) => c.key !== key);
 	noteCategoriesStore.set(remaining);
 	notesStore.update((ns) => ns.filter((n) => n.category_key !== key));
-	if (get(notesActiveCategoryStore) === key) {
-		notesActiveCategoryStore.set(null);
-	}
 	if (get(notesCaptureCategoryStore) === key) {
 		notesCaptureCategoryStore.set(remaining[0]?.key ?? "");
 	}
@@ -228,43 +246,55 @@ export function togglePinNote(id: string): void {
 	scheduleSave();
 }
 
+// ─────────── checklist item mutations ───────────
+//
+// Schema v2: these guard on the FIELD, not on `type`. They used to open with
+// `n.type !== "todo"`, which meant the moment a text note carried `items` all
+// four no-oped silently — the checkbox did nothing, with no error anywhere.
+
+/** True when this note actually carries a checklist. */
+function hasItems(n: Note): boolean {
+	return Array.isArray(n.items);
+}
+
 export function toggleTodoItem(noteId: string, itemIndex: number): void {
 	notesStore.update((ns) =>
 		ns.map((n) => {
-			if (n.id !== noteId || n.type !== "todo") return n;
-			const todo = n as TodoNote;
-			const items = todo.items.map((it, i) => (i === itemIndex ? { ...it, d: !it.d } : it));
-			return { ...todo, items, updated: Date.now() } as Note;
+			if (n.id !== noteId || !hasItems(n)) return n;
+			const items = n.items!.map((it, i) => (i === itemIndex ? { ...it, d: !it.d } : it));
+			return { ...n, items, updated: Date.now() } as Note;
 		}),
 	);
 	scheduleSave();
 }
 
-/** Edit the text of a single todo item in-place. */
+/** Edit the text of a single checklist item in-place. */
 export function setTodoItemText(noteId: string, itemIndex: number, text: string): void {
 	notesStore.update((ns) =>
 		ns.map((n) => {
-			if (n.id !== noteId || n.type !== "todo") return n;
-			const todo = n as TodoNote;
-			const items = todo.items.map((it, i) => (i === itemIndex ? { ...it, t: text } : it));
-			return { ...todo, items, updated: Date.now() } as Note;
+			if (n.id !== noteId || !hasItems(n)) return n;
+			const items = n.items!.map((it, i) => (i === itemIndex ? { ...it, t: text } : it));
+			return { ...n, items, updated: Date.now() } as Note;
 		}),
 	);
 	scheduleSave();
 }
 
-/** Append a new item to a todo note. Trimmed; no-op on empty input or when cap reached. */
+/**
+ * Append an item. Trimmed; no-op on empty input or at the cap. Unlike its
+ * siblings this one may CREATE the array — a note gains a checklist here.
+ */
 export function addTodoItem(noteId: string, text: string): void {
 	const trimmed = text.trim();
 	if (!trimmed) return;
 	notesStore.update((ns) =>
 		ns.map((n) => {
-			if (n.id !== noteId || n.type !== "todo") return n;
-			const todo = n as TodoNote;
-			if (todo.items.length >= MAX_TODO_ITEMS) return n;
+			if (n.id !== noteId) return n;
+			const items = Array.isArray(n.items) ? n.items : [];
+			if (items.length >= MAX_TODO_ITEMS) return n;
 			return {
-				...todo,
-				items: [...todo.items, { t: trimmed, d: false }],
+				...n,
+				items: [...items, { t: trimmed, d: false }],
 				updated: Date.now(),
 			} as Note;
 		}),
@@ -272,14 +302,47 @@ export function addTodoItem(noteId: string, text: string): void {
 	scheduleSave();
 }
 
-/** Remove a single item from a todo note by index. */
+/** Remove a single item by index. */
 export function removeTodoItem(noteId: string, itemIndex: number): void {
 	notesStore.update((ns) =>
 		ns.map((n) => {
-			if (n.id !== noteId || n.type !== "todo") return n;
-			const todo = n as TodoNote;
-			const items = todo.items.filter((_, i) => i !== itemIndex);
-			return { ...todo, items, updated: Date.now() } as Note;
+			if (n.id !== noteId || !hasItems(n)) return n;
+			const items = n.items!.filter((_, i) => i !== itemIndex);
+			return { ...n, items, updated: Date.now() } as Note;
+		}),
+	);
+	scheduleSave();
+}
+
+/**
+ * Insert a blank item after `afterIndex` (-1 prepends). Enter inside the
+ * checklist needs this: `addTodoItem` appends and rejects empty text, so it
+ * cannot open a new row in the middle of a run.
+ */
+export function insertTodoItem(noteId: string, afterIndex: number): void {
+	notesStore.update((ns) =>
+		ns.map((n) => {
+			if (n.id !== noteId) return n;
+			const items = Array.isArray(n.items) ? n.items : [];
+			if (items.length >= MAX_TODO_ITEMS) return n;
+			const at = Math.min(Math.max(afterIndex + 1, 0), items.length);
+			const next = [...items.slice(0, at), { t: "", d: false }, ...items.slice(at)];
+			return { ...n, items: next, updated: Date.now() } as Note;
+		}),
+	);
+	scheduleSave();
+}
+
+/** Move one item within the checklist (drag-to-reorder by the ⠿ handle). */
+export function moveTodoItem(noteId: string, from: number, to: number): void {
+	notesStore.update((ns) =>
+		ns.map((n) => {
+			if (n.id !== noteId || !hasItems(n)) return n;
+			const items = [...n.items!];
+			if (from < 0 || from >= items.length || to < 0 || to >= items.length || from === to) return n;
+			const [moved] = items.splice(from, 1);
+			items.splice(to, 0, moved);
+			return { ...n, items, updated: Date.now() } as Note;
 		}),
 	);
 	scheduleSave();
@@ -287,11 +350,52 @@ export function removeTodoItem(noteId: string, itemIndex: number): void {
 
 /**
  * Replace a note's title. Trims + clamps to MAX_TITLE_LEN.
+ *
+ * Deliberately refuses an empty title: quick capture depends on never writing
+ * one. The editor, where the title IS clearable, calls `updateNote` directly
+ * and clamps itself — do not "fix" this to allow empty.
  */
 export function setNoteTitle(id: string, title: string): void {
 	const trimmed = title.trim().slice(0, MAX_TITLE_LEN);
 	if (!trimmed) return;
 	updateNote(id, { title: trimmed } as Partial<Note>);
+}
+
+// ─────────── section add/remove (schema v2) ───────────
+//
+// A note GAINS a section; it never converts from one type to another (updateNote
+// keeps `type` for exactly that reason). Section existence is the presence of
+// the field: `items === undefined` means no checklist, `when === undefined`
+// means no reminder. An empty array or a null `when` means the section is there
+// with nothing in it yet.
+
+/** Give a note a checklist with one empty item (rule 4.5). */
+export function addChecklistSection(noteId: string): void {
+	updateNote(noteId, { items: [{ t: "", d: false }] } as Partial<Note>);
+}
+
+/** Take the whole checklist away, items and all. */
+export function removeChecklistSection(noteId: string): void {
+	updateNote(noteId, { items: undefined } as Partial<Note>);
+}
+
+/** Give a note a reminder section with no time set yet (rule 4.10). */
+export function addReminderSection(noteId: string): void {
+	updateNote(noteId, { when: null, fired: false } as Partial<Note>);
+}
+
+/** Take the reminder away — the latch goes with it. */
+export function removeReminderSection(noteId: string): void {
+	updateNote(noteId, { when: undefined, fired: undefined } as Partial<Note>);
+}
+
+/**
+ * Set (or clear) a reminder's time. Always resets `fired`: the tick loop latches
+ * it permanently and nothing else clears it, so without this a re-timed reminder
+ * would never fire again.
+ */
+export function setNoteWhen(noteId: string, when: number | null): void {
+	updateNote(noteId, { when, fired: false } as Partial<Note>);
 }
 
 // ─────────── reminder firing (tick loop) ───────────
@@ -314,18 +418,19 @@ export function startReminderTick(): void {
 		const now = Date.now();
 		const fired: string[] = [];
 		const all = get(notesStore);
+		// Schema v2: fire on the FIELD, not on `type`. Guarding on
+		// `type === "reminder"` meant a reminder added to a text note never
+		// fired — silently, with nothing in the console.
 		for (const n of all) {
-			if (n.type !== "reminder") continue;
-			const r = n as ReminderNote;
-			if (r.fired) continue;
-			if (r.when == null) continue;
-			if (r.when > now) continue;
-			fired.push(r.id);
-			reminderFireCallback?.(r);
+			if (n.fired) continue;
+			if (n.when == null) continue;
+			if (n.when > now) continue;
+			fired.push(n.id);
+			reminderFireCallback?.(n as ReminderNote);
 		}
 		if (fired.length > 0) {
 			notesStore.update((ns) =>
-				ns.map((n) => (fired.includes(n.id) && n.type === "reminder" ? ({ ...n, fired: true } as Note) : n)),
+				ns.map((n) => (fired.includes(n.id) ? ({ ...n, fired: true } as Note) : n)),
 			);
 			scheduleSave();
 		}

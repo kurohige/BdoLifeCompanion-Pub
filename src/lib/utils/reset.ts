@@ -1,3 +1,15 @@
+/**
+ * Next daily reset — 00:00 UTC. "Server time" throughout this app is UTC (see
+ * `fmtServer` in utils/time.ts and the weekly reset below); this is the same
+ * clock, not a second one.
+ */
+export function getNextDailyReset(now: Date): Date {
+	const t = new Date(now);
+	t.setUTCHours(0, 0, 0, 0);
+	if (t <= now) t.setUTCDate(t.getUTCDate() + 1);
+	return t;
+}
+
 /** Next Sunday 00:00 UTC from the given date */
 export function getNextWeeklyReset(now: Date): Date {
 	const t = new Date(now);

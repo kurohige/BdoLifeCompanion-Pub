@@ -111,7 +111,7 @@
 </script>
 
 <div
-	class="popover glass-card"
+	class="popover paper-card"
 	role="dialog"
 	aria-label={m.bartering_popover_dialog_label({ name: node.name })}
 	style:--tier-color="var(--t{node.tier})"
@@ -242,8 +242,8 @@
 		min-width: 0;
 	}
 	.island-name {
-		font-family: 'Space Grotesk', system-ui, sans-serif;
-		font-size: 10px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 12px;
 		letter-spacing: 0.12em;
 		color: var(--tier-color);
 		font-weight: 700;
@@ -281,8 +281,8 @@
 		background: var(--surface-lowest);
 		border: 0;
 		color: var(--on-surface);
-		font-size: 10px;
-		font-family: 'Manrope', system-ui, sans-serif;
+		font-size: 12px;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
 		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tier-color) 30%, transparent);
 	}
 	.text-input:focus {
@@ -325,7 +325,7 @@
 		box-shadow: inset 2px 0 0 var(--tier-color);
 	}
 	.suggest-name {
-		font-size: 10px;
+		font-size: 12px;
 		flex: 1;
 		min-width: 0;
 		overflow: hidden;
@@ -343,17 +343,19 @@
 		background: var(--surface-lowest);
 		color: var(--btn-color);
 		border: 0;
-		font-size: 9px;
+		font-size: 12px;
 		font-weight: 700;
-		font-family: 'Space Grotesk', system-ui, sans-serif;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
 		letter-spacing: 0.04em;
 		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--btn-color) 30%, transparent);
 		cursor: pointer;
 	}
 	.tier-btn.active {
 		background: var(--btn-color);
-		color: var(--bg, #0a0a0a);
-		box-shadow: 0 0 6px var(--btn-color);
+		/* White on the filled tier colour. Was `var(--bg, #0a0a0a)` — `--bg` is
+		   defined nowhere; it only read as theme-aware. Near-black on the darker
+		   tiers (t2/t3/t4) was barely legible. */
+		color: #ffffff;
 	}
 	.qty-row {
 		display: flex;
@@ -379,7 +381,7 @@
 		background: var(--surface-lowest);
 		color: var(--on-surface);
 		border: 0;
-		font-size: 11px;
+		font-size: 12.5px;
 		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tier-color) 30%, transparent);
 	}
 	.qty-step {
@@ -387,18 +389,18 @@
 		background: var(--surface-lowest);
 		color: var(--tier-color);
 		border: 0;
-		font-size: 9px;
-		font-family: 'Space Grotesk', monospace;
+		font-size: 12px;
+		font-family: 'IBM Plex Mono', ui-monospace, monospace;
 		cursor: pointer;
 		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tier-color) 25%, transparent);
 	}
 	.silver-preview {
-		font-size: 10px;
+		font-size: 12px;
 		color: var(--tertiary);
 		text-align: right;
 	}
 	.silver-rate {
-		font-size: 8px;
+		font-size: 10.5px;
 		color: var(--outline-hud);
 		margin-left: 4px;
 	}
@@ -406,13 +408,12 @@
 		width: 100%;
 		padding: 6px 0;
 		background: var(--tier-color);
-		color: var(--bg, #0a0a0a);
+		color: #ffffff;
 		border: 0;
-		font-family: 'Space Grotesk', system-ui, sans-serif;
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
 		font-weight: 700;
-		font-size: 10px;
+		font-size: 12px;
 		letter-spacing: 0.16em;
-		box-shadow: 0 0 12px color-mix(in oklab, var(--tier-color) 50%, transparent);
 		cursor: pointer;
 	}
 	.add-btn:disabled {

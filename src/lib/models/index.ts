@@ -15,11 +15,6 @@ export type {
 	PlannerFile,
 } from "./planner.js";
 export type {
-	AnnouncementMessage,
-	AnnouncementsPayload,
-	AnnouncementsCache,
-} from "./announcements.js";
-export type {
 	BarterTier,
 	BarterItemDef,
 	TierProperties,
@@ -37,6 +32,13 @@ export type {
 	ShipUpgradeStageDef,
 	ShipUpgradePathDef,
 	ShipUpgradesData,
+	ShipCraftMethod,
+	ShipRecipeIngredient,
+	ShipMassProcess,
+	ShipMaterialAlternative,
+	ShipMaterialRecipe,
+	ShipMaterialRecipesData,
+	ShipRecipeNoteKey,
 	ShipStatsTier,
 	ShipVariantStats,
 	ShipStatsData,
@@ -67,3 +69,17 @@ export type {
 	WeeklyTaskProgress,
 	WeeklyTaskProgressData,
 } from "./weekly-tasks.js";
+export type {
+	Region,
+	OcrEvent,
+	MatchSource,
+	CapturedRow,
+	CaptureSession,
+	CaptureLog,
+	LootSettings,
+} from "./loot.js";
+export {
+	DEFAULT_LOOT_SETTINGS,
+	normalizeForMatch,
+	unmatchedKey,
+} from "./loot.js";

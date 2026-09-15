@@ -3,166 +3,139 @@
 @tailwind utilities;
 
 /* ============================================
-   Theme: Obsidian Dark (default)
-   Merged from Neon Cyberpunk + Stitch HUD.
-   Sharp corners, Space Grotesk, purple/cyan,
-   subtle neon glow, clean glass panels.
+   Theme: Parchment (single theme, light)
+   IBM Plex Sans (UI) + IBM Plex Mono (all numerals).
+   ONE ACCENT:
+     teal   -> primary action, active nav, live figures, countdowns
+     orange -> a second data series only (charts, unread dot)
+     amber  -> warning band (boss spawn under 15 min)
+     rust   -> shortages, destructive, spawn under 5 min
+   Grouping via warm surface steps + hairlines, never glow.
+   Spec: docs/mockups/design_handoff_bdo_life_companion/
    ============================================ */
 :root {
-  --background: 0 0% 5%;
-  --foreground: 30 5% 92%;
-  --card: 0 0% 7%;
-  --card-foreground: 30 5% 92%;
-  --primary: 275 100% 75%;
-  --primary-foreground: 0 0% 0%;
-  --secondary: 0 0% 12%;
-  --secondary-foreground: 30 5% 90%;
-  --muted: 0 0% 16%;
-  --muted-foreground: 280 5% 62%;
-  --accent: 186 100% 50%;
-  --accent-foreground: 0 0% 0%;
-  --destructive: 0 72% 65%;
-  --destructive-foreground: 0 0% 0%;
-  --border: 280 8% 22%;
-  --input: 0 0% 6%;
-  --ring: 275 100% 75%;
-  --radius: 0.125rem;
-  --cyan: 186 100% 50%;
-  --app-opacity: 0.95;
-  --neon-glow: 1;
-  /* Glow color tokens — hex for direct use in shadows/borders, RGB triplet
-     for rgb(... / alpha) composition. Customizable via Settings → Theme. */
-  --glow-primary: #c77dff;
-  --glow-primary-rgb: 199 125 255;
-  --glow-accent: #00e3fd;
-  --glow-accent-rgb: 0 227 253;
-  --gold-glow: #ffee10;
-  --gold-glow-rgb: 255 238 16;
-  --scrollbar-hover: var(--glow-primary);
-  --selection-bg: var(--glow-primary);
-  --focus-ring: var(--glow-accent);
-  /* Surface hierarchy */
-  --surface-lowest: #0e0e0e;
-  --surface-low: #1c1b1b;
-  --surface-container: #201f1f;
-  --surface-high: #2a2a2a;
-  --surface-highest: #353534;
-  --outline-hud: #998d9d;
-  --outline-variant: #4d4352;
-  --on-surface: #e5e2e1;
-  --secondary-container: var(--glow-accent);
-  --primary-container: var(--glow-primary);
-  --tertiary: #dac839;
-  /* Barter tier colors (T1-T7 + Special) — used by Routes/Logs map nodes,
-     TierBadge, and ledger row borders. Matches obsidian.css from design handoff. */
-  --t1: #998d9d;
-  --t2: #81c784;
-  --t3: #64b5f6;
-  --t4: #e1b6ff;
-  --t5: #dac839;
-  --t6: #ff9eb4;
-  --t7: #ff6b35;
-  --tsp: #f5d97a;
+  /* HSL triplets consumed as hsl(var(--x)) by Tailwind aliases */
+  --background: 40 27% 96%;        /* #f7f5f1 page ground */
+  --foreground: 90 3% 13%;         /* #20211f ink */
+  --card: 0 0% 100%;
+  --card-foreground: 90 3% 13%;
+  --primary: 176 67% 26%;          /* #16706a teal */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 43 24% 94%;         /* #f4f2ed chip / secondary button */
+  --secondary-foreground: 40 8% 22%; /* #3d3a34 — matches --ink-mid */
+  --muted: 42 24% 92%;             /* #efece5 segmented track */
+  --muted-foreground: 40 7% 35%;   /* #5f5b53 — matches --ink-muted */
+  --accent: 176 67% 26%;           /* cyan collapsed into teal */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 10 54% 45%;       /* #b04a35 rust */
+  --destructive-foreground: 0 0% 100%;
+  --border: 40 25% 88%;            /* #e9e4da */
+  --input: 0 0% 100%;
+  --ring: 176 67% 26%;
+  --radius: 10px;                  /* inner-row radius; cards use 16 explicitly */
+  --cyan: 176 67% 26%;
+  --app-opacity: 1;
+
+  /* Parchment palette — exact spec hexes */
+  --paper: #f7f5f1;
+  --card-bg: #ffffff;
+  --card-border: #ddd7cb; /* crisper lining for panel/card separation (was #e9e4da) */
+  --card-shadow: 0 1px 2px rgba(32, 33, 31, 0.05), 0 3px 10px rgba(32, 33, 31, 0.06);
+  --thumb-border: rgba(32, 33, 31, 0.25); /* dark edge so item icons read against any ground */
+  --row: #faf9f6;
+  --chip: #f4f2ed;
+  --track: #efece5;
+  --hairline: #f1eee8;
+  --divider: #eeeae2;
+  --divider-strong: #ddd7cb;
+  --ink: #20211f;
+  /* Legibility pass 2026-08-30: compressed ink ramp — all ≥4.5:1 on white.
+     mid 10.4:1 · muted 6.7:1 · faint 5.0:1 · eyebrow 5.7:1 */
+  --ink-mid: #3d3a34;
+  --ink-muted: #5f5b53;
+  --ink-faint: #756f66;
+  --eyebrow-ink: #6b665d;
+  --teal: #16706a;
+  --teal-rgb: 22 112 106;
+  --teal-tint: #e7f0ee;
+  --teal-tint-ink: #5d7d78;
+  --orange: #ef8f4b;
+  --amber: #c07c2c;
+  --rust: #b04a35;
+  --rust-tint: #fdf5f2;
+  --rust-tint-border: #f0d8cf;
+  --rust-deep: #8f3a26;
+  --live-dot: #3f8560;
+  --overlay-paper: #efece5;
+  --overlay-row: #f7f5f1;
+  --overlay-chip: #e4e0d6;
+  /* Search-match highlight. Warm on purpose: it has to sit inside a teal due
+     chip and a rust overdue row without reading as either of them. */
+  --match-tint: #f6ecc9;
+  --shadow-float: 0 14px 36px rgba(32, 33, 31, 0.18);
+  --shadow-overlay: 0 10px 26px rgba(0, 0, 0, 0.45);
+
+  /* Interaction accents */
+  --scrollbar-hover: var(--teal);
+  --selection-bg: var(--teal);
+  --focus-ring: var(--teal);
+
+  /* Surface hierarchy — remapped to Parchment steps */
+  --surface-lowest: #ffffff;   /* titlebar, footers, inputs */
+  --surface-low: #ffffff;      /* cards */
+  --surface: #faf9f6;          /* section caps (scan-log header) */
+  --surface-container: #faf9f6;/* rows, stat tiles */
+  --surface-high: #f4f2ed;     /* hover fills, chips */
+  --surface-highest: #efece5;  /* tracks, overlay paper */
+  /* Alternating table rows ONLY. Deliberately not --surface-lowest: that one is
+     the titlebar / footer / input ground app-wide, so tinting it to stripe a
+     ledger would tint every input in the app. */
+  --row-alt: #faf9f6;
+  --outline-hud: #6b665d; /* legibility pass: doubles as text in Logs/Routes/loot — keep on the ramp (was #8b867c, 3.6:1) */
+  --outline-variant: #e9e4da;
+  --on-surface: #20211f;
+  --on-surface-variant: #5f5b53; /* 6.7:1 — the quiet step, matches --ink-muted */
+  --secondary-container: var(--teal-tint);
+  --primary-container: var(--teal);
+  --tertiary: #c07c2c;
+
+  /* Type scale — four roles. Also exposed in Tailwind as text-label/data/value/head. */
+  --text-label: 12.5px;
+  --text-data: 14px;
+  --text-value: 14.5px;
+  --text-head: 17px;
+
+  /* Barter tier colors (T1-T7 + Special) — DATA ONLY, muted, readable on white. */
+  --t1: #8d8292;
+  --t2: #3f8560;
+  --t3: #2f6fa8;
+  --t4: #7d5ba6;
+  --t5: #9a7d1f;
+  --t6: #b05a72;
+  --t7: #c25a2b;
+  --tsp: #a8842e;
 }
 
-/* --- Obsidian typography --- */
+/* --- Parchment typography --- */
 :root {
-  font-family: 'Manrope', system-ui, sans-serif;
-  letter-spacing: 0.01em;
-}
-h1, h2, h3,
-.font-headline,
-select, button {
-  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
 }
 .font-mono,
 input[type="number"] {
-  font-family: 'Space Grotesk', monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
 }
 
-/* Sharp corners everywhere */
-*,
-*::before,
-*::after {
-  border-radius: 0.125rem;
-}
-.rounded-full {
-  border-radius: 9999px !important;
-}
-
-/* Labels become uppercase tactical style */
-.text-muted-foreground {
+/* Eyebrow — the all-caps micro label every card header uses.
+   (.hud-eyebrow kept as the legacy name; same treatment.) */
+.eyebrow,
+.hud-eyebrow {
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-weight: 600;
-}
-
-/* ============================================
-   Theme: Light (improved — warmer, less bright)
-   ============================================ */
-.theme-light {
-  --background: 220 12% 88%;
-  --foreground: 220 15% 15%;
-  --card: 220 10% 92%;
-  --card-foreground: 220 15% 15%;
-  --primary: 260 60% 50%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 220 10% 84%;
-  --secondary-foreground: 220 15% 15%;
-  --muted: 220 8% 78%;
-  --muted-foreground: 220 10% 40%;
-  --accent: 160 55% 38%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 65% 50%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 220 10% 72%;
-  --input: 220 10% 86%;
-  --ring: 260 60% 50%;
-  --radius: 0.125rem;
-  --cyan: 195 70% 38%;
-  --app-opacity: 1;
-  --neon-glow: 0;
-  /* Light-theme glow defaults — darker so they read on the warm background. */
-  --glow-primary: #6b46a0;
-  --glow-primary-rgb: 107 70 160;
-  --glow-accent: #2ba076;
-  --glow-accent-rgb: 43 160 118;
-  --gold-glow: #e6c700;
-  --gold-glow-rgb: 230 199 0;
-  --scrollbar-hover: var(--glow-primary);
-  --selection-bg: var(--glow-primary);
-  --focus-ring: var(--glow-primary);
-  /* Surface hierarchy (warm off-white) */
-  --surface-lowest: #ebedf0;
-  --surface-low: #e3e5e9;
-  --surface-container: #dcdfe4;
-  --surface-high: #d2d6dc;
-  --surface-highest: #c8cdd4;
-  --outline-hud: #6b7280;
-  --outline-variant: #b0b7c2;
-  --on-surface: #1a1e25;
-  --secondary-container: var(--glow-accent);
-  --primary-container: var(--glow-primary);
-  --tertiary: hsl(45 70% 40%);
-  /* Barter tier colors — darker variants for legibility on the warm light bg */
-  --t1: #6b6573;
-  --t2: #4a8e4d;
-  --t3: #2e7dc7;
-  --t4: #9b6abf;
-  --t5: #b3a01f;
-  --t6: #cc6680;
-  --t7: #d04a18;
-  --tsp: #b89c3f;
-}
-
-/* Light theme: revert sharp styles that don't work well */
-.theme-light .text-muted-foreground {
-  text-transform: none;
-  letter-spacing: normal;
-  font-family: inherit;
-  font-weight: 500;
+  letter-spacing: 0.10em;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 10.5px;
+  color: var(--eyebrow-ink);
 }
 
 /* ============================================
@@ -170,14 +143,14 @@ input[type="number"] {
    ============================================ */
 html {
   background-color: transparent;
-  color: hsl(var(--foreground));
+  color: var(--ink);
   overflow: hidden;
 }
 
 body {
-  font-family: var(--app-font-family, 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-family: var(--app-font-family, 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   background-color: hsla(var(--background) / var(--app-opacity));
-  color: hsl(var(--foreground));
+  color: var(--ink);
   margin: 0;
   padding: 0;
   height: 100vh;
@@ -187,19 +160,21 @@ body {
 /*
  * Global bold toggle — when body.app-bold is set, every text node gets forced
  * to bold regardless of Tailwind font-weight classes or inline overrides.
- * Uses !important because we're overriding utility classes that appear across
- * hundreds of components. `code`, `pre`, `kbd`, and `.font-mono` are excluded
- * so monospace blocks stay readable.
  */
 body.app-bold,
 body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   font-weight: 700 !important;
 }
 
-
 /* Transparency-aware root background */
 .bg-app-root {
   background-color: hsla(var(--background) / var(--app-opacity));
+}
+
+/* Widget modes (mini/medium) draw their own rounded paper shell on a
+   transparent window — the body must not paint the page ground behind it. */
+body.widget-mode {
+  background-color: transparent;
 }
 
 /* ============================================
@@ -238,183 +213,51 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
 /* Rounded Helpers */
 .rounded-lg { border-radius: var(--radius); }
 
-/* ============================================
-   Neon Text & Glow Effects (theme-aware)
-   ============================================ */
-.neon-text-purple {
-  color: var(--glow-primary);
-  text-shadow: 0 0 calc(8px * var(--neon-glow)) var(--glow-primary);
-}
-
-.neon-text-cyan {
-  color: var(--glow-accent);
-  text-shadow: 0 0 calc(8px * var(--neon-glow)) var(--glow-accent);
-}
-
-.neon-text-green {
-  color: #00ff9d;
-  text-shadow: 0 0 calc(8px * var(--neon-glow)) #00ff9d;
-}
-
-/* Neon Glow Effects — disabled in light theme */
-.neon-glow-purple {
-  box-shadow: 0 0 calc(8px * var(--neon-glow)) var(--glow-primary),
-              inset 0 0 calc(4px * var(--neon-glow)) rgb(var(--glow-primary-rgb) / 0.1);
-}
-
-/* Light theme: no glows */
-.theme-light .neon-glow-purple {
-  box-shadow: none;
-}
-.theme-light .neon-text-purple {
-  color: hsl(var(--primary));
-  text-shadow: none;
-}
-.theme-light .neon-text-cyan {
-  color: hsl(var(--accent));
-  text-shadow: none;
-}
-.theme-light .neon-text-green {
-  color: hsl(var(--accent));
-  text-shadow: none;
+/* Live / accent text — flat color, no glow */
+.live-teal {
+  color: var(--teal);
 }
 
 /* ============================================
-   Glassmorphism Utilities
+   Surface Utilities — Parchment cards.
+   Window cards carry borders only (no shadow); floating layers
+   (dropdown/toast) carry the one deep shadow. No blur anywhere.
    ============================================ */
-
-/* --- Obsidian Dark glass (clean, minimal glow) --- */
-
-.glass-panel {
-  background: rgba(20, 20, 30, 0.35);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(77, 67, 82, 0.1);
-  border-radius: var(--radius);
+.paper-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
 }
 
-.glass-card {
-  background: rgba(28, 27, 27, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(77, 67, 82, 0.15);
-  border-radius: var(--radius);
+.paper-input {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 11px;
 }
 
-.glass-titlebar {
-  background: rgba(19, 19, 19, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 2px solid var(--glow-primary);
+.paper-input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 1px rgb(var(--teal-rgb) / 0.3);
 }
 
-.glass-bossbar {
-  background: rgba(28, 27, 27, 0.35);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(77, 67, 82, 0.15);
+.paper-dropdown {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-float);
 }
 
-.glass-input {
-  background: #0e0e0e;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(77, 67, 82, 0.2);
-  border-radius: var(--radius);
+.paper-toast {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-float);
 }
 
-.glass-input:focus {
-  border-color: var(--glow-accent);
-  box-shadow: 0 0 0 1px rgb(var(--glow-accent-rgb) / 0.2);
-}
-
-.glass-dropdown {
-  background: rgba(14, 14, 14, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(77, 67, 82, 0.2);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-}
-
-.glass-toast {
-  background: rgba(20, 20, 30, 0.9);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-}
-
-.glass-section {
-  background: rgba(28, 27, 27, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(77, 67, 82, 0.1);
-  border-radius: var(--radius);
-}
-
-.glass-stats {
-  background: rgba(42, 42, 42, 0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(77, 67, 82, 0.15);
-  border-radius: var(--radius);
-}
-
-/* --- Light theme glass — subtle frost --- */
-
-.theme-light .glass-panel {
-  background: hsla(220 10% 92% / 0.75);
-  border-color: hsla(220 10% 72% / 0.5);
-  box-shadow: 0 1px 3px hsla(220 10% 50% / 0.08);
-}
-
-.theme-light .glass-card {
-  background: hsla(220 10% 92% / 0.65);
-  border-color: hsla(220 10% 72% / 0.4);
-  box-shadow: 0 1px 2px hsla(220 10% 50% / 0.06);
-}
-
-.theme-light .glass-titlebar {
-  background: hsla(220 10% 92% / 0.8);
-  border-bottom-color: hsl(260 60% 50%);
-  box-shadow: 0 1px 3px hsla(220 10% 50% / 0.1);
-}
-
-.theme-light .glass-bossbar {
-  background: hsla(220 10% 84% / 0.6);
-  box-shadow: 0 1px 2px hsla(220 10% 50% / 0.06);
-}
-
-.theme-light .glass-input {
-  background: hsla(220 10% 86% / 0.5);
-  border-color: hsla(220 10% 72% / 0.5);
-}
-
-.theme-light .glass-input:focus {
-  border-color: hsl(260 60% 50%);
-  box-shadow: 0 0 0 1px hsla(260 60% 50% / 0.2);
-}
-
-.theme-light .glass-dropdown {
-  background: hsla(220 10% 92% / 0.92);
-  border-color: hsla(220 10% 72% / 0.6);
-  box-shadow: 0 8px 24px hsla(220 10% 50% / 0.12);
-}
-
-.theme-light .glass-toast {
-  background: hsla(220 10% 92% / 0.88);
-  box-shadow: 0 4px 16px hsla(220 10% 50% / 0.1);
-}
-
-.theme-light .glass-section {
-  background: hsla(220 10% 84% / 0.5);
-  border-color: hsla(220 10% 72% / 0.3);
-}
-
-.theme-light .glass-stats {
-  background: hsla(220 10% 92% / 0.55);
-  border-color: hsla(220 10% 72% / 0.4);
-  box-shadow: 0 1px 2px hsla(220 10% 50% / 0.06);
+.paper-stats {
+  background: var(--row);
+  border: 1px solid transparent;
+  border-radius: 10px;
 }
 
 /* ============================================
@@ -426,12 +269,12 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--secondary));
+  background: var(--hairline);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted));
+  background: var(--divider-strong);
   border-radius: 3px;
   min-height: 24px;
 }
@@ -440,7 +283,6 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   background: var(--scrollbar-hover);
 }
 
-/* Ensure scrollable containers always show scrollbar track */
 .overflow-auto,
 .overflow-y-auto {
   scrollbar-gutter: stable;
@@ -451,7 +293,7 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
    ============================================ */
 ::selection {
   background-color: var(--selection-bg);
-  color: hsl(var(--background));
+  color: #ffffff;
 }
 
 *:focus-visible {
@@ -459,8 +301,21 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   outline-offset: 2px;
 }
 
+/* The keyboard ring must survive scoped `outline: none` resets — Svelte's
+   component scoping outranks the global rule above. :focus-visible only
+   matches keyboard focus on buttons/links, so mouse clicks stay ring-free;
+   text inputs are left out on purpose (they carry their own teal border /
+   shadow focus affordance, and a second ring would double the chrome). */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: 2px;
+}
+
 /* ============================================
-   Settings Slider
+   Settings Slider — teal, flat
    ============================================ */
 .settings-slider {
   -webkit-appearance: none;
@@ -468,9 +323,15 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  background: hsl(var(--secondary));
+  background: var(--track);
   cursor: pointer;
   outline: none;
+}
+/* outline:none above also swallows the global *:focus-visible ring (same
+   specificity, later in file) — restore it for keyboard users */
+.settings-slider:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 .settings-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -478,17 +339,11 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--gold-glow);
-  box-shadow: 0 0 6px rgb(var(--gold-glow-rgb) / 0.4);
+  background: var(--teal);
   cursor: pointer;
-  transition: box-shadow 0.2s;
 }
 .settings-slider::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 12px rgb(var(--gold-glow-rgb) / 0.6);
-}
-.theme-light .settings-slider::-webkit-slider-thumb {
-  background: var(--gold-glow);
-  box-shadow: 0 0 4px rgb(var(--gold-glow-rgb) / 0.3);
+  background: #0f544f;
 }
 
 /* ============================================
@@ -504,102 +359,99 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
 }
 
 /* ============================================
-   Active Tab Styling
+   Active Tab Styling — white pill on track, teal text
    ============================================ */
 [data-state="active"][role="tab"] {
-  background: linear-gradient(180deg, rgb(var(--glow-primary-rgb) / 0.25) 0%, rgb(var(--glow-primary-rgb) / 0.08) 100%);
-  border-bottom: 2px solid var(--glow-primary);
-  color: var(--glow-primary);
-  font-weight: 700;
+  background: var(--card-bg);
+  color: var(--teal);
+  font-weight: 600;
+  border-radius: 7px;
 }
 
 /* ============================================
-   Obsidian HUD Utilities
+   Chrome Utilities
    ============================================ */
 
-.obsidian-header {
-  font-family: 'Space Grotesk', monospace;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--outline-hud);
+/* Nav rail — a floating white card: 70 outer (56 track + 6 padding + 1
+   border), items 44 tall, radius 14. */
+.nav-rail {
+  width: 60px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
 }
 
-/* Nav glow buttons — circular with expanding glow on hover */
-.nav-glow-btn {
+/* Nav rail items — 44px, radius 11 (icon pass, 2026-08-31). The art is
+   full-colour illustration whose hue is the identifier: rest keeps most of
+   the colour (0.78 / saturate .85), hover and active share the full look.
+   Height-based sizing lets the 8 landscape files fill the box instead of
+   shrinking to fit their long edge. */
+.rail-btn {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50% !important;
+  width: 100%;
+  height: 44px;
+  border-radius: 11px !important;
   background: transparent;
   cursor: pointer;
-  transition: box-shadow 0.4s, transform 0.2s;
+  transition: background 0.18s, box-shadow 0.18s;
 }
-/* Gold glow ring behind the icon */
-.nav-glow-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50% !important;
-  background: var(--gold-glow);
-  transition: transform 0.4s, box-shadow 0.4s, opacity 0.4s;
-  transform: scale(0.85);
-  z-index: 0;
-  opacity: 0;
-}
-/* Icon image */
-.nav-glow-icon {
+.rail-icon {
   position: relative;
   z-index: 1;
-  width: 24px;
-  height: 24px;
+  height: 26px;
+  width: auto;
+  max-width: 30px;
   object-fit: contain;
   border-radius: 0 !important;
+  opacity: 0.78;
+  filter: saturate(0.85);
+  transition: opacity 0.18s, filter 0.18s;
 }
-.nav-glow-btn:hover::before {
-  transform: scale(1.15);
-  box-shadow: 0 0 15px var(--gold-glow);
+.rail-btn:hover {
+  background: var(--chip);
+}
+.rail-btn:hover .rail-icon {
   opacity: 1;
-}
-.nav-glow-btn:hover {
-  color: var(--gold-glow);
-  box-shadow: 0 0 5px var(--gold-glow);
-  text-shadow: 0 0 5px var(--gold-glow);
+  filter: none;
 }
 
-/* Active state — persistent gold glow */
-.nav-glow-active {
-  color: var(--gold-glow);
-  box-shadow: 0 0 8px rgb(var(--gold-glow-rgb) / 0.4);
+/* Active state — teal tint + left indicator bar, full-opacity icon */
+.rail-active {
+  background: var(--teal-tint);
+  box-shadow: inset 2px 0 0 0 var(--teal);
 }
-.nav-glow-active::before {
-  background: var(--gold-glow);
-  transform: scale(1.1);
-  box-shadow: 0 0 12px var(--gold-glow);
+.rail-active .rail-icon {
   opacity: 1;
+  filter: none;
 }
 
-/* Neon cyan pulse for special nav items (e.g. About) when inactive */
-.nav-neon-pulse::before {
-  background: var(--glow-accent);
-  opacity: 0.6;
-  transform: scale(1.05);
-  animation: neon-blink 2s ease-in-out infinite;
+/* Special nav item (e.g. About) attention pulse — subtle teal */
+.rail-pulse {
+  animation: rail-blink 2.4s ease-in-out infinite;
 }
-.nav-neon-pulse {
-  box-shadow: 0 0 6px rgb(var(--glow-accent-rgb) / 0.3);
-}
-@keyframes neon-blink {
-  0%, 100% { opacity: 0.3; box-shadow: 0 0 4px rgb(var(--glow-accent-rgb) / 0.2); }
-  50% { opacity: 0.7; box-shadow: 0 0 12px rgb(var(--glow-accent-rgb) / 0.5); }
+@keyframes rail-blink {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--teal-rgb) / 0); }
+  50% { box-shadow: 0 0 0 3px rgb(var(--teal-rgb) / 0.18); }
 }
 
-/* Crafting icon glow buttons — gold bleed behind icon */
-.craft-glow-btn {
+/* Item-icon frame — thin dark edge + the darker tile ground so item art
+   reads against paper/rows (icon pass step 3a) */
+.icon-frame {
+  border: 1px solid var(--thumb-border);
+  background: var(--overlay-chip);
+}
+
+/* Crafting sub-tab icon buttons — flat chip hover, teal-tint active */
+.craft-tab-btn {
   position: relative;
   display: flex;
   align-items: center;
@@ -609,156 +461,47 @@ body.app-bold *:not(code):not(pre):not(kbd):not(.font-mono) {
   border-radius: 50% !important;
   background: transparent;
   cursor: pointer;
-  transition: box-shadow 0.4s, transform 0.2s;
+  transition: background 0.18s, transform 0.18s;
 }
-.craft-glow-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50% !important;
-  background: radial-gradient(circle, rgb(var(--gold-glow-rgb) / 0.5) 0%, rgb(var(--gold-glow-rgb) / 0) 70%);
-  transition: transform 0.4s, opacity 0.4s;
-  transform: scale(0.6);
-  z-index: 0;
-  opacity: 0;
+.craft-tab-btn:hover {
+  background: var(--chip);
 }
-.craft-glow-btn:hover::before {
-  transform: scale(1.3);
-  opacity: 1;
-}
-.craft-glow-btn:hover {
-  box-shadow: 0 0 8px rgb(var(--gold-glow-rgb) / 0.3);
-  transform: scale(1.05);
-}
-.craft-glow-active {
-  box-shadow: 0 0 12px rgb(var(--gold-glow-rgb) / 0.4);
-}
-.craft-glow-active::before {
-  transform: scale(1.2);
-  opacity: 1;
-  background: radial-gradient(circle, rgb(var(--gold-glow-rgb) / 0.6) 0%, rgb(var(--gold-glow-rgb) / 0) 70%);
+.craft-tab-active {
+  background: var(--teal-tint);
 }
 
-.obsidian-accent {
-  border-left: 2px solid var(--glow-accent);
+/* Sub-tab pills — teal, normal case */
+.tab-pill-active {
+  color: var(--teal);
+  border-bottom: 2px solid var(--teal);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-
-.obsidian-pill-active {
-  color: var(--gold-glow);
-  border-bottom: 2px solid var(--gold-glow);
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  text-shadow: 0 0 6px rgb(var(--gold-glow-rgb) / 0.4);
+.tab-pill {
+  color: var(--ink-muted);
+  font-family: 'IBM Plex Sans', sans-serif;
+  letter-spacing: 0.02em;
+  transition: color 0.2s;
+}
+.tab-pill:hover {
+  color: var(--ink);
 }
 
-.obsidian-pill {
-  color: #998d9d;
-  font-family: 'Space Grotesk', sans-serif;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transition: color 0.3s, text-shadow 0.3s;
-}
-.obsidian-pill:hover {
-  color: var(--gold-glow);
-  text-shadow: 0 0 4px rgb(var(--gold-glow-rgb) / 0.3);
-}
-
-.obsidian-cta {
-  background: var(--glow-primary);
-  color: #000;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  box-shadow: 0 0 15px rgb(var(--glow-primary-rgb) / 0.2);
-  transition: filter 0.15s, transform 0.1s;
-}
-.obsidian-cta:hover {
-  background: var(--glow-primary);
-  filter: brightness(1.15);
-  box-shadow: 0 0 25px rgb(var(--glow-primary-rgb) / 0.3);
-}
-.obsidian-cta:active { transform: scale(0.97); }
-
-.obsidian-timer {
-  font-family: 'Space Grotesk', monospace;
-  font-weight: 700;
-  color: var(--glow-accent);
+/* Timer — teal, because a live figure carries the accent */
+.timer-accent {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-weight: 600;
+  color: var(--teal);
   font-variant-numeric: tabular-nums;
 }
 
-
-.obsidian-footer {
+.app-footer {
   height: 24px;
-  background: rgba(14, 14, 14, 0.8);
-  border-top: 1px solid rgba(77, 67, 82, 0.1);
-  font-family: 'Space Grotesk', monospace;
-  font-size: 9px;
-  color: var(--outline-hud);
-}
-
-/* ============================================
-   Light — Obsidian overrides (flat, no glow)
-   ============================================ */
-.theme-light .obsidian-header { color: var(--outline-hud); }
-.theme-light .nav-glow-btn {
-  background: hsla(220 10% 80% / 0.5);
-  color: var(--outline-hud);
-}
-/* Light theme keeps the gold-glow var (now warmer) but darkens the foreground
-   color/text for legibility. Most rules collapse to the shared gold-glow vars
-   defined in :root / .theme-light — the `color:` lines stay overridden to keep
-   the darker tone since #b89e00 is darker than the gold-glow itself. */
-.theme-light .nav-glow-btn:hover {
-  color: #b89e00;
-  box-shadow: 0 0 5px rgb(var(--gold-glow-rgb) / 0.4);
-  text-shadow: none;
-}
-.theme-light .nav-glow-btn:hover::before {
-  box-shadow: 0 0 12px rgb(var(--gold-glow-rgb) / 0.4);
-}
-.theme-light .nav-glow-active {
-  color: #b89e00;
-  box-shadow: 0 0 6px rgb(var(--gold-glow-rgb) / 0.3);
-}
-.theme-light .nav-glow-active::before {
-  box-shadow: 0 0 10px rgb(var(--gold-glow-rgb) / 0.3);
-}
-.theme-light .craft-glow-btn:hover {
-  box-shadow: 0 0 8px rgb(var(--gold-glow-rgb) / 0.3);
-}
-.theme-light .craft-glow-active {
-  box-shadow: 0 0 10px rgb(var(--gold-glow-rgb) / 0.3);
-}
-.theme-light .obsidian-accent { border-left-color: hsl(var(--primary)); }
-.theme-light .obsidian-pill-active {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  box-shadow: none;
-  text-transform: none;
-  letter-spacing: normal;
-}
-.theme-light .obsidian-pill {
-  color: var(--outline-hud);
-  text-transform: none;
-  letter-spacing: normal;
-}
-.theme-light .obsidian-pill:hover {
-  background: var(--surface-high);
-  color: hsl(var(--foreground));
-}
-.theme-light .obsidian-cta {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  box-shadow: none;
-  letter-spacing: 0.05em;
-}
-.theme-light .obsidian-timer { color: hsl(var(--cyan)); }
-.theme-light .obsidian-footer {
-  background: var(--surface-lowest);
-  border-top-color: var(--outline-variant);
-  color: var(--outline-hud);
+  background: var(--card-bg);
+  border-top: 1px solid var(--card-border);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--eyebrow-ink);
 }

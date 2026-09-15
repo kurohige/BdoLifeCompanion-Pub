@@ -29,12 +29,28 @@ export interface BossInfo {
 	image: string;
 	color: string;
 	isRare: boolean;
+	/**
+	 * Present only on limited-time event bosses. Dates are "YYYY-MM-DD" (UTC, inclusive).
+	 * Once `until` has passed, the boss disappears from the settings panel automatically
+	 * and its schedule entries stop producing spawns — no manual removal deadline.
+	 */
+	event?: { from: string; until: string };
 }
 
 export interface BossSpawn {
 	time: string; // "HH:MM" in UTC
 	day: number; // 0=Monday, 1=Tuesday, ..., 6=Sunday
 	bosses: BossId[];
+	/**
+	 * Optional event window ("YYYY-MM-DD" UTC, inclusive). Occurrences outside the
+	 * window are ignored by the timer, so expired event entries are inert and can be
+	 * pruned whenever convenient instead of on a deadline.
+	 *
+	 * To add an event boss: add its BossId + BOSSES entry (with `event`), then spawn
+	 * rows carrying `validFrom`/`validUntil` in the affected region schedules.
+	 */
+	validFrom?: string;
+	validUntil?: string;
 }
 
 export const BOSSES: Record<BossId, BossInfo> = {

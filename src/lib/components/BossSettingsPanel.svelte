@@ -9,13 +9,18 @@
 		showToast,
 	} from "$lib/stores";
 	import { BOSSES, type BossId } from "$lib/constants/boss-data";
+	import { Button } from "$lib/components/ui";
 	import { m } from "$lib/paraglide/messages";
 	import { invoke } from "@tauri-apps/api/core";
 	import { open } from "@tauri-apps/plugin-dialog";
 	import { startBossAlertPreview, invalidateCustomBossSoundCache, type BossAlertPreviewHandle } from "$lib/utils/audio";
 	import { onDestroy } from "svelte";
 
-	const ALL_BOSS_IDS = Object.keys(BOSSES) as BossId[];
+	// Event bosses drop out of the panel once their window has passed (checked at mount)
+	const ALL_BOSS_IDS = (Object.keys(BOSSES) as BossId[]).filter((id) => {
+		const ev = BOSSES[id].event;
+		return !ev || Date.now() <= Date.parse(`${ev.until}T23:59:59.999Z`);
+	});
 	const regularBosses = ALL_BOSS_IDS.filter((id) => !BOSSES[id].isRare);
 	const rareBosses = ALL_BOSS_IDS.filter((id) => BOSSES[id].isRare);
 
@@ -120,12 +125,12 @@
 
 <div class="space-y-3">
 	<!-- Boss alert sound -->
-	<div class="glass-card rounded p-2 space-y-2">
-		<h3 class="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">{m.bosses_alerts_section()}</h3>
+	<div class="paper-card rounded p-2 space-y-2">
+		<h3 class="text-[12.5px] font-bold text-muted-foreground uppercase tracking-wide">{m.bosses_alerts_section()}</h3>
 		<label class="flex items-center justify-between gap-2 cursor-pointer">
 			<div class="min-w-0">
-				<p class="text-[11px] font-semibold text-foreground">{m.bosses_play_sound()}</p>
-				<p class="text-[10px] text-muted-foreground">{m.bosses_play_sound_subtitle()}</p>
+				<p class="text-[12.5px] font-semibold text-foreground">{m.bosses_play_sound()}</p>
+				<p class="text-[12px] text-muted-foreground">{m.bosses_play_sound_subtitle()}</p>
 			</div>
 			<input
 				type="checkbox"
@@ -138,8 +143,8 @@
 		{#if $settingsStore.boss_sound_enabled}
 			<div class="flex items-center justify-between gap-2">
 				<div class="min-w-0">
-					<p class="text-[11px] font-semibold text-foreground">{m.bosses_alert_minutes()}</p>
-					<p class="text-[10px] text-muted-foreground">{m.bosses_alert_minutes_subtitle()}</p>
+					<p class="text-[12.5px] font-semibold text-foreground">{m.bosses_alert_minutes()}</p>
+					<p class="text-[12px] text-muted-foreground">{m.bosses_alert_minutes_subtitle()}</p>
 				</div>
 				<input
 					type="number"
@@ -150,28 +155,26 @@
 						const v = parseInt((e.target as HTMLInputElement).value, 10);
 						if (!isNaN(v)) setBossAlertMinutes(v);
 					}}
-					class="w-14 bg-input border border-border rounded px-1.5 py-0.5 text-[11px] text-center text-foreground no-spinner flex-shrink-0"
+					class="w-14 bg-input border border-border rounded px-1.5 py-0.5 text-[12.5px] text-center text-foreground no-spinner flex-shrink-0"
 				/>
 			</div>
 
 			<!-- Custom sound -->
 			<div class="border-t border-outline-variant/20 pt-2 space-y-1.5">
 				<div class="min-w-0">
-					<p class="text-[11px] font-semibold text-foreground">{m.bosses_custom_sound()}</p>
-					<p class="text-[10px] text-muted-foreground">{m.bosses_custom_sound_subtitle()}</p>
+					<p class="text-[12.5px] font-semibold text-foreground">{m.bosses_custom_sound()}</p>
+					<p class="text-[12px] text-muted-foreground">{m.bosses_custom_sound_subtitle()}</p>
 				</div>
 				<div class="flex items-center justify-between gap-2">
-					<span class="text-[10px] text-muted-foreground truncate" title={$settingsStore.boss_sound_custom_name || m.bosses_custom_sound_default()}>
+					<span class="text-[12px] text-muted-foreground truncate" title={$settingsStore.boss_sound_custom_name || m.bosses_custom_sound_default()}>
 						{$settingsStore.boss_sound_custom_name || m.bosses_custom_sound_default()}
 					</span>
 					<div class="flex gap-1.5 flex-shrink-0">
-						<button
+						<Button
 							type="button"
+							variant={previewing ? "primary" : "secondary"}
+							size="sm"
 							onclick={togglePreview}
-							class="px-2 py-1 text-[10px] rounded border transition-colors flex items-center gap-1
-								{previewing
-									? 'border-[var(--gold-glow)] text-[var(--gold-glow)] bg-[rgb(var(--gold-glow-rgb)_/_0.08)]'
-									: 'border-outline-variant/40 text-foreground hover:border-[var(--gold-glow)] hover:text-[var(--gold-glow)]'}"
 							title={previewing ? m.bosses_custom_sound_stop_title() : m.bosses_custom_sound_preview_title()}
 							aria-pressed={previewing}
 						>
@@ -186,25 +189,27 @@
 								</svg>
 								{m.bosses_custom_sound_preview()}
 							{/if}
-						</button>
-						<button
+						</Button>
+						<Button
 							type="button"
+							variant="secondary"
+							size="sm"
 							onclick={chooseSoundFile}
 							disabled={importing}
-							class="px-2 py-1 text-[10px] rounded border border-outline-variant/40 text-foreground hover:border-[var(--gold-glow)] hover:text-[var(--gold-glow)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 							title={m.bosses_custom_sound_choose_title()}
 						>
 							{importing ? m.bosses_custom_sound_importing() : m.bosses_custom_sound_choose()}
-						</button>
+						</Button>
 						{#if $settingsStore.boss_sound_custom_name}
-							<button
+							<Button
 								type="button"
+								variant="danger"
+								size="sm"
 								onclick={resetSound}
-								class="px-2 py-1 text-[10px] rounded border border-outline-variant/40 text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
 								title={m.bosses_custom_sound_reset_title()}
 							>
 								{m.bosses_custom_sound_reset_button()}
-							</button>
+							</Button>
 						{/if}
 					</div>
 				</div>
@@ -215,29 +220,23 @@
 	<!-- Boss Visibility -->
 	<div class="space-y-2">
 		<div class="space-y-0.5">
-			<h2 class="text-sm font-bold neon-text-cyan">{m.bosses_visibility_title()}</h2>
-			<p class="text-[10px] text-muted-foreground">
+			<h2 class="text-sm font-bold text-foreground">{m.bosses_visibility_title()}</h2>
+			<p class="text-[12px] text-muted-foreground">
 				{m.bosses_visibility_subtitle()}
 			</p>
 		</div>
 		<div class="flex gap-1.5">
-			<button
-				onclick={showAll}
-				class="px-2 py-1 text-[10px] rounded border border-outline-variant/40 text-foreground hover:border-[var(--gold-glow)] hover:text-[var(--gold-glow)] transition-colors"
-			>
+			<Button variant="secondary" size="sm" onclick={showAll}>
 				{m.bosses_show_all()}
-			</button>
-			<button
-				onclick={hideAll}
-				class="px-2 py-1 text-[10px] rounded border border-outline-variant/40 text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
-			>
+			</Button>
+			<Button variant="ghost" size="sm" onclick={hideAll}>
 				{m.bosses_hide_all()}
-			</button>
+			</Button>
 		</div>
 
 		<!-- Regular bosses -->
 		<div class="space-y-1.5 pt-1">
-			<h3 class="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">{m.bosses_regular()}</h3>
+			<h3 class="text-[12.5px] font-bold text-muted-foreground uppercase tracking-wide">{m.bosses_regular()}</h3>
 			<div class="grid grid-cols-2 gap-1.5">
 				{#each regularBosses as id (id)}
 					{@const boss = BOSSES[id]}
@@ -247,7 +246,7 @@
 						class="flex items-center gap-2 p-1.5 rounded border transition-all text-left
 							{hidden
 								? 'border-outline-variant/20 bg-secondary/20 opacity-50'
-								: 'border-outline-variant/40 bg-secondary/40 hover:border-[var(--gold-glow)]'}"
+								: 'border-l-2 border-l-primary border-outline-variant/40 bg-secondary/40 hover:border-outline-hud'}"
 						title={hidden ? m.bosses_card_hidden_title() : m.bosses_card_visible_title()}
 					>
 						<img
@@ -255,12 +254,18 @@
 							alt={boss.name}
 							class="w-7 h-7 rounded-full border border-outline-variant/30 object-cover {hidden ? 'grayscale' : ''}"
 						/>
-						<span class="flex-1 text-[11px] font-semibold text-foreground truncate">{boss.name}</span>
+						<span class="flex-1 text-[12.5px] font-semibold text-foreground truncate">{boss.name}</span>
+						{#if boss.event}
+							<span
+								class="text-[12px] px-1 rounded border border-primary/40 text-primary/90 uppercase tracking-wide flex-shrink-0"
+								title={`${boss.event.from} → ${boss.event.until}`}>{m.bosses_event_tag()}</span
+							>
+						{/if}
 						<span
-							class="w-7 h-4 rounded-full border flex items-center flex-shrink-0 {hidden ? 'bg-secondary border-outline-variant/30 justify-start' : 'bg-[var(--gold-glow)]/20 border-[var(--gold-glow)] justify-end'}"
+							class="w-7 h-4 rounded-full border flex items-center flex-shrink-0 {hidden ? 'bg-secondary border-outline-variant/30 justify-start' : 'bg-primary/20 border-primary justify-end'}"
 						>
 							<span
-								class="w-3 h-3 rounded-full mx-0.5 {hidden ? 'bg-muted-foreground' : 'bg-[var(--gold-glow)]'}"
+								class="w-3 h-3 rounded-full mx-0.5 {hidden ? 'bg-muted-foreground' : 'bg-primary'}"
 							></span>
 						</span>
 					</button>
@@ -270,7 +275,7 @@
 
 		<!-- Rare bosses -->
 		<div class="space-y-1.5">
-			<h3 class="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">{m.bosses_rare()}</h3>
+			<h3 class="text-[12.5px] font-bold text-muted-foreground uppercase tracking-wide">{m.bosses_rare()}</h3>
 			<div class="grid grid-cols-2 gap-1.5">
 				{#each rareBosses as id (id)}
 					{@const boss = BOSSES[id]}
@@ -280,7 +285,7 @@
 						class="flex items-center gap-2 p-1.5 rounded border transition-all text-left
 							{hidden
 								? 'border-outline-variant/20 bg-secondary/20 opacity-50'
-								: 'border-outline-variant/40 bg-secondary/40 hover:border-[var(--gold-glow)]'}"
+								: 'border-l-2 border-l-primary border-outline-variant/40 bg-secondary/40 hover:border-outline-hud'}"
 						title={hidden ? m.bosses_card_hidden_title() : m.bosses_card_visible_title()}
 					>
 						<img
@@ -288,12 +293,18 @@
 							alt={boss.name}
 							class="w-7 h-7 rounded-full border border-outline-variant/30 object-cover {hidden ? 'grayscale' : 'opacity-70'}"
 						/>
-						<span class="flex-1 text-[11px] font-semibold text-foreground/80 truncate">{boss.name}</span>
+						<span class="flex-1 text-[12.5px] font-semibold text-foreground/80 truncate">{boss.name}</span>
+						{#if boss.event}
+							<span
+								class="text-[12px] px-1 rounded border border-primary/40 text-primary/90 uppercase tracking-wide flex-shrink-0"
+								title={`${boss.event.from} → ${boss.event.until}`}>{m.bosses_event_tag()}</span
+							>
+						{/if}
 						<span
-							class="w-7 h-4 rounded-full border flex items-center flex-shrink-0 {hidden ? 'bg-secondary border-outline-variant/30 justify-start' : 'bg-[var(--gold-glow)]/20 border-[var(--gold-glow)] justify-end'}"
+							class="w-7 h-4 rounded-full border flex items-center flex-shrink-0 {hidden ? 'bg-secondary border-outline-variant/30 justify-start' : 'bg-primary/20 border-primary justify-end'}"
 						>
 							<span
-								class="w-3 h-3 rounded-full mx-0.5 {hidden ? 'bg-muted-foreground' : 'bg-[var(--gold-glow)]'}"
+								class="w-3 h-3 rounded-full mx-0.5 {hidden ? 'bg-muted-foreground' : 'bg-primary'}"
 							></span>
 						</span>
 					</button>

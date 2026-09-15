@@ -7,6 +7,7 @@
 	} from "$lib/stores";
 	import { SAILOR_SPEED_TABLE } from "$lib/models/bartering";
 	import type { SailorStatus } from "$lib/models/bartering";
+	import { Button } from "$lib/components/ui";
 	import { m } from "$lib/paraglide/messages";
 
 	// label is a thunk so it re-translates when locale changes
@@ -101,50 +102,47 @@
 <div class="space-y-3">
 	<!-- Header + Add Button -->
 	<div class="flex items-center justify-between">
-		<h3 class="text-xs font-headline font-bold text-primary uppercase tracking-wider">{m.bartering_sailors_roster()}</h3>
-		<button
-			onclick={() => showAddForm = !showAddForm}
-			class="px-2 py-0.5 text-[10px] font-bold rounded obsidian-cta"
-		>
+		<h3 class="text-xs font-headline font-bold text-foreground uppercase tracking-wider">{m.bartering_sailors_roster()}</h3>
+		<Button variant="secondary" size="sm" onclick={() => showAddForm = !showAddForm}>
 			{showAddForm ? m.bartering_sailors_cancel() : m.bartering_sailors_add()}
-		</button>
+		</Button>
 	</div>
 
 	<!-- Add Sailor Form -->
 	{#if showAddForm}
-		<div class="glass-card p-3 space-y-2">
+		<div class="paper-card p-3 space-y-2">
 			<div class="flex gap-2">
 				<div class="flex-1">
-					<span class="text-[10px] text-muted-foreground">{m.bartering_sailors_name()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.bartering_sailors_name()}</span>
 					<input
 						type="text"
 						bind:value={newName}
 						placeholder={m.bartering_sailors_name_placeholder()}
-						class="glass-input text-[11px] px-2 py-1 w-full"
+						class="paper-input text-[12.5px] px-2 py-1 w-full"
 					/>
 				</div>
 				<div class="w-16">
-					<span class="text-[10px] text-muted-foreground">{m.bartering_sailors_level()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.bartering_sailors_level()}</span>
 					<input
 						type="number"
 						bind:value={newLevel}
 						min="1" max="10"
-						class="glass-input text-[11px] px-2 py-1 w-full no-spinner"
+						class="paper-input text-[12.5px] px-2 py-1 w-full no-spinner"
 					/>
 				</div>
 				<div class="w-16">
-					<span class="text-[10px] text-muted-foreground">{m.bartering_sailors_speed()}</span>
+					<span class="text-[12px] text-muted-foreground">{m.bartering_sailors_speed()}</span>
 					<input
 						type="number"
 						bind:value={newSpeed}
 						step="0.1" min="0"
 						placeholder="0.0"
-						class="glass-input text-[11px] px-2 py-1 w-full no-spinner"
+						class="paper-input text-[12.5px] px-2 py-1 w-full no-spinner"
 					/>
 				</div>
 				<div class="w-24">
-					<span class="text-[10px] text-muted-foreground">{m.bartering_sailors_status()}</span>
-					<select bind:value={newStatus} class="glass-input text-[11px] px-1 py-1 w-full">
+					<span class="text-[12px] text-muted-foreground">{m.bartering_sailors_status()}</span>
+					<select bind:value={newStatus} class="paper-input text-[12.5px] px-1 py-1 w-full">
 						{#each STATUS_OPTIONS as opt}
 							<option value={opt.value}>{opt.label()}</option>
 						{/each}
@@ -152,13 +150,9 @@
 				</div>
 			</div>
 			<div class="flex justify-end">
-				<button
-					onclick={handleAdd}
-					disabled={!newName.trim() || !newSpeed}
-					class="px-3 py-1 text-[11px] font-bold rounded obsidian-cta disabled:opacity-40 disabled:cursor-not-allowed"
-				>
+				<Button variant="primary" size="sm" onclick={handleAdd} disabled={!newName.trim() || !newSpeed}>
 					{m.bartering_sailors_btn_add()}
-				</button>
+				</Button>
 			</div>
 		</div>
 	{/if}
@@ -167,13 +161,13 @@
 	{#if $sailorRosterStore.length === 0}
 		<div class="text-center py-6">
 			<p class="text-[32px] mb-1 opacity-30">&#9881;</p>
-			<p class="text-[11px] text-muted-foreground">{m.bartering_sailors_empty_title()}</p>
-			<p class="text-[10px] text-muted-foreground/60 mt-1">{m.bartering_sailors_empty_subtitle()}</p>
+			<p class="text-[12.5px] text-muted-foreground">{m.bartering_sailors_empty_title()}</p>
+			<p class="text-[12px] text-muted-foreground/60 mt-1">{m.bartering_sailors_empty_subtitle()}</p>
 		</div>
 	{:else}
-		<div class="glass-card overflow-hidden">
+		<div class="paper-card overflow-hidden">
 			<!-- Table Header -->
-			<div class="grid grid-cols-[1fr_50px_55px_70px_60px_55px_30px] gap-1 px-3 py-1.5 border-b border-outline-variant/10 text-[9px] text-muted-foreground uppercase tracking-wider">
+			<div class="grid grid-cols-[1fr_50px_55px_70px_60px_55px_30px] gap-1 px-3 py-1.5 border-b border-outline-variant/10 text-[12px] text-muted-foreground uppercase tracking-wider">
 				<span>{m.bartering_sailors_name()}</span>
 				<span class="text-center">{m.bartering_sailors_level()}</span>
 				<span class="text-center">{m.bartering_sailors_speed()}</span>
@@ -194,12 +188,12 @@
 							value={sailor.name}
 							onchange={(e) => updateSailor(sailor.id, { name: (e.target as HTMLInputElement).value })}
 							onblur={() => editingId = null}
-							class="glass-input text-[11px] px-1 py-0.5"
+							class="paper-input text-[12.5px] px-1 py-0.5"
 						/>
 					{:else}
 						<button
 							type="button"
-							class="text-[11px] text-foreground cursor-pointer hover:text-primary text-left bg-transparent border-0 p-0"
+							class="text-[12.5px] text-foreground cursor-pointer hover:text-primary text-left bg-transparent border-0 p-0"
 							onclick={() => editingId = sailor.id}
 							title={m.bartering_sailors_edit_name()}
 						>{sailor.name}</button>
@@ -211,7 +205,7 @@
 						value={sailor.level}
 						onchange={(e) => handleLevelChange(sailor.id, (e.target as HTMLInputElement).value)}
 						min="1" max="10"
-						class="glass-input text-[10px] font-mono px-1 py-0.5 w-full text-center no-spinner"
+						class="paper-input text-[12px] font-mono px-1 py-0.5 w-full text-center no-spinner"
 					/>
 
 					<!-- Speed -->
@@ -220,14 +214,14 @@
 						value={sailor.speed}
 						onchange={(e) => handleSpeedChange(sailor.id, (e.target as HTMLInputElement).value)}
 						step="0.1" min="0"
-						class="glass-input text-[10px] font-mono px-1 py-0.5 w-full text-center no-spinner"
+						class="paper-input text-[12px] font-mono px-1 py-0.5 w-full text-center no-spinner"
 					/>
 
 					<!-- Status -->
 					<select
 						value={sailor.status}
 						onchange={(e) => handleStatusChange(sailor.id, (e.target as HTMLSelectElement).value)}
-						class="glass-input text-[9px] px-0.5 py-0.5 w-full {STATUS_COLORS[sailor.status]}"
+						class="paper-input text-[12px] px-0.5 py-0.5 w-full {STATUS_COLORS[sailor.status]}"
 					>
 						{#each STATUS_OPTIONS as opt}
 							<option value={opt.value}>{opt.label()}</option>
@@ -235,15 +229,15 @@
 					</select>
 
 					<!-- Projected Likely -->
-					<span class="text-[10px] font-mono text-center text-accent">{proj.likely.toFixed(1)}</span>
+					<span class="text-[12px] font-mono text-center text-foreground">{proj.likely.toFixed(1)}</span>
 
 					<!-- Projected Max -->
-					<span class="text-[10px] font-mono text-center text-foreground">{proj.max.toFixed(1)}</span>
+					<span class="text-[12px] font-mono text-center text-foreground">{proj.max.toFixed(1)}</span>
 
 					<!-- Delete -->
 					<button
 						onclick={() => removeSailor(sailor.id)}
-						class="text-[10px] text-destructive/50 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-center"
+						class="text-[12px] text-destructive/50 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-center"
 						title={m.bartering_sailors_remove()}
 					>&#10005;</button>
 				</div>
@@ -251,18 +245,18 @@
 		</div>
 
 		<!-- Summary -->
-		<div class="flex gap-4 text-[10px] text-muted-foreground px-1">
+		<div class="flex gap-4 text-[12px] text-muted-foreground px-1">
 			<span>{m.bartering_sailors_summary_count()} <span class="text-foreground font-mono">{$sailorRosterStore.length}</span></span>
-			<span>{m.bartering_sailors_summary_avg()} <span class="text-accent font-mono">{avgSpeed.toFixed(2)}</span></span>
+			<span>{m.bartering_sailors_summary_avg()} <span class="text-foreground font-mono">{avgSpeed.toFixed(2)}</span></span>
 			<span>{m.bartering_sailors_summary_best()} <span class="text-foreground font-mono">{bestSpeed.toFixed(1)}</span></span>
 		</div>
 	{/if}
 
 	<!-- Speed Reference Table -->
-	<div class="glass-card p-3">
-		<h3 class="text-[10px] font-headline font-bold text-muted-foreground uppercase tracking-wider mb-2">{m.bartering_sailors_ref_title()}</h3>
+	<div class="paper-card p-3">
+		<h3 class="text-[12px] font-headline font-bold text-muted-foreground uppercase tracking-wider mb-2">{m.bartering_sailors_ref_title()}</h3>
 		<div class="overflow-x-auto">
-			<table class="w-full text-[9px]">
+			<table class="w-full text-[12px]">
 				<thead>
 					<tr class="border-b border-outline-variant/10">
 						<th class="text-left text-muted-foreground py-0.5">{m.bartering_sailors_level()}</th>
@@ -278,7 +272,7 @@
 						<tr class="border-b border-outline-variant/5">
 							<td class="text-muted-foreground py-0.5">{m.bartering_sailors_ref_lv({ n: row.level })}</td>
 							<td class="text-center font-mono text-foreground py-0.5">{row.min}</td>
-							<td class="text-center font-mono text-accent py-0.5">{row.median}</td>
+							<td class="text-center font-mono text-foreground py-0.5">{row.median}</td>
 							<td class="text-center font-mono text-foreground py-0.5">{row.max}</td>
 							<td class="text-center font-mono text-muted-foreground py-0.5">{row.medianRoll || "-"}</td>
 							<td class="text-center font-mono text-muted-foreground py-0.5">{row.maxRoll || "-"}</td>

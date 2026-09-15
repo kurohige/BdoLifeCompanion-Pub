@@ -11,33 +11,15 @@ export interface InventoryItem {
 	quantity: number;
 }
 
-export type AppTheme = "obsidian" | "light";
 export type FontFamily = "system" | "monospace" | "serif";
 export type FontSize = "xs" | "small" | "default" | "large" | "xl" | "xxl";
 export type Locale = "en" | "es";
-export type NotesDockSide = "left" | "right";
+export type StripSlot = "top" | "bottom" | "hidden";
+export type CraftingLead = "list" | "detail";
+export type CraftingDensity = "comfortable" | "compact";
 
-/**
- * Per-theme color/glow overrides. All fields optional — an unset field means
- * "use the theme default" (the value baked into app.css). Colors are stored as
- * `#rrggbb` hex strings so the native <input type="color"> picker can read
- * them back without conversion; HSL/RGB fan-out happens at apply time in
- * `applyTheme()`.
- *
- * `glow_intensity` is a multiplier for the `--neon-glow` CSS var (0 = no
- * glow, 1 = stock obsidian, 2 = doubled). Light theme defaults to 0.
- */
-export interface ThemeOverrides {
-	primary?: string;
-	accent?: string;
-	gold?: string;
-	glow_intensity?: number;
-}
-
-export interface ThemeOverridesByTheme {
-	obsidian: ThemeOverrides;
-	light: ThemeOverrides;
-}
+/** UI scale steps (%) — applied as webview zoom on the full window only. */
+export const UI_SCALE_STEPS = [90, 100, 110, 125] as const;
 
 export interface WindowState {
 	width: number;
@@ -49,16 +31,12 @@ export interface WindowState {
 
 export interface AppSettings {
 	transparency: number;
-	cooking_mastery: string;
-	alchemy_mastery: string;
 	cooking_total_mastery: number;
 	alchemy_total_mastery: number;
 	server_region: string;
 	market_region: string;
 	favorites: string[];
-	theme: AppTheme;
 	window_state: WindowState;
-	dismissed_announcements: string[];
 	boss_sound_enabled: boolean;
 	timer_sound_enabled: boolean;
 	boss_alert_minutes: number;
@@ -68,14 +46,37 @@ export interface AppSettings {
 	font_size: FontSize;
 	barter_level: string;
 	has_value_pack: boolean;
-	total_barter_count: number;
 	always_on_top: boolean;
 	hidden_bosses: string[];
 	mini_show_clocks: boolean;
 	clock_format_24h: boolean;
 	locale: Locale;
-	notes_panel_dock_side: NotesDockSide;
-	theme_overrides: ThemeOverridesByTheme;
+	/** Scratchpad floating panel — open state and dragged position persist. */
+	scratchpad_open: boolean;
+	scratchpad_pos: { x: number; y: number } | null;
+	/** Scratchpad detached into its own OS window */
+	scratchpad_detached: boolean;
+	/** One-time v2.8.2 flip to detached-by-default has been applied (B6). */
+	scratchpad_default_migrated: boolean;
+	/** Detached window bounds in physical px (outer position + inner size) */
+	scratchpad_win: { x: number; y: number; w: number; h: number } | null;
+	/** Note editor window bounds in physical px — its own record, not the pad's. */
+	note_win: { x: number; y: number; w: number; h: number } | null;
+	/**
+	 * Which note the single editor window is holding. The list window writes it,
+	 * the editor watches it — that is what makes opening a second note a content
+	 * swap rather than a window reload. Survives app exit so the editor reopens
+	 * on the same note; null means the editor is closed.
+	 */
+	note_editing_id: string | null;
+	/** Layout preferences (Parchment 7.3 — handoff "Configurable layout") */
+	strip_slot: StripSlot;
+	crafting_lead: CraftingLead;
+	crafting_density: CraftingDensity;
+	show_last_kill: boolean;
+	show_used_in: boolean;
+	/** Webview zoom % for the full window; widgets stay 1:1 */
+	ui_scale: number;
 }
 
 // ============== Inventory ==============
@@ -123,16 +124,12 @@ export async function saveInventory(inventory: Map<string, number>): Promise<voi
 
 export const DEFAULT_SETTINGS: AppSettings = {
 	transparency: 0.95,
-	cooking_mastery: "",
-	alchemy_mastery: "",
 	cooking_total_mastery: 0,
 	alchemy_total_mastery: 0,
 	server_region: "NA",
 	market_region: "NA",
 	favorites: [],
-	theme: "obsidian",
 	window_state: { width: 560, height: 620, x: null, y: null, view_mode: "full" },
-	dismissed_announcements: [],
 	boss_sound_enabled: true,
 	timer_sound_enabled: true,
 	boss_alert_minutes: 5,
@@ -142,14 +139,24 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	font_size: "default",
 	barter_level: "",
 	has_value_pack: false,
-	total_barter_count: 0,
 	always_on_top: true,
 	hidden_bosses: [],
 	mini_show_clocks: true,
 	clock_format_24h: true,
 	locale: "en",
-	notes_panel_dock_side: "right",
-	theme_overrides: { obsidian: {}, light: {} },
+	scratchpad_open: true, // was false — detached-by-default (v2.8.2 Part B)
+	scratchpad_pos: null,
+	scratchpad_detached: true, // was false
+	scratchpad_default_migrated: true, // fresh installs need no migration
+	scratchpad_win: null,
+	note_win: null,
+	note_editing_id: null,
+	strip_slot: "top",
+	crafting_lead: "list",
+	crafting_density: "comfortable",
+	show_last_kill: true,
+	show_used_in: true,
+	ui_scale: 100,
 };
 
 /**

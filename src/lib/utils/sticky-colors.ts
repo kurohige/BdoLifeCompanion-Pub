@@ -2,7 +2,7 @@
  * Sticky color palette for the Notes panel — 6 tones desaturated to read
  * against the Obsidian black slab. Each tone exposes `bg`, `fg`, `border`,
  * and `soft` (~8% fg tint for soft backgrounds). Tones taken verbatim from
- * the design handoff (`design_handoff_notes_sidetab/components/shared.jsx`).
+ * the design handoff (`docs/archive/features/design_handoff_notes_sidetab/components/shared.jsx`).
  */
 
 import type { StickyColor } from "$lib/models/notes";

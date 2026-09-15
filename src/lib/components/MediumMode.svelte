@@ -1,8 +1,12 @@
+<!--
+	Medium widget — 460×150 (spec 8c). Three overlay cards (SESSION ring ·
+	NEXT BOSS with the last kill pinned · single soonest NEXT RESET) plus the
+	20px control column. Medium never grows: at five minutes the boss card
+	recolours in place. "Spawn after next" is deliberately gone.
+-->
 <script lang="ts">
-	import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
-	import { exit } from "@tauri-apps/plugin-process";
+	import { getCurrentWindow } from "@tauri-apps/api/window";
 	import {
-		setViewMode,
 		settingsStore,
 		selectedSpotStore,
 		grindingTimerStore,
@@ -12,16 +16,15 @@
 		pauseGrindingTimer,
 		resumeGrindingTimer,
 		nextBossSpawn,
-		nextBossSpawns,
-		nextBossCountdown,
 		previousBossSpawn,
 		previousBossElapsed,
 		previousBossNames,
 		getBossNames,
 	} from "$lib/stores";
-	import { tickStore } from "$lib/stores/boss-timer";
+	import { tickStore, formatCountdownClock } from "$lib/stores/boss-timer";
+	import WindowControls from "./ui/WindowControls.svelte";
+	import { idleFade } from "$lib/utils/idle-fade";
 	import { BOSSES } from "$lib/constants/boss-data";
-	import { RESET_TIMERS, type ResetTimerId } from "$lib/constants/reset-data";
 	import { getRegionUtcOffset } from "$lib/utils/dst";
 	import { m } from "$lib/paraglide/messages";
 
@@ -32,55 +35,38 @@
 			await appWindow.startDragging();
 		}
 	}
-	async function expandToFull() {
-		const saved = $settingsStore.window_state;
-		const w = (saved?.view_mode === "full" && saved?.width) ? saved.width : 560;
-		const h = (saved?.view_mode === "full" && saved?.height) ? saved.height : 680;
-		await appWindow.setMinSize(new LogicalSize(480, 500));
-		await appWindow.setSize(new LogicalSize(w, h));
-		setViewMode("full");
-	}
-	async function close() { try { await exit(0); } catch { await appWindow.close(); } }
-	async function minimize() { await appWindow.minimize(); }
-	async function switchToMini() {
-		await appWindow.setMinSize(new LogicalSize(140, 40));
-		await appWindow.setSize(new LogicalSize(400, 56));
-		setViewMode("mini");
-	}
 
-	// Boss
+	// ── Boss ──
 	const primaryBoss = $derived(
 		$nextBossSpawn ? (BOSSES[$nextBossSpawn.spawn.bosses[0]] ?? null) : null
 	);
-	const bossNames = $derived($nextBossSpawn ? getBossNames($nextBossSpawn.spawn) : "");
-
-	// Second upcoming boss
-	const nextUpcoming = $derived.by(() => {
-		const spawns = $nextBossSpawns;
-		if (!spawns || spawns.length < 2) return null;
-		const s = spawns[1];
-		const names = getBossNames(s.spawn);
-		const ms = s.remainingMs;
-		const h = Math.floor(ms / 3600000);
-		const m = Math.floor((ms % 3600000) / 60000);
-		const sec = Math.floor((ms % 60000) / 1000);
-		const countdown = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-		return { names, countdown };
+	const bossNames = $derived($nextBossSpawn ? getBossNames($nextBossSpawn.spawn, " · ") : "");
+	const bossCountdown = $derived($nextBossSpawn ? formatCountdownClock($nextBossSpawn.remainingMs) : "—");
+	const spawnState = $derived.by(() => {
+		const ms = $nextBossSpawn?.remainingMs;
+		if (ms == null) return "teal";
+		if (ms <= 5 * 60_000) return "rust";
+		if (ms <= 15 * 60_000) return "amber";
+		return "teal";
 	});
+	const spawningSoon = $derived(spawnState === "rust" && $nextBossSpawn != null);
 
-	// Timer ring
-	const CIRC = 2 * Math.PI * 20;
-	const ringOffset = $derived(() => {
-		if (!$grindingTimerStore.isRunning && !$grindingTimerStore.isPaused) return CIRC;
-		return CIRC * (1 - $grindingTimerProgress);
+	// ── Session ring ──
+	const hasTimer = $derived(
+		$grindingTimerStore.isRunning || $grindingTimerStore.isPaused ||
+		$grindingTimerStore.minutes > 0 || $grindingTimerStore.seconds > 0
+	);
+	const ringPct = $derived.by(() => {
+		if (!$grindingTimerStore.isRunning && !$grindingTimerStore.isPaused) return 0;
+		return Math.round((1 - $grindingTimerProgress) * 100);
 	});
 	function handleTimerToggle() {
 		if ($grindingTimerStore.isRunning) pauseGrindingTimer();
 		else if ($grindingTimerStore.isPaused) resumeGrindingTimer();
-		else if ($grindingTimerStore.minutes > 0 || $grindingTimerStore.seconds > 0) startGrindingTimer();
+		else if (hasTimer) startGrindingTimer();
 	}
 
-	// Reset timers
+	// ── Single soonest reset ──
 	type Region = "EU" | "NA" | "SEA" | "SA";
 	const NODE_WAR_HOUR: Record<Region, number> = { NA: 18, EU: 20, SEA: 21, SA: 21 };
 	function getNextDaily(now: Date): Date { const t = new Date(now); t.setUTCHours(0,0,0,0); t.setUTCDate(t.getUTCDate()+1); return t; }
@@ -89,145 +75,269 @@
 		for(let i=0;i<8;i++){const c=new Date(now);c.setUTCDate(c.getUTCDate()+i);const off=getRegionUtcOffset(region,c);const utcH=((lh-off)+24)%24;const t=new Date(c);t.setUTCHours(utcH,0,0,0);if(utcH<lh&&region==="NA")t.setUTCDate(t.getUTCDate()+1);if(t.getTime()<=now.getTime())continue;const ld=new Date(t.getTime()+off*3600000).getUTCDay();if(satOnly?ld===6:ld!==6)return t;}
 		return new Date(now.getTime()+604800000);
 	}
-	const resetTimers = $derived.by(() => {
+	const nextReset = $derived.by(() => {
 		const now = new Date($tickStore);
 		const r = ($settingsStore.server_region ?? "NA") as Region;
-		return [
-			{ label: m.medium_reset_daily(), ms: getNextDaily(now).getTime()-now.getTime() },
-			{ label: m.medium_reset_weekly(), ms: getNextWeekly(now).getTime()-now.getTime() },
-			{ label: m.medium_reset_node_war(), ms: getNextWar(r,now,NODE_WAR_HOUR[r],false).getTime()-now.getTime() },
+		const candidates = [
+			{ label: m.medium_reset_daily(), at: getNextDaily(now) },
+			{ label: m.medium_reset_weekly(), at: getNextWeekly(now) },
+			{ label: m.medium_reset_node_war(), at: getNextWar(r, now, NODE_WAR_HOUR[r], false) },
 		];
+		candidates.sort((a, b) => a.at.getTime() - b.at.getTime());
+		const soonest = candidates[0];
+		const ms = soonest.at.getTime() - now.getTime();
+		const h = Math.floor(ms / 3600000);
+		const min = Math.floor((ms % 3600000) / 60000);
+		const countdown = h >= 24
+			? `${Math.floor(h / 24)}d ${h % 24}h`
+			: `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+		const unit = h >= 24 ? m.medium_unit_days() : m.medium_unit_hours();
+		const localTime = soonest.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+		return { label: soonest.label, countdown, subline: `${unit} · ${m.medium_reset_local({ time: localTime })}` };
 	});
-	function fmtReset(ms: number): string {
-		if(ms<=0) return m.medium_reset_now();
-		const h=Math.floor(ms/3600000); const min=Math.floor((ms%3600000)/60000);
-		if(h>=24){const d=Math.floor(h/24); return `${d}d ${h%24}h`;}
-		return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}h`;
-	}
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div role="banner" onmousedown={startDrag}
-	class="med-container">
+<div role="banner" onmousedown={startDrag} use:idleFade class="med-shell state-{spawnState}">
 
-	<!-- CARDS ROW: 3 Glass Cards + Controls -->
-	<div class="flex-1 flex gap-1.5 p-1.5 items-stretch overflow-hidden min-h-0">
-
-		<!-- CARD 1: GRINDING TIMER -->
-		<div class="glass-panel flex-1 border-l-2 border-[#ffee10] flex flex-col items-center p-2 gap-1">
-			<div class="med-title text-center w-full">{m.medium_card_timer()}</div>
-			<div class="relative flex items-center justify-center">
-				<svg class="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
-					<circle cx="24" cy="24" r="20" fill="transparent" stroke="#2a2a2a" stroke-width="2" />
-					<circle cx="24" cy="24" r="20" fill="transparent" stroke="#ffee10" stroke-width="2"
-						stroke-dasharray={CIRC} stroke-dashoffset={ringOffset()}
-						stroke-linecap="butt" style="transition:stroke-dashoffset 1s linear" />
-				</svg>
-				<div class="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-[#ffee10]"
-					style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">
-					{$grindingTimerStore.isFinished ? m.medium_timer_done() : $grindingTimerDisplay}
-				</div>
-			</div>
-			{#if $selectedSpotStore}
-				<span class="text-[8px] text-[#e5e2e1] text-center truncate w-full" style="font-family:'Manrope',sans-serif">{$selectedSpotStore.name}</span>
-			{/if}
-			{#if $grindingTimerStore.isRunning || $grindingTimerStore.isPaused || $grindingTimerStore.minutes > 0 || $grindingTimerStore.seconds > 0}
-				<button onclick={handleTimerToggle}
-					class="flex items-center gap-1 px-2 py-0.5 bg-[#2a2a2a] rounded-sm text-[#e5e2e1] hover:text-[#ffee10] transition-all mt-auto">
-					<span class="text-[10px]">{$grindingTimerStore.isRunning ? "⏸" : "▶"}</span>
-					<span class="text-[8px] font-bold uppercase">{$grindingTimerStore.isRunning ? m.medium_timer_pause() : m.medium_timer_play()}</span>
-				</button>
-			{/if}
-		</div>
-
-		<!-- CARD 2: BOSS INFO -->
-		<div class="glass-panel flex-[1.3] border-l-2 border-[#ffee10] flex flex-col items-center p-2 gap-1">
-			<div class="med-title text-center w-full">{m.medium_card_next_boss()}</div>
-			<div class="w-10 h-10 rounded-full border-2 border-[#ffee10] overflow-hidden bg-[#2a2a2a] shrink-0">
-				{#if primaryBoss}
-					<img src={primaryBoss!.image} alt={primaryBoss!.name}
-						class="w-full h-full object-cover {primaryBoss!.isRare ? 'opacity-50' : ''}" />
-				{:else}
-					<img src="/logo.png" alt="BDO" class="w-full h-full object-contain" />
-				{/if}
-			</div>
-			<span class="text-[10px] font-bold text-[#e5e2e1] text-center truncate w-full leading-tight" style="font-family:'Manrope',sans-serif">{bossNames || "—"}</span>
-			<div class="text-[16px] font-bold text-[#ffee10] leading-none"
-				style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">
-				{$nextBossCountdown || "—"}
-			</div>
-			<!-- Next upcoming boss -->
-			{#if nextUpcoming}
-				<div class="flex items-center gap-1.5 mt-auto pt-1 w-full" style="border-top:1px solid rgba(77,67,82,0.2)">
-					<span class="text-[8px] text-[#e5e2e1] truncate" style="font-family:'Manrope',sans-serif">{nextUpcoming!.names}</span>
-					<span class="text-[8px] font-bold text-[#dac839] shrink-0" style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">{nextUpcoming!.countdown}</span>
-				</div>
-			{/if}
-			<!-- Last spawn -->
-			{#if $previousBossSpawn}
-				<div class="flex items-center gap-1.5 w-full opacity-60" title={m.medium_recent_spawn_title()}>
-					<span class="text-[8px] text-[#e5e2e1] truncate" style="font-family:'Manrope',sans-serif">
-						{$previousBossNames}
-					</span>
-					<span class="text-[8px] text-[#e5e2e1]/70 shrink-0 ml-auto" style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">{$previousBossElapsed}</span>
-				</div>
-			{/if}
-		</div>
-
-		<!-- CARD 3: RESETS -->
-		<div class="glass-panel flex-1 border-l-2 border-[#ffee10] flex flex-col p-2 gap-1.5">
-			<div class="med-title text-center w-full">{m.medium_card_resets()}</div>
-			<div class="flex flex-col gap-2 flex-1 justify-center">
-				{#each resetTimers as timer}
-					<div class="flex justify-between items-center leading-none">
-						<span class="text-[9px] text-[#e5e2e1] uppercase" style="font-family:'Manrope',sans-serif">{timer.label}</span>
-						<span class="text-[10px] font-bold text-[#ffee10]" style="font-family:'Space Grotesk',monospace;font-variant-numeric:tabular-nums">{fmtReset(timer.ms)}</span>
-					</div>
-				{/each}
+	<!-- SESSION -->
+	<div class="med-card items-center">
+		<span class="med-eyebrow">{m.medium_card_session()}</span>
+		<div class="ring" style="background: conic-gradient(var(--teal) 0 {ringPct}%, var(--overlay-chip) {ringPct}% 100%)">
+			<div class="ring-hole">
+				{$grindingTimerStore.isFinished ? m.medium_timer_done() : $grindingTimerDisplay}
 			</div>
 		</div>
-
-		<!-- RIGHT CONTROL COLUMN (all 4 buttons) -->
-		<div class="w-[20px] shrink-0 flex flex-col items-center justify-center gap-1.5">
-			<button onclick={expandToFull} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffee10] transition-colors" title={m.mini_full_mode_title()}>
-				<span class="text-[11px]">⊞</span>
+		{#if $selectedSpotStore}
+			<div class="place-row">
+				<img src="/icons/grinding.png" alt="" class="h-[17px] w-auto flex-none object-contain" />
+				<span class="place-name">{$selectedSpotStore.name}</span>
+			</div>
+		{/if}
+		{#if hasTimer}
+			<button onclick={handleTimerToggle} class="pause-chip">
+				<span class="text-[8px]">{$grindingTimerStore.isRunning ? "⏸" : "▶"}</span>
+				<span>{$grindingTimerStore.isRunning ? m.medium_timer_pause() : m.medium_timer_play()}</span>
 			</button>
-			<button onclick={switchToMini} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffee10] transition-colors" title={m.chrome_titlebar_mini_mode_alt()}>
-				<span class="text-[11px]">⊟</span>
-			</button>
-			<button onclick={minimize} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#e5e2e1] transition-colors" title={m.chrome_titlebar_minimize_title()}>
-				<span class="text-[11px]">━</span>
-			</button>
-			<button onclick={close} class="p-0.5 text-[#e5e2e1]/60 hover:text-[#ffb4ab] transition-colors" title={m.chrome_titlebar_close_title()}>
-				<span class="text-[11px]">✕</span>
-			</button>
-		</div>
-
+		{/if}
 	</div>
 
+	<!-- NEXT BOSS -->
+	<div class="med-card med-card-boss items-center {spawningSoon ? 'boss-soon' : ''}">
+		<span class="med-eyebrow {spawningSoon ? 'eyebrow-rust' : ''}">
+			{spawningSoon ? m.medium_spawning_soon() : m.medium_card_next_boss()}
+		</span>
+		<div class="boss-portrait">
+			{#if primaryBoss}
+				<img src={primaryBoss!.image} alt={primaryBoss!.name}
+					class="w-full h-full object-cover {primaryBoss!.isRare ? 'opacity-50' : ''}" />
+			{:else}
+				<img src="/logo.png" alt="" class="w-full h-full object-contain p-1" />
+			{/if}
+		</div>
+		<span class="boss-names">{bossNames || m.mini_no_boss()}</span>
+		<div class="boss-countdown">{bossCountdown}</div>
+		{#if $previousBossSpawn}
+			<div class="last-kill" title={m.medium_recent_spawn_title()}>
+				<span class="last-kill-name">{$previousBossNames}</span>
+				<span class="last-kill-ago">{$previousBossElapsed}</span>
+			</div>
+		{/if}
+	</div>
+
+	<!-- NEXT RESET -->
+	<div class="med-card">
+		<span class="med-eyebrow text-center">{m.medium_card_next_reset()}</span>
+		<div class="flex-1 flex flex-col items-center justify-center gap-1">
+			<div class="reset-label">{nextReset.label}</div>
+			<div class="reset-countdown">{nextReset.countdown}</div>
+			<div class="reset-subline">{nextReset.subline}</div>
+		</div>
+	</div>
+
+	<!-- Controls column -->
+	<div class="wc-col">
+		<WindowControls variant="medium" />
+	</div>
 </div>
 
 <style>
-	.med-container {
+	.med-shell {
+		box-sizing: border-box;
 		width: 100%;
 		height: 100%;
-		position: relative;
+		display: flex;
+		gap: 6px;
+		padding: 6px;
+		background: var(--overlay-paper);
+		border-radius: 10px;
+		box-shadow: var(--shadow-overlay);
+		color: var(--ink);
+		overflow: hidden;
+		cursor: move;
+		user-select: none;
+		transition: opacity 0.4s;
+	}
+	.med-shell:global(.widget-idle) { opacity: 0.55; }
+	.med-shell:global(.widget-idle) .wc-col { opacity: 0; pointer-events: none; }
+
+	.med-card {
+		flex: 1;
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		background: rgba(14, 14, 14, 0.75);
-		box-shadow: 0 0 12px rgba(255, 238, 16, 0.12);
-		overflow: hidden;
-		border-radius: 0.5rem;
-		user-select: none;
-		cursor: move;
+		gap: 5px;
+		padding: 8px 6px;
+		background: var(--overlay-row);
+		border-left: 2px solid var(--teal);
+		border-radius: 4px 10px 10px 4px;
 	}
-	.med-title {
-		font-family: 'Space Grotesk', monospace;
-		font-size: 10px;
-		font-weight: 800;
+	.med-card-boss { flex: 1.3; gap: 3px; padding: 8px 7px; }
+	.med-card-boss.boss-soon {
+		background: #fbf1ec;
+		border-left-color: var(--rust);
+	}
+
+	.med-eyebrow {
+		font: 600 8.5px 'IBM Plex Sans', sans-serif;
+		letter-spacing: 0.16em;
 		text-transform: uppercase;
-		letter-spacing: 0.8px;
-		color: #ffee10;
-		text-shadow: 0 0 6px rgba(255, 238, 16, 0.4);
+		color: var(--eyebrow-ink);
+		text-align: center;
+		width: 100%;
+	}
+	.eyebrow-rust { color: var(--rust); }
+
+	/* ── Session ring ── */
+	.ring {
+		width: 48px;
+		height: 48px;
+		flex: none;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.ring-hole {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		background: var(--overlay-row);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font: 600 11.5px 'IBM Plex Mono', monospace;
+		font-variant-numeric: tabular-nums;
+		color: var(--teal);
+	}
+	.place-row {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		max-width: 100%;
+	}
+	.place-name {
+		font-size: 9px;
+		color: var(--ink-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.pause-chip {
+		margin-top: auto;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 3px 8px;
+		background: var(--overlay-chip);
+		border: none;
+		border-radius: 6px;
+		color: var(--ink-mid);
+		font: 700 8px 'IBM Plex Sans', sans-serif;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		cursor: pointer;
+	}
+	.pause-chip:hover { filter: brightness(0.95); }
+
+	/* ── Boss card ── */
+	.boss-portrait {
+		box-sizing: border-box;
+		width: 40px;
+		height: 40px;
+		flex: none;
+		border-radius: 50%;
+		overflow: hidden;
+		background: var(--overlay-chip);
+		border: 2px solid var(--teal);
+	}
+	.state-amber .boss-portrait { border-color: var(--amber); }
+	.state-rust .boss-portrait { border-color: var(--rust); }
+	.boss-names {
+		font: 600 10px 'IBM Plex Sans', sans-serif;
+		max-width: 100%;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.boss-countdown {
+		font: 600 21px 'IBM Plex Mono', monospace;
+		font-variant-numeric: tabular-nums;
+		line-height: 1;
+		color: var(--teal);
+	}
+	.state-amber .boss-countdown { color: var(--amber); }
+	.state-rust .boss-countdown { color: var(--rust); }
+	.last-kill {
+		margin-top: auto;
+		width: 100%;
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 6px;
+		padding-top: 5px;
+		border-top: 1px solid var(--card-border);
+	}
+	.last-kill-name {
+		font: 500 9px 'IBM Plex Sans', sans-serif;
+		color: var(--ink-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.last-kill-ago {
+		font: 500 9.5px 'IBM Plex Mono', monospace;
+		font-variant-numeric: tabular-nums;
+		color: var(--ink-faint);
+		flex: none;
+	}
+
+	/* ── Reset card ── */
+	.reset-label {
+		font: 600 10px 'IBM Plex Sans', sans-serif;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--ink-mid);
+	}
+	.reset-countdown {
+		font: 600 22px 'IBM Plex Mono', monospace;
+		font-variant-numeric: tabular-nums;
+		line-height: 1;
+		color: var(--teal);
+	}
+	.reset-subline {
+		font: 400 9px 'IBM Plex Sans', sans-serif;
+		color: var(--ink-faint);
+	}
+
+	/* ── Controls ── */
+	.wc-col {
+		width: 20px;
+		flex: none;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		transition: opacity 0.25s;
 	}
 </style>

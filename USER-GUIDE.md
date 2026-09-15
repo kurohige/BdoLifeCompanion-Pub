@@ -22,7 +22,7 @@ All your data is saved in a `data/` folder right next to the executable:
 BDO Life Companion/
 ├── BDO Life Companion.exe
 └── data/
-    ├── settings.json             — Your preferences (theme, mastery, region, etc.)
+    ├── settings.json             — Your preferences (mastery, region, layout, etc.)
     ├── inventory.csv             — Your item quantities
     ├── crafting_log.json         — Crafting session history
     ├── grinding_log.json         — Grinding session history
@@ -34,7 +34,11 @@ BDO Life Companion/
     ├── ship_progress.json        — Carrack upgrade material tracking
     ├── sailor_roster.json        — Your sailors
     ├── weekly_tasks.json         — Weekly task progress (Altar of Blood, etc.)
-    └── announcements_cache.json  — Cached app announcements
+    ├── notes.json                — Scratchpad notes, checklists and reminders
+    ├── craft_queue.json          — Your queued crafting batches
+    ├── loot_settings.json        — OCR loot tracker settings and saved region
+    ├── loot_current.json         — The loot capture session in progress
+    └── loot_log.json             — Saved loot capture history
 ```
 
 ### Good to know
@@ -52,7 +56,7 @@ BDO Life Companion/
 When you open the app for the first time:
 
 1. You'll see the **Full mode** with icon-based side navigation
-2. The default theme is **Obsidian Dark** — you can switch to Light in Settings
+2. The interface uses the **Parchment** light theme — there is no theme picker
 3. Sample dashboard data is included so the charts aren't empty on day one
 4. The app starts **always on top** — you can toggle this off in Settings > Display
 
@@ -60,12 +64,11 @@ When you open the app for the first time:
 
 Head to **Settings** (gear icon in the side nav) and configure:
 
-- **Server Region** — EU or NA (affects boss timer schedules)
-- **Life Skill Ranks** — Your cooking and alchemy ranks (Beginner 1 → Guru 72)
+- **Server Region** — NA, EU, SEA or SA (affects boss timer and war schedules)
+- **Market Region** — NA, EU or SEA (which Central Market your price lookups use)
 - **Mastery** — Your cooking and alchemy mastery values (0–3000)
 - **Barter Level** — Your bartering rank
 - **Value Pack** — Toggle if you have an active Value Pack
-- **Theme** — Obsidian Dark or Light
 - **Transparency** — How see-through the overlay is (useful when gaming)
 - **Always on Top** — Toggle whether the window stays above other windows
 
@@ -118,7 +121,7 @@ Track how many of each item you have. Search for items by name, click a row to e
 
 ### Grinding Tab
 
-Three sub-tabs:
+Four sub-tabs:
 
 **Tracker** — Pick a grinding spot, set a countdown timer, and log loot:
 - Search spots by name from 98+ zones
@@ -131,11 +134,13 @@ Three sub-tabs:
 
 **Hunting** — Same as the grinding tracker, but with fields for hunting mastery, matchlock, and butchering knife.
 
+**OCR** — An optional loot reader. Draw a rectangle over your own loot log and the app reads that region a few times a second, tallying drops as they scroll past and matching them against its item catalog. Lines it cannot match stay as raw text you can rename, link or delete. You start and stop it yourself, `Ctrl+Shift+End` is a global panic stop, and it never sends input to the game. A first-run notice explains the bounds before scanning can begin.
+
 <!-- screenshot: grinding-tracker.png -->
 
 ### Bartering Tab
 
-Five sub-tabs:
+Six sub-tabs:
 
 **Tracker** — Count barters by tier (T1–T7) with +/- and +5/+10 buttons:
 - Live activity log shows each barter action with item name
@@ -179,9 +184,11 @@ Your activity analytics with time and activity filters:
 
 ### Settings Tab
 
-- **Display** — Theme picker, transparency slider, font size, bold text, always-on-top toggle
+- **Display** — Language, transparency slider, font size, bold text, always-on-top toggle
+- **Layout** — Boss strip position, crafting layout and density, UI scale (90–125%)
+- **Notes** — Manage Scratchpad note categories
 - **Notifications** — Sound alerts for boss spawns and timer completion
-- **Game** — Server region, life skill ranks, cooking/alchemy mastery, barter level, Value Pack
+- **Game** — Server and market region, cooking/alchemy mastery, barter level, Value Pack
 - **Data** — Storage location, statistics, Clear All Data button
 
 ### About Tab
@@ -203,13 +210,11 @@ A compact dashboard strip showing:
 - Active timer countdown with SVG ring
 - Next boss spawn with image and countdown
 - Game reset timers (daily, weekly, node war)
-- Announcement ticker
 
 ### Mini Mode (400 x 56)
 A thin floating bar showing:
 - Next boss spawn with image and countdown
 - Active grinding session (if running)
-- Announcement ticker (if no session)
 
 All modes support always-on-top (toggleable in Settings) and transparency adjustment.
 
@@ -223,7 +228,9 @@ All modes support always-on-top (toggleable in Settings) and transparency adjust
 - Your **window position and size** are saved automatically
 - The **barter draft** persists across tabs — switch to Inventory and back without losing your session
 - Use **Clear All Data** in Settings to remove sample data and start fresh with your own
-- The **About tab** pulses with a cyan glow to draw your attention — check it out for support links
+- The **About tab** has the support links, the source-code link, and the safety statement
+- Press `Ctrl+N` for the **Scratchpad** — notes, checklists and reminders over any screen
+- The app no longer checks for updates itself; watch the GitHub Releases page
 
 ---
 

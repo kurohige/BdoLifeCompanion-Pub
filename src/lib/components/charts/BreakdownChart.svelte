@@ -107,7 +107,7 @@
 	<canvas bind:this={canvas}></canvas>
 	{#if centerLabel}
 		<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-			<span class="text-[10px] text-muted-foreground font-bold">{centerLabel}</span>
+			<span class="text-[12px] text-muted-foreground font-bold">{centerLabel}</span>
 		</div>
 	{/if}
 </div>

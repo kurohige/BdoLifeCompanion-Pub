@@ -9,6 +9,7 @@
 		showToast,
 	} from "$lib/stores";
 	import { m } from "$lib/paraglide/messages";
+	import { Button } from "$lib/components/ui";
 
 	let searchText = $state("");
 	let newItemId = $state("");
@@ -138,48 +139,30 @@
 <div class="flex flex-col h-full min-h-0 gap-4">
 	<!-- Header with controls -->
 	<div class="flex items-center justify-between gap-2">
-		<h2 class="text-base font-bold neon-text-cyan">{m.inventory_title()}</h2>
+		<h2 class="text-base font-bold text-foreground">{m.inventory_title()}</h2>
 		<div class="flex gap-1 flex-wrap justify-end">
-			<button
-				onclick={() => (showAddForm = !showAddForm)}
-				class="px-2 py-1 text-[11px] font-bold bg-accent text-accent-foreground rounded hover:opacity-80 transition-opacity"
-			>
+			<Button variant="primary" size="sm" onclick={() => (showAddForm = !showAddForm)}>
 				{showAddForm ? m.inventory_btn_cancel() : m.inventory_btn_add()}
-			</button>
-			<button
-				onclick={handleExport}
-				class="px-2 py-1 text-[11px] bg-secondary text-secondary-foreground rounded hover:opacity-80 transition-opacity"
-				title={m.inventory_btn_export_title()}
-			>
+			</Button>
+			<Button variant="secondary" size="sm" onclick={handleExport} title={m.inventory_btn_export_title()}>
 				{m.inventory_btn_export()}
-			</button>
-			<button
-				onclick={handleImportMerge}
-				class="px-2 py-1 text-[11px] bg-secondary text-secondary-foreground rounded hover:opacity-80 transition-opacity"
-				title={m.inventory_btn_import_merge_title()}
-			>
+			</Button>
+			<Button variant="secondary" size="sm" onclick={handleImportMerge} title={m.inventory_btn_import_merge_title()}>
 				{m.inventory_btn_import_merge()}
-			</button>
-			<button
-				onclick={handleImportReplace}
-				class="px-2 py-1 text-[11px] bg-primary text-primary-foreground rounded hover:opacity-80 transition-opacity"
-				title={m.inventory_btn_import_replace_title()}
-			>
+			</Button>
+			<Button variant="secondary" size="sm" onclick={handleImportReplace} title={m.inventory_btn_import_replace_title()}>
 				{m.inventory_btn_import_replace()}
-			</button>
-			<button
-				onclick={handleClearAll}
-				class="px-2 py-1 text-[11px] bg-destructive text-destructive-foreground rounded hover:opacity-80 transition-opacity"
-			>
+			</Button>
+			<Button variant="danger" size="sm" onclick={handleClearAll}>
 				{m.inventory_btn_clear()}
-			</button>
+			</Button>
 		</div>
 	</div>
 
 	<!-- Add Item Form -->
 	{#if showAddForm}
-		<div class="glass-card border-accent rounded-lg p-3 space-y-2">
-			<h3 class="text-[13px] font-bold neon-text-purple">{m.inventory_add_new_item()}</h3>
+		<div class="paper-card rounded-lg p-3 space-y-2 border-l-2 border-l-primary">
+			<h3 class="text-[13px] font-bold text-foreground">{m.inventory_add_new_item()}</h3>
 			<div class="relative">
 				<input
 					type="text"
@@ -191,7 +174,7 @@
 				/>
 				{#if suggestions().length > 0}
 					<div
-						class="absolute z-10 w-full mt-1 glass-dropdown rounded-lg max-h-48 overflow-auto"
+						class="absolute z-10 w-full mt-1 paper-dropdown rounded-lg max-h-48 overflow-auto"
 					>
 						{#each suggestions() as suggestion (suggestion.id)}
 							<button
@@ -206,7 +189,7 @@
 				{/if}
 			</div>
 			<div class="flex gap-2 items-center">
-				<label for="new-item-quantity" class="text-[11px] text-muted-foreground">{m.inventory_quantity_label()}</label>
+				<label for="new-item-quantity" class="text-[12.5px] text-muted-foreground">{m.inventory_quantity_label()}</label>
 				<input
 					id="new-item-quantity"
 					type="number"
@@ -214,13 +197,14 @@
 					min="1"
 					class="w-20 bg-input text-foreground border border-border rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
 				/>
-				<button
+				<Button
+					variant="primary"
+					size="sm"
 					onclick={handleAddItem}
 					disabled={(!newItemId.trim() && !newItemDisplay.trim()) || newItemQuantity <= 0}
-					class="px-3 py-1.5 text-[11px] font-bold bg-accent text-accent-foreground rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					{m.inventory_form_add()}
-				</button>
+				</Button>
 			</div>
 		</div>
 	{/if}
@@ -231,12 +215,12 @@
 			type="text"
 			bind:value={searchText}
 			placeholder={m.inventory_search_placeholder()}
-			class="w-full glass-input text-foreground rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+			class="w-full paper-input text-foreground rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
 		/>
 	</div>
 
 	<!-- Inventory Stats -->
-	<div class="flex gap-4 text-[11px]">
+	<div class="flex gap-4 text-[12.5px]">
 		<span class="text-muted-foreground">
 			{m.inventory_total_items()} <span class="font-bold text-foreground">{$inventoryStore.size}</span>
 		</span>
@@ -248,9 +232,9 @@
 	<!-- Inventory List -->
 	<div class="space-y-2 flex-1 min-h-0 overflow-auto">
 		{#if filteredItems().length === 0}
-			<div class="text-center py-6 text-muted-foreground text-[11px]">
+			<div class="text-center py-6 text-muted-foreground text-[12.5px]">
 				{#if $inventoryStore.size === 0}
-					<img src="/icons/inventory.png" alt={m.inventory_alt_image()} class="w-8 h-8 mx-auto mb-1 opacity-60" />
+					<img src="/icons/inventory.png" alt={m.inventory_alt_image()} class="h-11 w-auto mx-auto mb-1 opacity-90" />
 					<p>{m.inventory_empty_no_items()}</p>
 					<p class="mt-1">{m.inventory_empty_no_items_subtitle()}</p>
 				{:else}
@@ -263,7 +247,7 @@
 				{@const displayName = getItemDisplayName(item.itemId)}
 				{@const imagePath = getItemImagePath(item.itemId)}
 				<div
-					class="flex items-center gap-2 p-2 glass-card rounded-lg hover:border-primary transition-colors"
+					class="flex items-center gap-2 p-2 paper-card rounded-lg hover:border-primary transition-colors"
 				>
 					<!-- Item Image -->
 					<div
@@ -299,7 +283,7 @@
 					<!-- Delete Button -->
 					<button
 						onclick={() => handleDeleteItem(item.itemId)}
-						class="w-6 h-6 flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground rounded transition-colors text-[11px]"
+						class="w-6 h-6 flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground rounded transition-colors text-[12.5px]"
 						title={m.inventory_delete_title()}
 					>
 						✕

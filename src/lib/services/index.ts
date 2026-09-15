@@ -13,3 +13,11 @@ export {
 	type InventoryItem,
 	type AppSettings,
 } from "./persistence.js";
+
+export {
+	computeShipMaterialTotals,
+	rollUpIngredients,
+	massProcessBatches,
+	type ShipMaterialTotal,
+	type ShipIngredientTotal,
+} from "./ship-materials.js";

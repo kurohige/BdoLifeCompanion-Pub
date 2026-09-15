@@ -4,6 +4,9 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Emitter;
 
+pub mod diagnostic;
+pub mod loot;
+
 /// Get the app data directory path (portable - next to executable)
 fn get_app_data_dir() -> PathBuf {
     // Try to get the executable's directory for portable mode
@@ -154,38 +157,10 @@ impl Default for WindowState {
     }
 }
 
-/// Per-theme color/glow overrides. Mirrors the TS `ThemeOverrides` interface
-/// in `persistence.ts`. All fields optional so an empty `{}` round-trips as
-/// "use theme defaults". Colors are stored as `#rrggbb` hex strings — the
-/// frontend handles HSL/RGB fan-out at apply time.
-#[derive(Serialize, Deserialize, Clone, Default)]
-pub struct ThemeOverrides {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub primary: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub accent: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub gold: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub glow_intensity: Option<f64>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Default)]
-pub struct ThemeOverridesByTheme {
-    #[serde(default)]
-    pub obsidian: ThemeOverrides,
-    #[serde(default)]
-    pub light: ThemeOverrides,
-}
-
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct AppSettings {
     #[serde(default = "default_transparency")]
     pub transparency: f64,
-    #[serde(default)]
-    pub cooking_mastery: String,
-    #[serde(default)]
-    pub alchemy_mastery: String,
     #[serde(default)]
     pub cooking_total_mastery: i32,
     #[serde(default)]
@@ -196,12 +171,8 @@ pub struct AppSettings {
     pub market_region: String,
     #[serde(default)]
     pub favorites: Vec<String>,
-    #[serde(default = "default_theme")]
-    pub theme: String,
     #[serde(default)]
     pub window_state: WindowState,
-    #[serde(default)]
-    pub dismissed_announcements: Vec<String>,
     #[serde(default = "default_true")]
     pub boss_sound_enabled: bool,
     #[serde(default = "default_true")]
@@ -222,8 +193,6 @@ pub struct AppSettings {
     pub barter_level: String,
     #[serde(default)]
     pub has_value_pack: bool,
-    #[serde(default)]
-    pub total_barter_count: i32,
     #[serde(default = "default_true")]
     pub always_on_top: bool,
     #[serde(default)]
@@ -234,15 +203,78 @@ pub struct AppSettings {
     pub clock_format_24h: bool,
     #[serde(default = "default_locale")]
     pub locale: String,
-    /// Which edge of the window the notes panel docks to. Persists across launches.
-    #[serde(default = "default_notes_dock_side")]
-    pub notes_panel_dock_side: String,
+    /// Scratchpad floating panel — open state persists across launches.
+    #[serde(default = "default_true")]
+    pub scratchpad_open: bool,
+    /// Scratchpad dragged position (window-space px); None = default corner.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scratchpad_pos: Option<ScratchpadPos>,
+    /// Scratchpad detached into its own OS window (default since v2.8.2).
+    #[serde(default = "default_true")]
+    pub scratchpad_detached: bool,
+    /// One-time v2.8.2 detached-by-default migration marker. Deliberately
+    /// plain `default` (false): a settings.json written before the field
+    /// existed triggers the TS-side flip exactly once.
     #[serde(default)]
-    pub theme_overrides: ThemeOverridesByTheme,
+    pub scratchpad_default_migrated: bool,
+    /// Detached scratchpad window bounds in physical px; None = default placement.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scratchpad_win: Option<ScratchpadWin>,
+    /// Note editor window bounds in physical px; None = default placement.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note_win: Option<ScratchpadWin>,
+    /// Id of the note the single editor window holds; None = editor closed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note_editing_id: Option<String>,
+    /// Layout preferences (Parchment 7.3): status-strip slot ("top"/"bottom"/"hidden"),
+    /// which crafting module leads ("list"/"detail"), crafting density
+    /// ("comfortable"/"compact"), panel toggles, and full-window UI scale (%).
+    #[serde(default = "default_strip_slot")]
+    pub strip_slot: String,
+    #[serde(default = "default_crafting_lead")]
+    pub crafting_lead: String,
+    #[serde(default = "default_crafting_density")]
+    pub crafting_density: String,
+    #[serde(default = "default_true")]
+    pub show_last_kill: bool,
+    #[serde(default = "default_true")]
+    pub show_used_in: bool,
+    #[serde(default = "default_ui_scale")]
+    pub ui_scale: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ScratchpadPos {
+    pub x: f64,
+    pub y: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ScratchpadWin {
+    pub x: f64,
+    pub y: f64,
+    pub w: f64,
+    pub h: f64,
 }
 
 fn default_true() -> bool {
     true
+}
+
+fn default_strip_slot() -> String {
+    "top".to_string()
+}
+
+fn default_crafting_lead() -> String {
+    "list".to_string()
+}
+
+fn default_crafting_density() -> String {
+    "comfortable".to_string()
+}
+
+fn default_ui_scale() -> u32 {
+    100
 }
 
 fn default_boss_alert_minutes() -> i32 {
@@ -265,19 +297,11 @@ fn default_font_size() -> String {
     "default".to_string()
 }
 
-fn default_theme() -> String {
-    "obsidian".to_string()
-}
-
 /// Empty string marks "never set yet" — TS-side `initSettings` detects this on
 /// first launch and applies the system locale (or falls back to "en"). Once
 /// resolved it gets saved back, so the empty branch only fires once per install.
 fn default_locale() -> String {
     String::new()
-}
-
-fn default_notes_dock_side() -> String {
-    "right".to_string()
 }
 
 /// Build an AppSettings via serde so `#[serde(default = "...")]` annotations
@@ -540,6 +564,88 @@ fn save_planner(plans: Vec<CraftingPlan>, active_plan_id: Option<String>) -> Res
         .map_err(|e| format!("Failed to serialize planner: {}", e))?;
 
     fs::write(&path, content).map_err(|e| format!("Failed to write planner: {}", e))?;
+
+    Ok(())
+}
+
+// ============== Craft Queue Commands ==============
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CraftQueueBatch {
+    pub id: String,
+    #[serde(rename = "recipeId")]
+    pub recipe_id: String,
+    #[serde(rename = "recipeName")]
+    pub recipe_name: String,
+    pub category: String,
+    pub quantity: i32,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CraftQueueData {
+    #[serde(default)]
+    pub batches: Vec<CraftQueueBatch>,
+    #[serde(rename = "secPerCraft", default = "default_sec_per_craft")]
+    pub sec_per_craft: f64,
+}
+
+fn default_sec_per_craft() -> f64 {
+    10.0
+}
+
+/// Load the craft queue from JSON file
+#[tauri::command]
+fn load_craft_queue() -> Result<CraftQueueData, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("craft_queue.json");
+
+    let default = || CraftQueueData {
+        batches: Vec::new(),
+        sec_per_craft: default_sec_per_craft(),
+    };
+
+    if !path.exists() {
+        return Ok(default());
+    }
+
+    let content =
+        fs::read_to_string(&path).map_err(|e| format!("Failed to read craft queue: {}", e))?;
+
+    if let Ok(data) = serde_json::from_str::<CraftQueueData>(&content) {
+        return Ok(data);
+    }
+
+    // Corrupt — back up and recover with defaults (matches the planner pattern).
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let backup = dir.join(format!("craft_queue.json.corrupt-{}", ts));
+    if let Err(re) = fs::rename(&path, &backup) {
+        eprintln!("Failed to back up corrupt craft queue: {}", re);
+    }
+    eprintln!(
+        "Failed to parse craft queue; moved to {} and loaded defaults.",
+        backup.display()
+    );
+    Ok(default())
+}
+
+/// Save the craft queue to JSON file
+#[tauri::command]
+fn save_craft_queue(batches: Vec<CraftQueueBatch>, sec_per_craft: f64) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("craft_queue.json");
+
+    let data = CraftQueueData {
+        batches,
+        sec_per_craft,
+    };
+
+    let content = serde_json::to_string_pretty(&data)
+        .map_err(|e| format!("Failed to serialize craft queue: {}", e))?;
+
+    fs::write(&path, content).map_err(|e| format!("Failed to write craft queue: {}", e))?;
 
     Ok(())
 }
@@ -994,6 +1100,11 @@ pub struct ShipProgressEntry {
 pub struct ShipProgressData {
     #[serde(default)]
     pub paths: Vec<ShipProgressEntry>,
+    /// Raw crafting-ingredient counts (Lyngbakr's Bone, Starlight Hardener, ...).
+    /// Deliberately NOT per-path: the player has one pile of each, and every
+    /// Carrack variant draws from it. Keyed by recipe ingredient id.
+    #[serde(default)]
+    pub ingredients: std::collections::HashMap<String, i32>,
 }
 
 /// Load ship progress from JSON file
@@ -1003,6 +1114,7 @@ fn load_ship_progress() -> Result<ShipProgressData, String> {
     let path = dir.join("ship_progress.json");
     load_json_with_recovery(&path, "ship progress", || ShipProgressData {
         paths: Vec::new(),
+        ingredients: std::collections::HashMap::new(),
     })
 }
 
@@ -1220,43 +1332,57 @@ pub struct TodoItem {
     pub d: bool,
 }
 
-/// Tagged enum on `type` matches the TS discriminated union one-to-one.
-/// `rename_all = "lowercase"` so the wire form is "text" / "todo" / "reminder".
+/// Distinguishes "key absent" from "key present and null" — see `Note::when`.
+fn deserialize_double_option<'de, D, T>(de: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::Deserialize<'de>,
+{
+    Option::deserialize(de).map(Some)
+}
+
+/// Notes schema v2: one flat shape carrying every payload field as optional,
+/// mirroring the TS `NoteBase`. `type` is kept as data (it drives how the list
+/// summarises a note) but no longer selects which fields are legal.
+///
+/// This was a tagged enum with exact per-variant fields until 2026-09-01. That
+/// was lossy in the WRITE direction and silently so: `save_notes` deserializes
+/// the payload into this type and re-serializes it, so a text note carrying a
+/// checklist had its `items` dropped on every save — the UI kept them (the TS
+/// store updates optimistically) right up until the next reload. Any future
+/// payload field must be added here as well, or it will not survive a save.
 #[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "type", rename_all = "lowercase")]
-pub enum Note {
-    Text {
-        id: String,
-        category_key: String,
-        pinned: bool,
-        title: String,
-        tag: Option<String>,
-        created: i64,
-        updated: i64,
-        body: String,
-    },
-    Todo {
-        id: String,
-        category_key: String,
-        pinned: bool,
-        title: String,
-        tag: Option<String>,
-        created: i64,
-        updated: i64,
-        items: Vec<TodoItem>,
-    },
-    Reminder {
-        id: String,
-        category_key: String,
-        pinned: bool,
-        title: String,
-        tag: Option<String>,
-        created: i64,
-        updated: i64,
-        when: Option<i64>,
-        body: String,
-        fired: bool,
-    },
+pub struct Note {
+    pub id: String,
+    pub category_key: String,
+    pub pinned: bool,
+    pub title: String,
+    pub tag: Option<String>,
+    pub created: i64,
+    pub updated: i64,
+    #[serde(rename = "type")]
+    pub note_type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<TodoItem>>,
+    /// Double Option on purpose: absent (`None`) means the note has no reminder
+    /// section at all, `Some(None)` means the section exists with no time set.
+    /// Collapsing the two would make a fresh reminder section vanish on reload.
+    ///
+    /// `deserialize_with` is required, not decoration: serde maps a JSON `null`
+    /// straight to `None` on the OUTER Option, so without it an explicit null
+    /// is indistinguishable from an absent key and the distinction above is
+    /// lost. `deserialize_with` runs only when the key is present, so `default`
+    /// still supplies `None` for an absent one.
+    #[serde(
+        default,
+        deserialize_with = "deserialize_double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub when: Option<Option<i64>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fired: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -1268,7 +1394,7 @@ pub struct NotesData {
 
 fn default_notes_data() -> NotesData {
     NotesData {
-        schema_version: 1,
+        schema_version: 2,
         categories: Vec::new(),
         notes: Vec::new(),
     }
@@ -1305,6 +1431,7 @@ fn clear_all_data() -> Result<(), String> {
         "grinding_log.json",
         "hunting_log.json",
         "planner.json",
+        "craft_queue.json",
         "treasure_progress.json",
         "barter_inventory.json",
         "barter_log.json",
@@ -1326,59 +1453,6 @@ fn clear_all_data() -> Result<(), String> {
     }
     remove_existing_boss_sound_files(&dir);
     Ok(())
-}
-
-// ============== Announcements Commands ==============
-
-/// Fetch announcements from a remote URL with optional bearer token auth
-#[tauri::command]
-async fn fetch_announcements(url: String, token: Option<String>) -> Result<String, String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
-
-    let mut request = client.get(&url).header("Accept", "application/json");
-
-    if let Some(ref t) = token {
-        request = request.header("Authorization", format!("Bearer {}", t));
-    }
-
-    let response = request
-        .send()
-        .await
-        .map_err(|e| format!("Failed to fetch announcements: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!("HTTP error: {}", response.status()));
-    }
-
-    response
-        .text()
-        .await
-        .map_err(|e| format!("Failed to read response body: {}", e))
-}
-
-/// Load announcements cache from JSON file
-#[tauri::command]
-fn load_announcements_cache() -> Result<String, String> {
-    let dir = ensure_app_data_dir()?;
-    let path = dir.join("announcements_cache.json");
-
-    if !path.exists() {
-        return Ok(String::new());
-    }
-
-    fs::read_to_string(&path).map_err(|e| format!("Failed to read announcements cache: {}", e))
-}
-
-/// Save announcements cache to JSON file
-#[tauri::command]
-fn save_announcements_cache(data: String) -> Result<(), String> {
-    let dir = ensure_app_data_dir()?;
-    let path = dir.join("announcements_cache.json");
-
-    fs::write(&path, data).map_err(|e| format!("Failed to write announcements cache: {}", e))
 }
 
 // ============== Marketplace Commands ==============
@@ -1463,25 +1537,161 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+// ============== Loot OCR Commands ==============
+
+#[tauri::command]
+fn loot_capture_full_screen(
+    monitor_id: Option<String>,
+) -> Result<loot::CapturedFramePayload, String> {
+    let id = monitor_id.unwrap_or_default();
+    loot::capture_full_screen_payload(&id)
+}
+
+#[tauri::command]
+fn loot_test_ocr(
+    region: loot::Region,
+    color_mask: bool,
+    upscale_factor: Option<f32>,
+) -> Result<Vec<loot::OcrEvent>, String> {
+    let config = loot::PipelineConfig {
+        color_mask,
+        upscale_factor: upscale_factor.unwrap_or(3.0),
+    };
+    loot::test_ocr_once(&region, &config)
+}
+
+#[tauri::command]
+#[allow(clippy::too_many_arguments)] // Tauri command: user-tunable scanner knobs; refactoring to a struct would force every TS caller to repackage
+fn loot_start_scan(
+    state: tauri::State<'_, loot::ScannerState>,
+    app: tauri::AppHandle,
+    region: loot::Region,
+    freq_hz: f32,
+    min_confidence: f32,
+    strict_mode: bool,
+    color_mask: bool,
+    upscale_factor: Option<f32>,
+    temporal_frames: Option<u32>,
+) -> Result<(), String> {
+    let config = loot::PipelineConfig {
+        color_mask,
+        upscale_factor: upscale_factor.unwrap_or(3.0),
+    };
+    loot::start_scan(
+        &state,
+        app,
+        region,
+        freq_hz,
+        min_confidence,
+        strict_mode,
+        config,
+        temporal_frames.unwrap_or(1),
+    )
+}
+
+#[tauri::command]
+fn loot_stop_scan(state: tauri::State<'_, loot::ScannerState>) -> Result<(), String> {
+    loot::stop_scan(&state);
+    Ok(())
+}
+
+#[tauri::command]
+fn load_loot_settings() -> Result<serde_json::Value, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("loot_settings.json");
+    load_json_with_recovery(&path, "loot settings", || {
+        serde_json::json!({
+            "freqHz": 6,
+            "minConfidence": 0.85,
+            "region": null,
+            "savedRegions": [],
+            "strictMode": true,
+            "colorMask": false,
+            "upscaleFactor": 3,
+            "temporalFrames": 1
+        })
+    })
+}
+
+#[tauri::command]
+fn save_loot_settings(settings: serde_json::Value) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("loot_settings.json");
+    let content = serde_json::to_string_pretty(&settings)
+        .map_err(|e| format!("Failed to serialize loot settings: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write loot settings: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+fn load_loot_current() -> Result<serde_json::Value, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("loot_current.json");
+    load_json_with_recovery(&path, "loot current session", || serde_json::Value::Null)
+}
+
+#[tauri::command]
+fn save_loot_current(session: serde_json::Value) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("loot_current.json");
+    let content = serde_json::to_string_pretty(&session)
+        .map_err(|e| format!("Failed to serialize loot current session: {}", e))?;
+    fs::write(&path, content)
+        .map_err(|e| format!("Failed to write loot current session: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+fn load_loot_log() -> Result<serde_json::Value, String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("loot_log.json");
+    load_json_with_recovery(&path, "loot log", || serde_json::json!([]))
+}
+
+#[tauri::command]
+fn save_loot_log(logs: serde_json::Value) -> Result<(), String> {
+    let dir = ensure_app_data_dir()?;
+    let path = dir.join("loot_log.json");
+    let content = serde_json::to_string_pretty(&logs)
+        .map_err(|e| format!("Failed to serialize loot log: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write loot log: {}", e))?;
+    Ok(())
+}
+
 // ============== App Entry ==============
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(loot::ScannerState::new())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_os::init())
         .plugin({
+            use tauri::Manager;
             use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
-            let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyL);
+            let toggle_ct = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyL);
+            // Loot OCR panic-stop: any time, anywhere, kills the scanner.
+            // Picked End (rather than F8 or similar) because BDO uses every F-key.
+            let loot_panic = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::End);
             tauri_plugin_global_shortcut::Builder::new()
-                .with_shortcut(shortcut)
+                .with_shortcuts([toggle_ct, loot_panic])
                 .unwrap()
                 .with_handler(move |app, scut, event| {
-                    if scut == &shortcut && event.state() == ShortcutState::Pressed {
+                    if event.state() != ShortcutState::Pressed {
+                        return;
+                    }
+                    if scut == &toggle_ct {
                         let _ = app.emit("toggle-click-through", ());
+                    } else if scut == &loot_panic {
+                        // Stop the scanner immediately (no roundtrip through the
+                        // frontend), then signal the UI to pause the session +
+                        // surface a toast confirming the kill.
+                        let state = app.state::<loot::ScannerState>();
+                        loot::stop_scan(&state);
+                        let _ = app.emit("loot-panic-stop", ());
                     }
                 })
                 .build()
@@ -1499,11 +1709,10 @@ pub fn run() {
             save_grinding_log,
             load_planner,
             save_planner,
+            load_craft_queue,
+            save_craft_queue,
             load_treasure_progress,
             save_treasure_progress,
-            fetch_announcements,
-            load_announcements_cache,
-            save_announcements_cache,
             fetch_market_prices,
             load_hunting_log,
             save_hunting_log,
@@ -1529,8 +1738,92 @@ pub fn run() {
             clear_boss_alert_sound,
             load_boss_alert_sound,
             load_notes,
-            save_notes
+            save_notes,
+            loot_capture_full_screen,
+            loot_test_ocr,
+            loot_start_scan,
+            loot_stop_scan,
+            load_loot_settings,
+            save_loot_settings,
+            load_loot_current,
+            save_loot_current,
+            load_loot_log,
+            save_loot_log,
+            diagnostic::diagnostic_log,
+            diagnostic::diagnostic_log_read,
         ])
+        .setup(|app| {
+            // Initialize the diagnostic logger as early as possible — anything
+            // that wants to log during boot just calls diagnostic::log().
+            if let Ok(dir) = ensure_app_data_dir() {
+                diagnostic::init(dir);
+            }
+            let _ = app;
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod notes_schema_tests {
+    use super::*;
+
+    /// A v1 file must survive load→save byte-for-byte in the fields that
+    /// matter. This is the regression that motivated schema v2: the old tagged
+    /// enum dropped any field its variant didn't declare, silently, on WRITE.
+    #[test]
+    fn v1_notes_round_trip_unchanged() {
+        let v1 = r#"{"schema_version":1,"categories":[],"notes":[
+            {"type":"text","id":"a","category_key":"c1","pinned":false,"title":"T","tag":null,"created":1,"updated":2,"body":"B"},
+            {"type":"todo","id":"b","category_key":"c1","pinned":true,"title":"L","tag":"x","created":3,"updated":4,"items":[{"t":"one","d":false}]},
+            {"type":"reminder","id":"c","category_key":"c1","pinned":false,"title":"R","tag":null,"created":5,"updated":6,"when":900,"body":"","fired":false}
+        ]}"#;
+        let data: NotesData = serde_json::from_str(v1).expect("v1 parses");
+        let out = serde_json::to_value(&data).unwrap();
+        let notes = out["notes"].as_array().unwrap();
+
+        assert_eq!(notes[0]["body"], "B");
+        assert!(notes[0].get("items").is_none(), "text note must not gain items");
+        assert!(notes[0].get("when").is_none(), "text note must not gain when");
+        assert_eq!(notes[1]["items"][0]["t"], "one");
+        assert!(notes[1].get("body").is_none(), "todo note must not gain a body");
+        assert_eq!(notes[2]["when"], 900);
+        assert_eq!(notes[2]["fired"], false);
+    }
+
+    /// The v2 case the enum could not represent: one note carrying prose AND a
+    /// checklist AND a time at once.
+    #[test]
+    fn v2_mixed_payload_survives_a_save() {
+        let v2 = r#"{"schema_version":2,"categories":[],"notes":[
+            {"type":"text","id":"a","category_key":"c1","pinned":false,"title":"T","tag":null,"created":1,"updated":2,
+             "body":"prose","items":[{"t":"step","d":true}],"when":1234,"fired":false}
+        ]}"#;
+        let data: NotesData = serde_json::from_str(v2).expect("v2 parses");
+        let out = serde_json::to_value(&data).unwrap();
+        let n = &out["notes"][0];
+        assert_eq!(n["body"], "prose");
+        assert_eq!(n["items"][0]["t"], "step");
+        assert_eq!(n["items"][0]["d"], true);
+        assert_eq!(n["when"], 1234);
+        assert_eq!(n["type"], "text", "type is data, not a shape selector");
+    }
+
+    /// Absent `when` and null `when` mean different things — no section versus
+    /// a section with no time set — so they must not collapse into each other.
+    #[test]
+    fn absent_and_null_when_stay_distinct() {
+        let json = r#"{"schema_version":2,"categories":[],"notes":[
+            {"type":"text","id":"a","category_key":"c","pinned":false,"title":"","tag":null,"created":1,"updated":1,"body":""},
+            {"type":"text","id":"b","category_key":"c","pinned":false,"title":"","tag":null,"created":1,"updated":1,"body":"","when":null}
+        ]}"#;
+        let data: NotesData = serde_json::from_str(json).expect("parses");
+        assert!(data.notes[0].when.is_none(), "absent stays absent");
+        assert_eq!(data.notes[1].when, Some(None), "explicit null is a set section");
+
+        let out = serde_json::to_value(&data).unwrap();
+        assert!(out["notes"][0].get("when").is_none(), "absent is not written");
+        assert!(out["notes"][1]["when"].is_null(), "null is written back as null");
+    }
 }

@@ -1,93 +1,79 @@
+<!--
+	Mini widget — 400×56, "Mini B" layout (handoff README §3): the number is
+	the object. Portrait → 20px countdown with boss names beneath → divider →
+	session → bare clocks → the three-button control set. Spawn hairline along
+	the bottom edge; under 5 minutes the window grows DOWNWARD by 26px to
+	400×82 for the escalation line and the clocks yield the room.
+-->
 <script lang="ts">
-	import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
-	import { exit } from "@tauri-apps/plugin-process";
+	import { getCurrentWindow } from "@tauri-apps/api/window";
 	import {
-		setViewMode,
 		settingsStore,
 		nextBossSpawn,
-		nextBossCountdown,
+		previousBossSpawn,
 		getBossNames,
-		selectedSpotStore,
-		grindingTimerStore,
-		grindingTimerDisplay,
 	} from "$lib/stores";
+	import { formatCountdownClock, formatCountdownMinSec, tickStore } from "$lib/stores/boss-timer";
+	import { activeSessionStore } from "$lib/stores/active-session";
+	import { MINI_SIZE, MINI_ALERT_SIZE } from "$lib/services/window-mode";
+	import WindowControls from "./ui/WindowControls.svelte";
+	import { idleFade } from "$lib/utils/idle-fade";
 	import { BOSSES } from "$lib/constants/boss-data";
 	import { fmt24, fmt12, fmtServer, fmtServer12 } from "$lib/utils/time";
 	import { m } from "$lib/paraglide/messages";
 
 	const appWindow = getCurrentWindow();
 
-	// Window drag handler
 	async function startDrag(e: MouseEvent) {
 		if (e.button === 0 && !(e.target as HTMLElement).closest("button")) {
 			await appWindow.startDragging();
 		}
 	}
 
-	// Expand to medium mode
-	async function expandToMedium() {
-		await appWindow.setMinSize(new LogicalSize(140, 40));
-		await appWindow.setSize(new LogicalSize(460, 150));
-		setViewMode("medium");
-	}
-
-	// Expand to full mode — restore saved size or use default
-	async function expandToFull() {
-		const saved = $settingsStore.window_state;
-		const w = saved?.view_mode === "full" && saved?.width ? saved.width : 560;
-		const h = saved?.view_mode === "full" && saved?.height ? saved.height : 680;
-		await appWindow.setMinSize(new LogicalSize(480, 500));
-		await appWindow.setSize(new LogicalSize(w, h));
-		setViewMode("full");
-	}
-
-	// Minimize to taskbar
-	async function minimize() {
-		await appWindow.minimize();
-	}
-
-	// Close app
-	async function close() {
-		try {
-			await exit(0);
-		} catch {
-			await appWindow.close();
-		}
-	}
-
-	// Primary boss image
+	// ── Boss ──
 	const primaryBoss = $derived(
-		$nextBossSpawn ? (BOSSES[$nextBossSpawn.spawn.bosses[0]] ?? null) : null
+		$nextBossSpawn ? (BOSSES[$nextBossSpawn.spawn.bosses[0]] ?? null) : null,
 	);
-
-	// Boss names (supports multi-boss: "Kzarka & Karanda")
-	const bossNames = $derived(
-		$nextBossSpawn ? getBossNames($nextBossSpawn.spawn) : "",
-	);
-
-	// Multi-boss count badge
+	const bossNames = $derived($nextBossSpawn ? getBossNames($nextBossSpawn.spawn, " · ") : "");
 	const extraBossCount = $derived(
-		$nextBossSpawn ? Math.max(0, $nextBossSpawn.spawn.bosses.length - 1) : 0
+		$nextBossSpawn ? Math.max(0, $nextBossSpawn.spawn.bosses.length - 1) : 0,
 	);
+	const countdown = $derived($nextBossSpawn ? formatCountdownClock($nextBossSpawn.remainingMs) : "--:--");
 
-	// Whether a grinding session is active
-	const hasActiveSession = $derived(
-		$grindingTimerStore.isRunning || $grindingTimerStore.isPaused
-	);
+	// Spawn state (spec 8d): teal >15m, amber <15m, rust <5m.
+	const spawnState = $derived.by(() => {
+		const ms = $nextBossSpawn?.remainingMs;
+		if (ms == null) return "teal";
+		if (ms <= 5 * 60_000) return "rust";
+		if (ms <= 15 * 60_000) return "amber";
+		return "teal";
+	});
+	const escalated = $derived(spawnState === "rust" && $nextBossSpawn != null);
 
-	// Selected spot name (truncated for mini bar)
-	const spotName = $derived(
-		$selectedSpotStore?.name ?? ""
-	);
+	// Hairline: progress from the previous spawn toward the next one.
+	const spawnProgress = $derived.by(() => {
+		const prev = $previousBossSpawn?.spawnDate?.getTime();
+		const next = $nextBossSpawn?.spawnDate?.getTime();
+		if (!prev || !next || next <= prev) return 0;
+		return Math.min(1, Math.max(0, ($tickStore - prev) / (next - prev)));
+	});
 
-	// Live wall clock — only ticks while MiniMode is mounted (this view).
+	// Grow downward while the escalation line shows; shrink back after.
+	let appliedAlert = false;
+	$effect(() => {
+		if (escalated !== appliedAlert) {
+			appliedAlert = escalated;
+			appWindow.setSize(escalated ? MINI_ALERT_SIZE : MINI_SIZE).catch(() => {});
+		}
+	});
+
+	// ── Clocks (yield to the escalation line) ──
 	let now = $state(new Date());
 	$effect(() => {
 		const id = setInterval(() => { now = new Date(); }, 1000);
 		return () => clearInterval(id);
 	});
-
-	const showClocks = $derived($settingsStore.mini_show_clocks ?? true);
+	const showClocks = $derived(($settingsStore.mini_show_clocks ?? true) && !escalated);
 	const use24h = $derived($settingsStore.clock_format_24h ?? true);
 	const localTime = $derived(use24h ? fmt24(now) : fmt12(now));
 	const serverTime = $derived(use24h ? fmtServer(now) : fmtServer12(now));
@@ -97,275 +83,263 @@
 <div
 	role="banner"
 	onmousedown={startDrag}
-	class="mini-bar"
+	use:idleFade
+	class="mini-shell state-{spawnState}"
 >
-	<!-- BOSS CLUSTER -->
-	<div class="mini-cluster">
-		<button
-			onclick={expandToFull}
-			class="mini-boss-circle"
-			title={m.mini_expand_full()}
-		>
-			{#if primaryBoss}
-				<img
-					src={primaryBoss!.image}
-					alt={primaryBoss!.name}
-					class="w-full h-full object-cover {primaryBoss!.isRare ? 'opacity-50' : ''}"
-				/>
-			{:else}
-				<span class="text-[9px] font-extrabold text-[#ffee10] flex items-center justify-center w-full h-full">BDO</span>
-			{/if}
-			{#if extraBossCount > 0}
-				<div class="mini-boss-badge">+{extraBossCount}</div>
-			{/if}
-		</button>
-
-		<div class="mini-boss-info">
-			{#if $nextBossSpawn}
-				<span class="mini-label truncate max-w-[100px]">{bossNames}</span>
-				<span class="mini-timer">{$nextBossCountdown}</span>
-			{:else}
-				<span class="mini-muted">{m.mini_no_boss()}</span>
-			{/if}
-		</div>
-	</div>
-
-	{#if hasActiveSession && spotName}
-		<!-- DIVIDER -->
-		<div class="mini-divider"></div>
-
-		<!-- ACTIVE GRINDING SESSION -->
-		<div class="mini-cluster">
-			<div class="mini-spot-icon">⚔</div>
-			<div class="mini-boss-info">
-				<span class="mini-label truncate max-w-[100px]">{spotName}</span>
-				<span class="mini-timer">{$grindingTimerDisplay}</span>
+	<div class="mini-row">
+		<!-- Boss portrait: badge parent stays unclipped, image clips inside -->
+		<div class="boss-wrap">
+			<div class="boss-circle">
+				{#if primaryBoss}
+					<img
+						src={primaryBoss!.image}
+						alt={primaryBoss!.name}
+						class="w-full h-full object-cover {primaryBoss!.isRare ? 'opacity-50' : ''}"
+					/>
+				{:else}
+					<img src="/logo.png" alt="" class="w-full h-full object-contain p-1" />
+				{/if}
 			</div>
+			{#if extraBossCount > 0}
+				<span class="boss-badge">+{extraBossCount}</span>
+			{/if}
 		</div>
-	{/if}
 
-	<!-- RIGHT CLUSTER (clocks + controls) -->
-	<div class="mini-right">
+		<!-- The number is the object -->
+		<div class="count-block">
+			{#if $nextBossSpawn}
+				<div class="count-timer">{countdown}</div>
+				<div class="count-names">{bossNames}</div>
+			{:else}
+				<div class="count-names">{m.mini_no_boss()}</div>
+			{/if}
+		</div>
+
+		<div class="v-divider"></div>
+
+		<!-- Session cluster — the only cluster allowed to truncate -->
+		{#if $activeSessionStore}
+			<div class="session-cluster">
+				<img src={$activeSessionStore.icon} alt="" class="session-icon" />
+				<div class="min-w-0 leading-[1.15]">
+					{#if $activeSessionStore.place}
+						<div class="session-place">{$activeSessionStore.place}</div>
+					{/if}
+					<div class="session-timer">{$activeSessionStore.display}</div>
+				</div>
+			</div>
+		{:else}
+			<div class="flex-1 min-w-0"></div>
+		{/if}
+
 		{#if showClocks}
-			<div class="mini-divider mini-divider-clock"></div>
-			<div class="mini-clock-cluster" title={m.mini_clock_cluster_title()}>
-				<div class="mini-clock-row">
-					<span class="mini-clock-label">{m.mini_local_label()}</span>
-					<span class="mini-clock-time">{localTime}</span>
-				</div>
-				<div class="mini-clock-row">
-					<span class="mini-clock-label">{m.mini_server_label()}</span>
-					<span class="mini-clock-time mini-clock-time-svr">{serverTime}</span>
-				</div>
+			<div class="clock-stack" title={m.mini_clock_cluster_title()}>
+				<div class="clock-local">{localTime}</div>
+				<div class="clock-server">{serverTime}</div>
 			</div>
 		{/if}
 
-		<!-- CONTROLS CLUSTER -->
-		<div class="mini-controls">
-			<button onclick={minimize} class="mini-btn" title={m.chrome_titlebar_minimize_title()}>
-				<span class="text-[11px]">&#x2014;</span>
-			</button>
-			<button onclick={expandToMedium} class="mini-btn" title={m.chrome_titlebar_medium_mode_title()}>
-				<span class="text-[9px] font-bold">[+]</span>
-			</button>
-			<button onclick={expandToFull} class="mini-btn" title={m.mini_full_mode_title()}>
-				<span class="text-[11px]">&#x229E;</span>
-			</button>
-			<button onclick={close} class="mini-btn mini-btn-close" title={m.chrome_titlebar_close_title()}>
-				<span class="text-[11px]">&#x2715;</span>
-			</button>
+		<div class="wc-wrap">
+			<WindowControls variant="mini" />
 		</div>
 	</div>
+
+	{#if escalated}
+		<div class="alert-line">
+			<span class="alert-dot"></span>
+			<span class="alert-text">{m.mini_spawn_soon({ names: bossNames })}</span>
+			<span class="alert-count">{formatCountdownMinSec($nextBossSpawn?.remainingMs ?? 0)}</span>
+		</div>
+	{/if}
+
+	<div class="spawn-hairline" style="width: {(spawnProgress * 100).toFixed(1)}%"></div>
 </div>
 
 <style>
-	/* ── Main bar ── */
-	.mini-bar {
+	.mini-shell {
+		--spawn-color: var(--teal);
+		box-sizing: border-box;
+		position: relative;
 		width: 100%;
 		height: 100%;
 		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 0 10px;
-		background: rgba(14, 14, 14, 0.78);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-		border-radius: 4px;
-		box-shadow: 0 0 10px rgba(255, 238, 16, 0.12), inset 0 0 0 1px rgba(225, 182, 255, 0.08);
+		flex-direction: column;
+		background: var(--overlay-paper);
+		border-radius: 8px;
+		box-shadow: var(--shadow-overlay);
+		color: var(--ink);
+		overflow: hidden;
 		cursor: move;
 		user-select: none;
-		overflow: hidden;
+		transition: opacity 0.4s;
 	}
+	.state-amber { --spawn-color: var(--amber); }
+	.state-rust { --spawn-color: var(--rust); }
 
-	/* ── Cluster layout ── */
-	.mini-cluster {
+	/* Idle rule: fade the widget, hide the controls (spec 8d) */
+	.mini-shell:global(.widget-idle) { opacity: 0.55; }
+	.mini-shell:global(.widget-idle) .wc-wrap { opacity: 0; pointer-events: none; }
+	.wc-wrap { transition: opacity 0.25s; flex: none; }
+
+	.mini-row {
+		flex: 1;
+		min-height: 0;
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		flex-shrink: 0;
+		padding: 0 8px;
 	}
 
-	/* ── Boss circle ── */
-	.mini-boss-circle {
-		width: 32px;
-		height: 32px;
+	/* ── Boss portrait ── */
+	.boss-wrap {
+		position: relative;
+		width: 34px;
+		height: 34px;
+		flex: none;
+	}
+	.boss-circle {
+		box-sizing: border-box;
+		width: 34px;
+		height: 34px;
 		border-radius: 50%;
 		overflow: hidden;
-		border: 2px solid #ffee10;
-		background: #0e0e0e;
-		flex-shrink: 0;
-		position: relative;
-		cursor: pointer;
-		transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+		background: var(--overlay-chip);
+		border: 2px solid var(--spawn-color);
 	}
-	.mini-boss-circle:hover {
-		transform: scale(1.08);
-		box-shadow: 0 0 8px rgba(255, 238, 16, 0.4);
-	}
-
-	/* ── Boss +N badge ── */
-	.mini-boss-badge {
+	.boss-badge {
 		position: absolute;
-		bottom: -2px;
-		right: -2px;
-		background: #ffee10;
-		color: #131313;
-		font-size: 7px;
-		font-weight: 700;
-		border-radius: 50%;
+		bottom: -3px;
+		right: -3px;
 		width: 14px;
 		height: 14px;
+		border-radius: 50%;
+		background: var(--spawn-color);
+		color: #fff;
+		font: 700 8px 'IBM Plex Sans', sans-serif;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		line-height: 1;
 	}
 
-	/* ── Boss info stack ── */
-	.mini-boss-info {
-		display: flex;
-		flex-direction: column;
+	/* ── Countdown block ── */
+	.count-block {
+		flex: none;
 		min-width: 0;
-		line-height: 1.2;
+		line-height: 1.1;
 	}
-
-	/* ── Labels and timers ── */
-	.mini-label {
-		font-family: 'Manrope', sans-serif;
-		font-size: 11px;
-		font-weight: 700;
-		color: #e5e2e1;
-	}
-	.mini-timer {
-		font-family: 'Space Grotesk', monospace;
-		font-size: 14px;
-		font-weight: 700;
-		color: #ffee10;
+	.count-timer {
+		font: 600 20px 'IBM Plex Mono', monospace;
 		font-variant-numeric: tabular-nums;
-		letter-spacing: 0.5px;
-		text-shadow: 0 0 6px rgba(255, 238, 16, 0.3);
+		color: var(--spawn-color);
 	}
-	.mini-muted {
-		font-family: 'Manrope', sans-serif;
-		font-size: 10px;
-		color: #b0a4b4;
+	.state-rust .count-timer {
+		animation: pulse-once 0.6s ease;
 	}
-
-	/* ── Spot icon ── */
-	.mini-spot-icon {
-		width: 24px;
-		height: 24px;
-		border-radius: 4px;
-		background: #201f1f;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 12px;
-		flex-shrink: 0;
+	@keyframes pulse-once {
+		0% { transform: scale(1); }
+		40% { transform: scale(1.06); }
+		100% { transform: scale(1); }
+	}
+	.count-names {
+		/* Legibility pass: 9.5px was illegible under the 55% idle fade */
+		font: 500 11px 'IBM Plex Sans', sans-serif;
+		color: var(--ink-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 110px;
 	}
 
-	/* ── Divider ── */
-	.mini-divider {
+	.v-divider {
 		width: 1px;
-		height: 32px;
-		background: #2a2a2a;
-		flex-shrink: 0;
-	}
-	.mini-divider-clock {
-		height: 28px;
+		height: 30px;
+		background: var(--divider-strong);
+		flex: none;
 	}
 
-	/* ── Right cluster (clocks + controls) ── */
-	.mini-right {
+	/* ── Session ── */
+	.session-cluster {
+		flex: 1;
+		min-width: 0;
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		margin-left: auto;
-		flex-shrink: 0;
-	}
-
-	/* ── Clock cluster ── */
-	.mini-clock-cluster {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		line-height: 1.15;
-		flex-shrink: 0;
-	}
-	.mini-clock-row {
-		display: flex;
-		align-items: baseline;
 		gap: 6px;
 	}
-	.mini-clock-label {
-		font-family: 'Space Grotesk', sans-serif;
-		font-size: 8px;
-		letter-spacing: 0.18em;
-		color: #b0a4b4;
+	.session-icon {
+		width: 16px;
+		height: 16px;
+		flex: none;
+		object-fit: contain;
 	}
-	.mini-clock-time {
-		font-family: 'JetBrains Mono', ui-monospace, monospace;
-		font-size: 13px;
-		font-weight: 700;
-		color: #e5e2e1;
-		letter-spacing: 0.5px;
+	.session-place {
+		font: 500 9.5px 'IBM Plex Sans', sans-serif;
+		color: var(--ink-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.session-timer {
+		font: 600 12.5px 'IBM Plex Mono', monospace;
 		font-variant-numeric: tabular-nums;
-	}
-	.mini-clock-time-svr {
-		font-size: 11px;
-		font-weight: 600;
-		color: #bdf4ff;
-		opacity: 0.85;
+		color: var(--ink);
 	}
 
-	/* ── Control buttons ── */
-	.mini-controls {
+	/* ── Bare clocks — no labels (Mini B) ── */
+	.clock-stack {
+		flex: none;
+		text-align: right;
+		line-height: 1.2;
+	}
+	.clock-local {
+		font: 600 11px 'IBM Plex Mono', monospace;
+		font-variant-numeric: tabular-nums;
+		color: var(--ink);
+	}
+	.clock-server {
+		font: 500 10px 'IBM Plex Mono', monospace;
+		font-variant-numeric: tabular-nums;
+		color: var(--ink-faint);
+	}
+
+	/* ── 5-minute escalation line ── */
+	.alert-line {
+		height: 26px;
+		flex: none;
 		display: flex;
 		align-items: center;
-		gap: 4px;
-		flex-shrink: 0;
+		gap: 8px;
+		padding: 0 10px;
+		background: #f7e7e0;
 	}
-	.mini-btn {
-		width: 20px;
-		height: 20px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: #201f1f;
-		border-radius: 2px;
-		color: #e5e2e1;
-		cursor: pointer;
-		transition: background 0.15s, box-shadow 0.15s;
-		border: none;
-		padding: 0;
+	.alert-dot {
+		width: 7px;
+		height: 7px;
+		flex: none;
+		border-radius: 50%;
+		background: var(--rust);
 	}
-	.mini-btn:hover {
-		background: #2a2a2a;
-		box-shadow: 0 0 6px rgba(255, 238, 16, 0.4);
-		color: #ffee10;
+	.alert-text {
+		font: 600 11px 'IBM Plex Sans', sans-serif;
+		color: var(--rust-deep);
+		flex: 1;
+		min-width: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
-	.mini-btn-close:hover {
-		background: #93000a;
-		box-shadow: 0 0 6px rgba(255, 0, 0, 0.4);
+	.alert-count {
+		font: 600 11px 'IBM Plex Mono', monospace;
+		font-variant-numeric: tabular-nums;
+		color: var(--rust-deep);
+	}
+
+	/* ── Spawn hairline ── */
+	.spawn-hairline {
+		position: absolute;
+		left: 0;
+		bottom: 0;
+		height: 2px;
+		background: var(--spawn-color);
 	}
 </style>
